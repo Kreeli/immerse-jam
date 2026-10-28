@@ -1,0 +1,11 @@
+librosa==0.11.0
+pretty-midi==0.2.10
+soundfile==0.13.1
+numpy>=2.0,<2.4
+scipy>=1.13,<1.17
+PyYAML==6.0.3
+onnxruntime>=1.22,<1.25
+audio-separator==0.47.1
+torchaudio==2.8.0
+torchvision==0.23.0
+setuptools==80.9.0

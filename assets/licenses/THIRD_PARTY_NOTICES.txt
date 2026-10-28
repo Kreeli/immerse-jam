@@ -1,0 +1,58 @@
+Immerse Jam uses the following unmodified open-source components.
+Copyright and license texts are included in this directory.
+
+@coderline/alphatab 1.8.4 — MPL-2.0
+git+https://github.com/coderline/alphaTab.git
+
+@soundtouchjs/audio-worklet 2.1.1 — MPL-2.0
+git+https://github.com/cutterbl/SoundTouchJS.git
+
+@soundtouchjs/core 2.1.1 — MPL-2.0
+git+https://github.com/cutterbl/SoundTouchJS.git
+
+@tonejs/midi 2.0.28 — MIT
+https://github.com/Tonejs/Midi.git
+
+react 19.3.1 — MIT
+https://github.com/react/react.git
+
+react-dom 19.3.1 — MIT
+https://github.com/react/react.git
+
+fflate 0.8.3 — MIT
+https://github.com/101arrowz/fflate
+
+qrcode 1.5.4 — MIT
+git://github.com/soldair/node-qrcode.git
+
+archiver 7.0.1 — MIT
+https://github.com/archiverjs/node-archiver.git
+
+adm-zip 0.6.1 — MIT
+https://github.com/cthackers/adm-zip.git
+
+yauzl 3.4.0 — MIT
+git+https://github.com/thejoshwolfe/yauzl.git
+
+ws 8.22.0 — MIT
+git+https://github.com/websockets/ws.git
+
+ffmpeg-static 5.3.0 — GPL-3.0-or-later
+https://github.com/eugeneware/ffmpeg-static
+
+lucide-react 1.63.0 — ISC
+https://github.com/lucide-icons/lucide.git
+
+SCNet: backend/vendor/scnet/LICENSE
+Beat This! 1.1.0: backend/vendor/beat_this/LICENSE (MIT)
+Beat This! source: https://github.com/CPJKU/beat_this
+Beat This! pinned PyPI source and checksum: backend/vendor/beat_this/SOURCE.json
+Audio-separator, PyTorch and Python dependencies: installed with their package license files at first use.
+Model weights: downloaded separately; see each model's source and license in model catalog.
+
+alphaTab 1.8.4 source: https://github.com/CoderLine/alphaTab/tree/022a45c8e42370f9e12e68949d11eada370da83d
+SoundTouchJS 2.1.1 source: https://github.com/cutterbl/SoundTouchJS/tree/v2.1.1
+FFmpeg 6.1.1 source: https://github.com/FFmpeg/FFmpeg/commit/e38092ef93
+FFmpeg build configuration and linked library versions: ffmpeg-static/ffmpeg.exe.README
+FFmpeg build source distribution: https://www.gyan.dev/ffmpeg/builds/
+uv source and license: https://github.com/astral-sh/uv/tree/0.13.6 (MIT OR Apache-2.0)

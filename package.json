@@ -1,0 +1,99 @@
+{
+  "name": "immerse-jam",
+  "version": "0.1.4",
+  "private": true,
+  "type": "module",
+  "description": "Local music separation and synchronized practice workspace",
+  "author": "Kreeli",
+  "main": "desktop/main.cjs",
+  "scripts": {
+    "dev": "node scripts/dev.cjs",
+    "build": "node scripts/prepare-preload.cjs && tsc --noEmit && vite build && node scripts/prepare-notices.cjs && node scripts/copy-assets.cjs",
+    "start": "electron .",
+    "test": "node --test tests/*.test.cjs",
+    "test:backend": "node scripts/test-backend.cjs",
+    "prepare:runtime": "node scripts/prepare-runtime.cjs",
+    "package": "npm run build && node scripts/package.cjs nsis",
+    "package:portable": "npm run build && node scripts/package.cjs dir",
+    "check": "tsc --noEmit && node scripts/check-i18n.cjs && node scripts/check-desktop.cjs",
+    "format": "prettier --write src desktop shared scripts tests docs .github *.json *.md *.ts index.html",
+    "format:check": "prettier --check src desktop shared scripts tests docs .github *.json *.md *.ts index.html"
+  },
+  "dependencies": {
+    "@coderline/alphatab": "1.8.4",
+    "@soundtouchjs/audio-worklet": "2.1.1",
+    "@tonejs/midi": "2.0.28",
+    "adm-zip": "0.6.1",
+    "archiver": "7.0.1",
+    "fflate": "0.8.3",
+    "lucide-react": "1.63.0",
+    "qrcode": "1.5.4",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "ws": "8.22.0",
+    "yauzl": "3.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "electron": "45.1.0",
+    "electron-builder": "26.18.0",
+    "ffmpeg-static": "5.3.0",
+    "playwright": "1.64.1",
+    "prettier": "3.9.10",
+    "typescript": "5.9.3",
+    "vite": "8.3.5"
+  },
+  "build": {
+    "appId": "app.immersejam.desktop",
+    "productName": "Immerse Jam",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "desktop/**/*",
+      "package.json",
+      "shared/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "backend",
+        "to": "backend",
+        "filter": [
+          "**/*",
+          "!**/__pycache__/**"
+        ]
+      },
+      {
+        "from": "assets",
+        "to": "assets"
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "signExecutable": false,
+      "icon": "assets/app-icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Immerse Jam",
+      "runAfterFinish": true,
+      "installerLanguages": [
+        "en_US",
+        "zh_CN"
+      ],
+      "displayLanguageSelector": true
+    },
+    "electronDist": "node_modules/electron/dist"
+  },
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Kreeli/immerse-jam.git"
+  },
+  "homepage": "https://github.com/Kreeli/immerse-jam"
+}
