@@ -19,7 +19,7 @@ https://github.com/react/react.git
 react-dom 19.3.1 — MIT
 https://github.com/react/react.git
 
-fflate 0.8.2 — MIT
+fflate 0.8.3 — MIT
 https://github.com/101arrowz/fflate
 
 qrcode 1.5.4 — MIT
@@ -28,10 +28,10 @@ git://github.com/soldair/node-qrcode.git
 archiver 7.0.1 — MIT
 https://github.com/archiverjs/node-archiver.git
 
-adm-zip 0.5.16 — MIT
+adm-zip 0.6.1 — MIT
 https://github.com/cthackers/adm-zip.git
 
-yauzl 3.2.0 — MIT
+yauzl 3.4.0 — MIT
 git+https://github.com/thejoshwolfe/yauzl.git
 
 ws 8.22.0 — MIT
@@ -45,13 +45,13 @@ https://github.com/lucide-icons/lucide.git
 
 SCNet: backend/vendor/scnet/LICENSE
 Beat This! 1.1.0: backend/vendor/beat_this/LICENSE (MIT)
-Beat This! source: https://github.com/CPJKU/beat_this/tree/v1.1.0
+Beat This! source: https://github.com/CPJKU/beat_this
 Beat This! pinned PyPI source and checksum: backend/vendor/beat_this/SOURCE.json
 Audio-separator, PyTorch and Python dependencies: installed with their package license files at first use.
 Model weights: downloaded separately; see each model's source and license in model catalog.
 
-alphaTab 1.8.4 source: https://github.com/CoderLine/alphaTab/tree/v1.8.4
-SoundTouchJS 2.1.1 source: https://github.com/cutterbl/SoundTouchJS
+alphaTab 1.8.4 source: https://github.com/CoderLine/alphaTab/tree/022a45c8e42370f9e12e68949d11eada370da83d
+SoundTouchJS 2.1.1 source: https://github.com/cutterbl/SoundTouchJS/tree/v2.1.1
 FFmpeg 6.1.1 source: https://github.com/FFmpeg/FFmpeg/commit/e38092ef93
 FFmpeg build configuration and linked library versions: ffmpeg-static/ffmpeg.exe.README
 FFmpeg build source distribution: https://www.gyan.dev/ffmpeg/builds/

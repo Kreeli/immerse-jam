@@ -1,0 +1,11 @@
+node_modules/
+.runtime/
+.research/
+release/
+dist/
+test-output/
+backend/vendor/
+assets/licenses/
+package-lock.json
+
+desktop/preload.cjs

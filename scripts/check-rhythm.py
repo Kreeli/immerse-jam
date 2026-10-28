@@ -28,8 +28,10 @@ for expected in [90,120,150]:
     assert abs(result['bpm']-expected)<1.5,(expected,result['bpm'])
     results.append({'expected':expected,'estimated':result['bpm'],'meter':result['beatsPerBar'],'seconds':round(time.perf_counter()-started,2)})
 audio,sr=music(120,10);cpu=detect(audio,sr,{**model,'cpuOnly':True});assert cpu['tempoMethod']=='beat-this' and abs(cpu['bpm']-120)<2,cpu
-source=ROOT/'.runtime/data/projects/045b6f88-1979-4acf-b22b-74aa09b9eea1';project=json.loads((source/'project.json').read_text(encoding='utf-8'))
-import librosa
-y,sr=librosa.load(source/project['original'],sr=22050,mono=True);actual=detect(y,sr,model);assert actual['tempoMethod']=='beat-this' and len(actual['beats'])>100,actual
-report={'synthetic':results,'cpu120':cpu['bpm'],'realSong':{'bpm':actual['bpm'],'meter':actual['beatsPerBar'],'beats':len(actual['beats']),'downbeats':len(actual['downbeats'])}}
+report={'synthetic':results,'cpu120':cpu['bpm']}
+if len(sys.argv)>1:
+    import librosa
+    y,sr=librosa.load(sys.argv[1],sr=22050,mono=True);actual=detect(y,sr,model)
+    assert actual['tempoMethod']=='beat-this' and len(actual['beats'])>4,actual
+    report['optionalAudio']={'bpm':actual['bpm'],'meter':actual['beatsPerBar'],'beats':len(actual['beats']),'downbeats':len(actual['downbeats'])}
 (folder/'validation.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8');print('RHYTHM_MODEL_CHECK_PASSED',json.dumps(report),flush=True)

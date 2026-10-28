@@ -1,0 +1,545 @@
+.brand-mark {
+  overflow: hidden;
+  background: var(--tone-09070c, #09070c);
+}
+.brand-mark img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+.track-meter-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 7px 0 10px;
+  height: 9px;
+}
+.track-meter {
+  flex: 1;
+  height: 4px;
+  overflow: hidden;
+  background: var(--tone-36303d, #36303d);
+  border-radius: 3px;
+}
+.track-meter > span {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: var(--tone-91b8a9, #91b8a9);
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+.track-meter-wrap > small {
+  font-size: 8px;
+  color: var(--tone-8c7f96, #8c7f96);
+  width: 35px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.track-slider button.track-switch {
+  width: auto;
+  min-width: 35px;
+  padding: 5px 6px;
+  font-size: 9px;
+  white-space: nowrap;
+}
+.track-slider button.track-switch:last-child {
+  min-width: 55px;
+}
+.practice-marks {
+  flex: none;
+  border-top: 1px solid var(--tone-302733, #302733);
+  background: var(--tone-17131c, #17131c);
+  padding: 12px 24px 14px;
+}
+.practice-marks-tabs {
+  display: flex;
+  gap: 7px;
+  margin-bottom: 8px;
+}
+.practice-marks-tabs > button {
+  padding: 5px 9px;
+  font-size: 10px;
+  border: 0;
+  background: transparent;
+  color: var(--tone-8c7d97, #8c7d97);
+}
+.practice-marks-tabs > button.selected {
+  background: var(--tone-36243d, #36243d);
+  color: var(--tone-e4bbd7, #e4bbd7);
+}
+.practice-marks-tabs small {
+  color: var(--tone-a37aaf, #a37aaf);
+  font-size: 9px;
+  margin-left: 3px;
+}
+.practice-marks-list {
+  max-height: 126px;
+  min-height: 36px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.practice-marks-list > p {
+  font-size: 10px;
+  color: var(--tone-74667f, #74667f);
+  margin: 8px 0;
+  line-height: 1.7;
+}
+.practice-mark-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--tone-312737, #312737);
+  border-radius: 7px;
+  background: var(--tone-1e1725, #1e1725);
+  flex-wrap: wrap;
+}
+.practice-mark-row.active-mark {
+  border-color: var(--tone-85607e, #85607e);
+  background: var(--tone-302033, #302033);
+}
+.mark-jump {
+  border: 0;
+  background: none;
+  justify-content: flex-start;
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  font-size: 11px;
+}
+.mark-jump > strong {
+  font-weight: 450;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.mark-jump > small {
+  font-size: 9px;
+  color: var(--tone-927ba1, #927ba1);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  margin-left: auto;
+}
+.mark-jump > span {
+  font-size: 8px;
+  color: var(--tone-b3cfae, #b3cfae);
+  white-space: nowrap;
+}
+.practice-mark-row > .icon-button {
+  padding: 6px;
+  color: var(--tone-8c7099, #8c7099);
+}
+.practice-mark-row > form {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  width: 100%;
+  padding: 0 9px 9px;
+}
+.practice-mark-row > form > input {
+  min-width: 80px;
+  flex: 1;
+  font-size: 11px;
+  padding: 6px 9px;
+}
+.practice-mark-row > form > button {
+  font-size: 9px;
+  padding: 6px 9px;
+}
+.range-capture {
+  font-size: 10px;
+  padding: 7px 12px;
+  background: var(--tone-39243b, #39243b);
+  border-color: var(--tone-684363, #684363);
+  color: var(--tone-e4b3cf, #e4b3cf);
+}
+.range-capture.recording-range {
+  background: var(--tone-533341, #533341);
+  border-color: var(--tone-ac6d86, #ac6d86);
+  color: var(--tone-f5c6d8, #f5c6d8);
+}
+.pending-range-time {
+  font-size: 9px;
+  color: var(--tone-b191ac, #b191ac);
+  font-variant-numeric: tabular-nums;
+}
+.loop-stop {
+  color: var(--tone-a4bda6, #a4bda6);
+}
+.count-in-badge {
+  font-size: 11px;
+  padding: 6px 10px;
+  border-radius: 7px;
+  background: var(--tone-2c3a34, #2c3a34);
+  color: var(--tone-bcd6c4, #bcd6c4);
+  white-space: nowrap;
+}
+.count-in-control > label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.count-in-control > label > input {
+  margin-left: auto;
+}
+.count-in-options {
+  margin: 10px 0 14px;
+  padding: 11px;
+  background: var(--tone-221b29, #221b29);
+  border: 1px solid var(--tone-382a43, #382a43);
+  border-radius: 8px;
+}
+.toggles .count-in-options > label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+  gap: 8px;
+  margin: 0 0 9px;
+}
+.count-in-options input {
+  width: 74px;
+  font-size: 11px;
+  padding: 5px 7px;
+}
+.count-in-options select {
+  font-size: 10px;
+  padding: 5px 7px;
+}
+.count-in-options small {
+  display: block;
+  font-size: 9px;
+  color: var(--tone-806b8e, #806b8e);
+  line-height: 1.6;
+}
+.now-title {
+  overflow: visible;
+}
+.now-title > strong {
+  overflow: hidden;
+}
+.analysis-meta-wrap {
+  position: relative;
+}
+.analysis-editor {
+  position: absolute;
+  left: 0;
+  top: 24px;
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--tone-2a1e32, #2a1e32);
+  border: 1px solid var(--tone-724d80, #724d80);
+  padding: 11px;
+  border-radius: 9px;
+  box-shadow: 0 8px 26px var(--tone-0007, #0007);
+  white-space: nowrap;
+}
+.analysis-editor label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+}
+.analysis-editor input {
+  font-size: 12px;
+  width: 90px;
+  padding: 6px 9px;
+}
+.analysis-editor button {
+  font-size: 10px;
+  padding: 6px 8px;
+}
+.analysis-editor small {
+  font-size: 9px;
+  color: var(--tone-b39abe, #b39abe);
+}
+.metronome-volume {
+  display: flex !important;
+  align-items: center;
+  font-size: 10px !important;
+  gap: 8px !important;
+  margin: 9px 0 16px !important;
+}
+.metronome-volume input {
+  width: 85px;
+  margin-left: auto;
+}
+.metronome-volume small {
+  min-width: 26px;
+  text-align: right;
+}
+.practice-record-actions {
+  display: flex;
+  gap: 7px;
+  padding: 15px 0;
+  border-top: 1px solid var(--tone-332b39, #332b39);
+  margin-top: 17px;
+  flex-wrap: wrap;
+}
+.practice-record-actions .small {
+  font-size: 10px;
+  padding: 7px 9px;
+}
+.recording-mode-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 15px 0;
+}
+.recording-mode-options button {
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  background: var(--tone-24202b, #24202b);
+  border: 1px solid var(--tone-3d3047, #3d3047);
+  padding: 15px;
+}
+.recording-mode-options button.selected {
+  background: var(--tone-392438, #392438);
+  border-color: var(--tone-ba7394, #ba7394);
+}
+.recording-mode-options strong {
+  font-size: 13px;
+}
+.recording-mode-options small {
+  font-size: 10px;
+  color: var(--tone-b496b3, #b496b3);
+}
+.recording-device-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin: 23px 0 17px;
+}
+.recording-device-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--tone-b6a3be, #b6a3be);
+}
+.recording-device-grid select,
+.recording-device-grid input {
+  width: 100%;
+  min-width: 0;
+  font-size: 12px;
+  padding: 9px;
+}
+.recorder-dialog {
+  z-index: 45;
+}
+.recorder-dialog .muted {
+  font-size: 11px;
+  line-height: 1.9;
+}
+.take-import-controls {
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin: 20px 0;
+}
+.take-import-controls > label {
+  font-size: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: var(--tone-ac98b5, #ac98b5);
+}
+.take-import-controls input {
+  width: 125px;
+  padding: 7px;
+  font-size: 12px;
+}
+.take-library-list {
+  max-height: 48vh;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.take-library-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid var(--tone-3d2b48, #3d2b48);
+  background: var(--tone-241c2b, #241c2b);
+  border-radius: 9px;
+  padding: 10px;
+}
+.take-library-row > div {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.take-library-row input {
+  width: 100%;
+  background: transparent;
+  border-color: transparent;
+  font-size: 12px;
+  padding: 4px;
+}
+.take-library-row input:focus {
+  border-color: var(--tone-9e618d, #9e618d);
+}
+.take-library-row small {
+  font-size: 9px;
+  color: var(--tone-9c7fa9, #9c7fa9);
+}
+.take-library-row > .small {
+  font-size: 10px;
+  white-space: nowrap;
+}
+.take-library-row button.selected {
+  background: var(--tone-493345, #493345);
+  color: var(--tone-efc4d8, #efc4d8);
+}
+.take-timing {
+  margin: -8px 0 16px;
+  padding: 9px 11px;
+  background: var(--tone-221b29, #221b29);
+  border: 1px solid var(--tone-382c43, #382c43);
+  border-radius: 7px;
+}
+.take-timing > small {
+  font-size: 9px;
+  color: var(--tone-b490bb, #b490bb);
+}
+.take-timing summary {
+  font-size: 10px;
+  color: var(--tone-a38aad, #a38aad);
+  margin: 8px 0;
+  cursor: pointer;
+}
+.take-timing label {
+  display: flex;
+  flex-direction: column;
+  font-size: 9px;
+  gap: 6px;
+  margin: 10px 0;
+  color: var(--tone-aa91b5, #aa91b5);
+}
+.take-timing input {
+  width: 100%;
+  font-size: 11px;
+  padding: 6px 8px;
+}
+.take-timing details > div {
+  display: flex;
+  gap: 5px;
+}
+.take-timing details .small {
+  font-size: 9px;
+  padding: 5px;
+}
+.take-timing details > small {
+  display: block;
+  font-size: 9px;
+  color: var(--tone-8e739e, #8e739e);
+  line-height: 1.7;
+  margin-top: 9px;
+}
+.take-timing > .text-button {
+  font-size: 9px;
+  padding: 5px 0;
+  margin-top: 5px;
+}
+.input-live-meter {
+  width: 90px;
+  height: 5px;
+  overflow: hidden;
+  background: var(--tone-473446, #473446);
+  border-radius: 3px;
+}
+.live-recording-wave {
+  width: 130px;
+  height: 32px;
+  flex-shrink: 0;
+  color: var(--tone-9dccad, #9dccad);
+}
+.live-recording-wave path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 0.7;
+}
+.input-live-meter > i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--tone-9dccad, #9dccad);
+  transform-origin: left;
+}
+.recording-bar > small {
+  font-size: 9px;
+  color: var(--tone-b79bab, #b79bab);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.is-recording .sidebar,
+.is-recording .player-header,
+.is-recording .transport,
+.is-recording .wave-workspace,
+.is-recording .result-picker,
+.is-recording .pitch-buttons {
+  pointer-events: none;
+  opacity: 0.8;
+}
+.is-recording .recording-bar {
+  pointer-events: auto;
+  opacity: 1;
+}
+.latency-calibration {
+  padding: 16px;
+  margin: 17px 0;
+  border: 1px solid var(--tone-4d3758, #4d3758);
+  border-radius: 10px;
+  background: var(--tone-211a2a, #211a2a);
+}
+.latency-calibration > strong {
+  font-size: 12px;
+}
+.latency-calibration p {
+  font-size: 11px;
+  color: var(--tone-b8a4c4, #b8a4c4);
+  line-height: 1.8;
+}
+.latency-calibration > small {
+  display: block;
+  color: var(--tone-967da5, #967da5);
+  font-size: 10px;
+  line-height: 1.8;
+  margin-bottom: 12px;
+}
+.calibration-running,
+.calibration-result {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  margin-top: 12px;
+}
+.calibration-running meter {
+  width: 90px;
+}
+.calibration-result span {
+  color: var(--tone-a78db5, #a78db5);
+  font-size: 10px;
+}
+.project-name-editor {
+  font-size: 13px;
+  width: 220px;
+  max-width: 100%;
+}
