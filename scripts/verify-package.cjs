@@ -40,7 +40,8 @@ hash.update(fs.readFileSync(installer));
 const sha256 = hash.digest('hex');
 fs.writeFileSync(
   path.resolve('release', `SHA256SUMS-${manifest.version}.txt`),
-  `${sha256}  ${path.basename(installer)}\n`,
+  // GitHub normalizes spaces in uploaded asset names to periods.
+  `${sha256}  ${path.basename(installer).replaceAll(' ', '.')}\n`,
 );
 console.log(
   JSON.stringify(

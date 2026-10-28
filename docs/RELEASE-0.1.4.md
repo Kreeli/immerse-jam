@@ -15,7 +15,7 @@ The release adds selectable recording devices/channels, instrument-only or hardw
 
 ## Download / 下载
 
-`Immerse Jam Setup 0.1.4.exe` is for Windows 10/11 x64. Compare it against the accompanying SHA-256 file. The installer is unsigned. Your existing local library is separate from the installer.
+`Immerse.Jam.Setup.0.1.4.exe` is for Windows 10/11 x64. Compare it against the accompanying SHA-256 file. The installer is unsigned. Your existing local library is separate from the installer.
 
 Audio tools download automatically when first needed. AI separation/analysis requires the private environment and selected models to be prepared in Settings & models. Neither model weights nor personal media are bundled.
 
