@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { isAndroid } from '../platform/environment';
+import AndroidTransferSharing from '../platform/android/TransferSharing';
 import donation from '../../assets/author-wechat.png';
 import type { LiveEnvelope } from '../audio/live-envelope';
 import { sourceTracks } from '../audio/performance';
@@ -72,6 +73,7 @@ export default function App() {
   const [sessionSource, setSessionSource] = useState<Project | null>(null);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [mobileMixer, setMobileMixer] = useState(false);
+  const [refreshRhythm, setRefreshRhythm] = useState(false);
   const androidBack = useRef<() => boolean>(() => false);
   const folderProps = {
     folders: controller.folders,
@@ -752,12 +754,24 @@ export default function App() {
                     : tr('选择练习方式，所有计算都在这台电脑完成。')}
                 </p>
                 <AnalysisNote />
+                {isAndroid && !!project?.analysis?.beats.length && (
+                  <label className="notice">
+                    <input
+                      type="checkbox"
+                      checked={refreshRhythm}
+                      onChange={(e) => setRefreshRhythm(e.target.checked)}
+                    />
+                    {tr('重新识别节拍（替换已有节拍）')}
+                    <small>{tr('默认保留导入或已校准的节拍，只更新和弦。')}</small>
+                  </label>
+                )}
                 <button
                   className="analysis-only"
                   disabled={!!job}
                   onClick={() => {
                     setModal(null);
-                    void run('analyze');
+                    void run('analyze', refreshRhythm);
+                    setRefreshRhythm(false);
                   }}
                 >
                   <Music2 size={18} />
@@ -983,7 +997,11 @@ export default function App() {
                   >
                     <Download size={22} />
                     <strong>{loop ? tr('当前循环段落混音') : tr('当前混音')}</strong>
-                    <small>{tr('WAV / MP3 \u00B7 应用音量、速度和移调')}</small>
+                    <small>
+                      {isAndroid
+                        ? tr('WAV · 应用音量、速度和移调')
+                        : tr('WAV / MP3 \u00B7 应用音量、速度和移调')}
+                    </small>
                   </button>
                 </div>
               </>
@@ -1101,11 +1119,13 @@ export default function App() {
             )}
             {modal === 'transfer' && (
               <>
-                <p className="muted">
-                  {tr(
-                    '选择歌曲，用手机扫描二维码。双方连接同一 Wi‑Fi 或手机热点，原曲和分轨直接互传。',
-                  )}
-                </p>
+                {!isAndroid && (
+                  <p className="muted">
+                    {tr(
+                      '选择歌曲，用手机扫描二维码。双方连接同一 Wi‑Fi 或手机热点，原曲和分轨直接互传。',
+                    )}
+                  </p>
+                )}
                 <div className="selection-list">
                   {library.map((p) => (
                     <label key={p.id}>
@@ -1128,40 +1148,46 @@ export default function App() {
                     </label>
                   ))}
                 </div>
-                <button
-                  className="primary"
-                  disabled={!selected.length}
-                  onClick={() =>
-                    void act(async () =>
-                      setPair(await window.jam.call('pair-start', { ids: selected })),
-                    )
-                  }
-                >
-                  <Share2 size={16} />
-                  {tr('生成配对二维码')}
-                </button>
-                {pair && (
-                  <div className="pair-box">
-                    <img src={pair.qr} alt={tr('设备互传配对二维码')} />
-                    <div>
-                      <strong>{tr('手机扫码接收 / 发送歌曲')}</strong>
-                      <p>{tr('配对有效期 30 分钟。')}</p>
-                      <input aria-label={tr('配对地址')} readOnly value={pair.url} />
-                      <button
-                        className="small"
-                        onClick={() => {
-                          void window.jam.call('pair-stop');
-                          setPair(null);
-                        }}
-                      >
-                        {tr('结束本次互传')}
-                      </button>
-                    </div>
-                  </div>
+                {isAndroid ? (
+                  <AndroidTransferSharing ids={selected} onError={notify} />
+                ) : (
+                  <>
+                    <button
+                      className="primary"
+                      disabled={!selected.length}
+                      onClick={() =>
+                        void act(async () =>
+                          setPair(await window.jam.call('pair-start', { ids: selected })),
+                        )
+                      }
+                    >
+                      <Share2 size={16} />
+                      {tr('生成配对二维码')}
+                    </button>
+                    {pair && (
+                      <div className="pair-box">
+                        <img src={pair.qr} alt={tr('设备互传配对二维码')} />
+                        <div>
+                          <strong>{tr('手机扫码接收 / 发送歌曲')}</strong>
+                          <p>{tr('配对有效期 30 分钟。')}</p>
+                          <input aria-label={tr('配对地址')} readOnly value={pair.url} />
+                          <button
+                            className="small"
+                            onClick={() => {
+                              void window.jam.call('pair-stop');
+                              setPair(null);
+                            }}
+                          >
+                            {tr('结束本次互传')}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    <p className="notice">
+                      {tr('如果电脑有多个网络连接，请选用手机所在网络的配对地址。')}
+                    </p>
+                  </>
                 )}
-                <p className="notice">
-                  {tr('如果电脑有多个网络连接，请选用手机所在网络的配对地址。')}
-                </p>
                 <RemoteTransfer ids={selected} onError={notify} />
               </>
             )}

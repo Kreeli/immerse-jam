@@ -95,7 +95,17 @@ public class ProjectStore {
     if (records != null)
       for (File record : records)
         if (record.getName().startsWith(id + "-") && record.getName().endsWith(".json")) {
-          JSONObject result = read(record).getJSONObject("result");
+          JSONObject entry = read(record);
+          if (entry.has("patch")) {
+            JSONObject patch = entry.getJSONObject("patch");
+            for (String key : List.of("analysis", "alignment"))
+              if (patch.has(key)) p.put(key, patch.get(key));
+            validate(p);
+            write(new File(dir(id), "project.json"), p);
+            record.delete();
+            continue;
+          }
+          JSONObject result = entry.getJSONObject("result");
           boolean exists = false;
           JSONArray results = p.getJSONArray("results");
           for (int i = 0; i < results.length(); i++)
@@ -284,7 +294,21 @@ public class ProjectStore {
     try (InputStream in = context.getContentResolver().openInputStream(uri);
         OutputStream out = new FileOutputStream(dest)) {
       if (in == null) throw new IOException("无法读取文件");
-      copy(in, out);
+      byte[] bytes = new byte[65536];
+      long total = 0;
+      int n;
+      while ((n = in.read(bytes)) != -1) {
+        if (Thread.currentThread().isInterrupted()) throw new IOException("已取消");
+        total += n;
+        if (total > 8L * 1024 * 1024 * 1024) throw new IOException("单个文件不能超过 8 GB");
+        if (total % (16 * 1048576) < 65536
+            && dest.getParentFile().getUsableSpace() < 100L * 1048576)
+          throw new IOException("剩余存储空间不足");
+        out.write(bytes, 0, n);
+      }
+    } catch (Exception error) {
+      dest.delete();
+      throw error;
     }
     return dest;
   }

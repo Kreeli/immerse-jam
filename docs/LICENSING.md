@@ -15,6 +15,8 @@ This is **source-available software with a noncommercial restriction**, not an O
 - Electron, Python, PyTorch and other separately installed runtime components: retain their upstream licenses. Python package licenses are installed with the packages in the app's private runtime.
 - Model weights: downloaded separately from the catalog's upstream URLs. Each model's own terms apply. No permission over someone else's model weights is granted by Immerse Jam's license.
 
+Android builds embed the designated UVR and converted Beat This! models listed in `platforms/android/model-catalog.json`; see that platform's third-party notices and bundled license texts. The Beat This! conversion uses the same pinned final0 weights as Windows.
+
 ## FFmpeg
 
 The Windows installer does **not** bundle the GPL-licensed FFmpeg executable or the `ffmpeg-static` JavaScript module. When audio processing is first needed, the app downloads the independent executable directly from its upstream release, verifies SHA-256, and runs it through its command-line interface. It does not link FFmpeg libraries into the application's original code.

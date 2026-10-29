@@ -40,14 +40,14 @@ class PeerFiles {
     }
     return result;
   }
-  read({ id, offset }) {
+  read({ id, offset, binary = false }) {
     const item = this.outgoing.get(id);
     if (!item || !Number.isSafeInteger(offset) || offset < 0 || offset > item.size)
       throw new Error('无效传输片段');
     const buffer = Buffer.alloc(Math.min(48 * 1024, item.size - offset)),
       fd = item.fd;
     fs.readSync(fd, buffer, 0, buffer.length, offset);
-    return buffer.toString('base64');
+    return binary ? new Uint8Array(buffer) : buffer.toString('base64');
   }
   begin(item) {
     if (this.incoming.size) throw new Error('已有文件正在接收');
@@ -76,9 +76,14 @@ class PeerFiles {
   }
   append({ id, offset, chunk }) {
     const item = this.incoming.get(id);
-    if (!item || offset !== item.received || typeof chunk !== 'string' || chunk.length > 65536)
+    if (
+      !item ||
+      offset !== item.received ||
+      (typeof chunk !== 'string' && !(chunk instanceof Uint8Array)) ||
+      chunk.length > 65536
+    )
       throw new Error('传输片段顺序无效');
-    const buffer = Buffer.from(chunk, 'base64');
+    const buffer = typeof chunk === 'string' ? Buffer.from(chunk, 'base64') : Buffer.from(chunk);
     if (!buffer.length || item.received + buffer.length > item.size)
       throw new Error('文件长度无效');
     fs.writeSync(item.fd, buffer);

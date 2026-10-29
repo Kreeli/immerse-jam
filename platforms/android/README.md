@@ -23,6 +23,10 @@ npm run android:test
 node scripts/android-artifacts.cjs
 ```
 
+开发者首次转换随包 Beat This! 需要桌面 Python 音频／Torch／ONNX 依赖（可复用项目私有运行环境）。`android:models` 下载并校验指定 final0 后调用 `scripts/export-android-beats.py`，生成固定摘要的 ONNX 和 mel 矩阵。手机安装后的运行不需要 Python，也不下载 checkpoint。转换结果、模型和运行环境不提交 Git。
+
+节拍对照：开发机先运行 `python scripts/android-beat-fixtures.py` 生成合成样例，再执行 `android:test`；Java 特征与后处理会和电脑结果比较。没有本机合成样例时，对照项跳过，普通计算测试仍执行。详细结果见 [迁移记录](../../docs/ANDROID-MIGRATION-2026-10-30.md)。
+
 Windows 环境也可在忽略的 `.runtime/android/config.json` 中指定 `java`（JBR 目录）与 `sdk`。Gradle wrapper 固定版本；不要提交个人 SDK 路径、Gradle 缓存、签名密钥或模型权重。模型通过构建脚本固定摘要下载，APK 首次使用基础模型不需要联网。
 
 Android Studio 打开本目录。先执行一次 `android:build` 准备共享网页和模型资源，再在 Studio 中开发、运行。网页源码修改后重新运行构建脚本。

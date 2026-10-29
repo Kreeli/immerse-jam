@@ -1,5 +1,21 @@
 [
   {
+    "id": "beat-this-mobile",
+    "name": "Beat This! · Mobile",
+    "adapter": "beat-this",
+    "file": "beat-this-mobile.onnx",
+    "sha256": "0ea9b17d4da57a0eb4806d127890c03407582ae5c7fa9c15c87044f9379e2203",
+    "sizeBytes": 82115433,
+    "melFile": "beat-this-mel.bin",
+    "melSha256": "1ee975d96f44ccf2c3bfe37825c1c1f0b089f5703c7a12a84b1f0a3bce004533",
+    "stems": [],
+    "sampleRate": 22050,
+    "minimumAvailableMb": 1200,
+    "bundled": true,
+    "license": "MIT · CPJKU Beat This!",
+    "description": "Windows final0 beat/downbeat weights, converted to ONNX. Bundled offline model, bounded 30-second windows; requires 1.2 GiB available memory. Imported beat grids are preserved by default."
+  },
+  {
     "id": "uvr-mobile",
     "name": "UVR Inst HQ 3 · Mobile",
     "adapter": "mdx-spectral",

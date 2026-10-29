@@ -173,7 +173,7 @@ export function useWorkspace() {
         items.find((model) => model.installed && model.id === 'roformer-sw') ||
         items.find((model) => model.installed && model.stems.length === 6) ||
         items.find((model) => model.installed && model.stems.length === 4) ||
-        (isAndroid ? items.find((model) => model.installed) : undefined);
+        (isAndroid ? items.find((model) => model.installed && model.stems.length > 0) : undefined);
       if (installed) {
         setModelId(installed.id);
         setMode(
@@ -243,6 +243,13 @@ export function useWorkspace() {
       if (e.type === 'incoming') {
         setIncoming(e);
 
+        return;
+      }
+      if (e.type === 'shared-import' && e.result?.id) {
+        adopt(e.result);
+        setShowPlayer(true);
+        void refresh();
+        notify(tr('已接收并导入'));
         return;
       }
 
@@ -461,7 +468,7 @@ export function useWorkspace() {
   };
   const patchPractice = (patch: any) =>
     project && save({ ...project, practice: { ...project.practice, ...patch } });
-  const run = async (operation: string) => {
+  const run = async (operation: string, refreshRhythm = false) => {
     if (!project) return;
 
     if (!ready) {
@@ -475,10 +482,11 @@ export function useWorkspace() {
     setJob({ type: 'progress', message: tr('准备本地任务…'), operation, projectId: project.id });
 
     const id = await act(() =>
-      window.jam.call('run', { id: project.id, operation, modelId, mode }),
+      window.jam.call('run', { id: project.id, operation, modelId, mode, refreshRhythm }),
     );
 
-    if (id) setJob((j) => ({ ...j, type: 'progress', jobId: id }));
+    if (id)
+      setJob((j) => ({ ...j, type: 'progress', jobId: typeof id === 'string' ? id : id.jobId }));
     else setJob(null);
   };
   const captureRange = useCallback(() => {

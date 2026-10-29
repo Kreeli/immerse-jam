@@ -37,7 +37,7 @@ export default function ModelManager({
               </strong>
               <p>{translateMessage(model.description)}</p>
               <small>
-                {model.adapter === 'BeatThis'
+                {['BeatThis', 'beat-this'].includes(model.adapter)
                   ? tr('节拍 \u00B7 小节首拍 \u00B7 BPM')
                   : model.stems.map((stem) => names[stem] || stem).join(' · ')}
               </small>

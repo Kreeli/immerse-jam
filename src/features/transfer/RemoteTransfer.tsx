@@ -70,11 +70,10 @@ export default function RemoteTransfer({
             const item = receiving.current;
             if (!item) throw new Error(tr('意外的文件片段'));
             const bytes = new Uint8Array(e.data);
-            const chunk = btoa(String.fromCharCode(...bytes));
             item.offset = await window.jam.call('peer-append', {
               id: item.id,
               offset: item.offset,
-              chunk,
+              chunk: bytes,
             });
             setStatus(tr('已接收 {0} MB', [(item.offset / 1048576).toFixed(1)]));
           }
@@ -152,9 +151,16 @@ export default function RemoteTransfer({
             if (c.readyState !== 'open') throw new Error(tr('连接已断开'));
             await new Promise((r) => setTimeout(r, 20));
           }
-          const chunk = await window.jam.call<string>('peer-read', { id, offset });
-          const bytes = Uint8Array.from(atob(chunk), (c) => c.charCodeAt(0));
-          c.send(bytes);
+          const chunk = await window.jam.call<string | Uint8Array>('peer-read', {
+            id,
+            offset,
+            binary: true,
+          });
+          const bytes =
+            typeof chunk === 'string'
+              ? Uint8Array.from(atob(chunk), (c) => c.charCodeAt(0))
+              : chunk;
+          c.send(new Uint8Array(bytes));
           offset += bytes.length;
           setStatus(
             tr('发送 {0} \u00B7 {1}%', [file.name, Math.round((offset / file.size) * 100)]),

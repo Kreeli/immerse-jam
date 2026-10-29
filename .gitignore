@@ -6,6 +6,7 @@ platforms/android/**/build/
 platforms/android/local.properties
 platforms/android/app/src/main/assets/web/
 platforms/android/app/src/main/assets/models/*.onnx
+platforms/android/app/src/main/assets/models/*.bin
 platforms/android/app/src/main/assets/legal/
 platforms/android/app/src/main/assets/ipc-methods.json
 platforms/android/app/src/main/assets/model-catalog.json

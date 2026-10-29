@@ -5,6 +5,7 @@ import android.app.*;
 import android.content.Intent;
 import android.os.*;
 import app.immersejam.mobile.*;
+import app.immersejam.mobile.processing.MusicAnalysis;
 import java.io.*;
 import java.nio.*;
 import java.nio.file.*;
@@ -128,8 +129,72 @@ public class InferenceService extends Service {
         throw new IOException("剩余存储空间不足");
       progress(job, .03, "正在解码音频");
       AudioFiles.decode(input, decoded, () -> cancelled);
-      if (!request.optString("operation").equals("separate"))
-        throw new IOException("Android 自动节拍／和弦模型正在适配，可使用手动校准或导入电脑识别结果。");
+      if (request.optString("operation").equals("analyze")) {
+        final String task = job;
+        MusicAnalysis.Progress observer =
+            value -> {
+              check();
+              progress(task, .76 + .23 * value, "在本机识别和弦");
+            };
+        JSONObject rhythm =
+            request.optBoolean("keepRhythm")
+                ? p.getJSONObject("analysis")
+                : BeatEngine.run(this, decoded, model, job);
+        JSONArray existingBeats = rhythm.getJSONArray("beats");
+        double[] grid = new double[existingBeats.length()];
+        for (int i = 0; i < grid.length; i++) grid[i] = existingBeats.getDouble(i);
+        MusicAnalysis.Result result =
+            MusicAnalysis.analyze(MusicAnalysis.extract(decoded, observer), observer, grid);
+        JSONArray beats = new JSONArray(), chords = new JSONArray(), candidates = new JSONArray();
+        for (double beat : result.beats) beats.put(beat);
+        for (MusicAnalysis.Chord c : result.chords)
+          chords.put(
+              new JSONObject()
+                  .put("start", c.start)
+                  .put("end", c.end)
+                  .put("label", c.label)
+                  .put("confidence", c.confidence));
+        for (double factor : new double[] {.5, 1, 2})
+          if (result.bpm * factor >= 20 && result.bpm * factor <= 350)
+            candidates.put(result.bpm * factor);
+        JSONObject analysis =
+            new JSONObject()
+                .put("bpm", Math.round(result.bpm * 100) / 100.0)
+                .put("beats", beats)
+                .put("downbeats", new JSONArray())
+                .put("beatsPerBar", 4)
+                .put("downbeat", result.beats.length == 0 ? 0 : result.beats[0])
+                .put("chords", chords)
+                .put("key", result.key)
+                .put("tempoCandidates", candidates)
+                .put("tempoStability", result.stability)
+                .put("tempoMethod", "android-basic")
+                .put("method", "android-chroma-viterbi-v1")
+                .put("tempoReviewed", false);
+        for (String field :
+            List.of(
+                "bpm",
+                "beats",
+                "downbeats",
+                "beatsPerBar",
+                "downbeat",
+                "tempoStability",
+                "tempoCandidates",
+                "tempoMethod",
+                "tempoReviewed")) if (rhythm.has(field)) analysis.put(field, rhythm.get(field));
+        JSONObject patch = new JSONObject().put("analysis", analysis);
+        check();
+        ProjectStore.write(
+            new File(root, "pending-results/" + id + "-" + job + ".json"),
+            new JSONObject().put("patch", patch));
+        emit(
+            new JSONObject()
+                .put("type", "complete")
+                .put("jobId", job)
+                .put("projectId", id)
+                .put("processingPatch", true));
+        return;
+      }
       File modelFile = new File(model.getString("path"));
       if (!ProjectStore.sha(modelFile).equals(model.getString("sha256")))
         throw new IOException("模型校验失败");

@@ -20,6 +20,8 @@ jobs:
       - run: npm run build
       - run: npx playwright install chromium
       - run: node scripts/ci-ui-check.cjs
+      - run: npx vite build --mode android
+      - run: node scripts/android-shared-ui-check.cjs
   backend:
     runs-on: ubuntu-latest
     steps:

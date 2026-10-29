@@ -17,6 +17,8 @@ public class NativeBridge {
   final MainActivity activity;
   final ProjectStore store;
   final NativeTakes takes;
+  final PeerFiles peers;
+  final NativeAudio audio;
   final Set<String> allowed = new HashSet<>();
   final Handler main = new Handler(Looper.getMainLooper());
   final ExecutorService downloads = Executors.newSingleThreadExecutor();
@@ -44,6 +46,8 @@ public class NativeBridge {
     this.activity = activity;
     store = new ProjectStore(activity);
     takes = new NativeTakes(store);
+    peers = new PeerFiles(store, this::emit);
+    audio = new NativeAudio(store);
     try {
       JSONArray methods =
           new JSONArray(
@@ -65,7 +69,16 @@ public class NativeBridge {
       JSONObject data = request.optJSONObject("data");
       if (data == null) data = new JSONObject();
       if (!allowed.contains(method)
-          && !Set.of("android-back-result", "android-playback-budget", "android-device")
+          && !Set.of(
+                  "android-back-result",
+                  "android-playback-budget",
+                  "android-device",
+                  "android-render-start",
+                  "android-render-read",
+                  "android-render-append",
+                  "android-render-finish",
+                  "android-render-abort",
+                  "android-share-projects")
               .contains(method)) throw new IOException("Unsupported operation");
       events = reply;
       JSONObject arguments = data;
@@ -148,6 +161,62 @@ public class NativeBridge {
         }
       case "library":
         return store.list();
+      case "android-share-projects":
+        {
+          JSONArray ids = d.getJSONArray("ids");
+          if (ids.length() < 1 || ids.length() > 100) throw new IOException("一次最多分享 100 首歌曲");
+          ArrayList<Uri> files = new ArrayList<>();
+          for (int i = 0; i < ids.length(); i++)
+            files.add(
+                FileProvider.getUriForFile(
+                    activity, activity.getPackageName() + ".files", store.pack(ids.getString(i))));
+          activity.runOnUiThread(
+              () -> {
+                Intent intent =
+                    new Intent(Intent.ACTION_SEND_MULTIPLE)
+                        .setType("application/octet-stream")
+                        .putParcelableArrayListExtra(Intent.EXTRA_STREAM, files)
+                        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                ClipData clip = ClipData.newRawUri("Immerse Jam", files.get(0));
+                for (int i = 1; i < files.size(); i++)
+                  clip.addItem(new ClipData.Item(files.get(i)));
+                intent.setClipData(clip);
+                activity.startActivity(Intent.createChooser(intent, "Immerse Jam"));
+              });
+          return true;
+        }
+      case "android-render-start":
+        return audio.start(d);
+      case "android-render-read":
+        return audio.read(d.getString("id"));
+      case "android-render-append":
+        return audio.append(d);
+      case "android-render-finish":
+        {
+          File file = audio.finish(d.getString("id"));
+          share(file, "audio/wav");
+          return file.getName();
+        }
+      case "android-render-abort":
+        audio.abort(d.getString("id"));
+        return true;
+      case "peer-prepare":
+        return peers.prepare(d.getJSONArray("ids"));
+      case "peer-outgoing":
+        return peers.outgoing();
+      case "peer-read":
+        return peers.read(d);
+      case "peer-begin":
+        return peers.begin(d);
+      case "peer-append":
+        return peers.append(d);
+      case "peer-finish":
+        return peers.finish(d.getString("id"));
+      case "peer-select":
+        return peers.select(d.getString("id"), d.optBoolean("accept"));
+      case "peer-close":
+        peers.close();
+        return true;
       case "project-recover":
         return store.recover(d.getString("id"));
       case "runtime-status":
@@ -247,7 +316,11 @@ public class NativeBridge {
           return file.getName();
         }
       case "export-audio":
-        throw new IOException("Android 混音导出仍在适配；当前可导出完整 .ijam 到电脑继续处理。");
+        {
+          File file = audio.stems(d.getString("id"));
+          share(file, "application/zip");
+          return file.getName();
+        }
       case "attach":
         {
           JSONObject p = store.get(d.getString("id"));
@@ -520,22 +593,52 @@ public class NativeBridge {
 
   Object run(JSONObject d) throws Exception {
     if (running) throw new IOException("已有本地处理正在进行");
-    if (!d.optString("operation").equals("separate"))
+    String operation = d.optString("operation");
+    if (!Set.of("separate", "analyze").contains(operation))
       throw new IOException("Android 自动节拍／和弦模型正在适配，可使用手动校准或导入电脑识别结果。");
-    JSONObject spec = model(d.optString("modelId", "uvr-mobile")), device = device();
-    if (device.optBoolean("lowMemory")
-        || device.getLong("availableMb") < spec.optInt("minimumAvailableMb", 900))
+    boolean separating = operation.equals("separate");
+    JSONObject existing = store.get(d.getString("id")).optJSONObject("analysis");
+    boolean keepRhythm =
+        !separating
+            && !d.optBoolean("refreshRhythm")
+            && existing != null
+            && existing.optJSONArray("beats") != null
+            && existing.getJSONArray("beats").length() >= 4;
+    JSONObject
+        spec =
+            separating
+                ? model(d.optString("modelId", "uvr-mobile"))
+                : keepRhythm ? new JSONObject() : model("beat-this-mobile"),
+        device = device();
+    if ((device.optBoolean("lowMemory") && !keepRhythm)
+        || device.getLong("availableMb")
+            < spec.optInt("minimumAvailableMb", separating ? 900 : 200))
       throw new IOException("当前可用内存不足，暂不启动本地分轨。请关闭其他应用；已有分轨仍可播放。");
-    if (!spec.optBoolean("bundled")
+    if (separating
+        && !spec.optBoolean("bundled")
         && !new File(activity.getFilesDir(), "models/" + spec.getString("file")).isFile())
       throw new IOException("请先在设置中下载所选移动模型");
-    File file = ensureModel(spec);
+    if (separating || !keepRhythm) spec.put("path", ensureModel(spec).getAbsolutePath());
+    if (!separating && !keepRhythm) {
+      File mel = new File(activity.getFilesDir(), "models/" + spec.getString("melFile"));
+      mel.getParentFile().mkdirs();
+      if (!mel.isFile())
+        try (InputStream in = activity.getAssets().open("models/" + spec.getString("melFile"))) {
+          Files.copy(in, mel.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        }
+      if (!ProjectStore.sha(mel).equals(spec.getString("melSha256"))) {
+        mel.delete();
+        throw new IOException("节拍特征校验失败");
+      }
+      spec.put("melPath", mel.getAbsolutePath());
+    }
     jobId = UUID.randomUUID().toString();
     JSONObject request =
         new JSONObject(d.toString())
             .put("jobId", jobId)
             .put("root", store.root.getAbsolutePath())
-            .put("model", spec.put("path", file.getAbsolutePath()));
+            .put("model", spec);
+    request.put("keepRhythm", keepRhythm);
     running = true;
     cancelRequested = false;
     sent = false;
@@ -601,7 +704,17 @@ public class NativeBridge {
                           inference = null;
                         }
                       }
-                      if (e.has("separationResult")) {
+                      if (e.has("processingPatch")) {
+                        activity.io.execute(
+                            () -> {
+                              try {
+                                e.put("result", store.get(e.getString("projectId")));
+                                emit(e);
+                              } catch (Exception error) {
+                                emit(errorEvent(error.getMessage()));
+                              }
+                            });
+                      } else if (e.has("separationResult")) {
                         activity.io.execute(
                             () -> {
                               try {
@@ -655,6 +768,8 @@ public class NativeBridge {
 
   void close() {
     takes.close();
+    peers.dispose();
+    audio.close();
     downloads.shutdownNow();
     if (bound) activity.unbindService(connection);
   }

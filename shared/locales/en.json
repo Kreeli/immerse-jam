@@ -883,5 +883,11 @@
   "无法确定音频时长，请先转换为 WAV 或 MP3": "The audio duration could not be determined. Convert it to WAV or MP3 first.",
   "本地环境验证失败，请重试安装": "The local runtime check failed. Please retry installation.",
   "无法读取音频时长，请先转换为 WAV 或 MP3": "The audio duration could not be read. Convert it to WAV or MP3 first.",
-  "当前音轨解码所需内存过多，请裁短音频或减少创作音轨后重试": "These tracks require too much memory to decode. Trim the audio or use fewer creation tracks and try again."
+  "当前音轨解码所需内存过多，请裁短音频或减少创作音轨后重试": "These tracks require too much memory to decode. Trim the audio or use fewer creation tracks and try again.",
+  "重新识别节拍（替换已有节拍）": "Recognize beats again (replace existing timing)",
+  "默认保留导入或已校准的节拍，只更新和弦。": "Imported or calibrated beats are kept by default; only chords are updated.",
+  "完整歌曲文件包含原曲、分轨、节拍、小节首拍和和弦谱。可从电脑导出 .ijam，再在手机导入；也可通过系统分享发给朋友。": "Full song files include original audio, stems, beats, downbeats and chord charts. Export .ijam on a computer and import on your phone, or share with friends.",
+  "分享选中的完整歌曲": "Share selected full songs",
+  "接收方安装 Immerse Jam 后，可用本应用打开收到的 .ijam。已有节拍默认保留，无需再次识别。": "Recipients can open .ijam files with Immerse Jam. Existing beat timing is kept by default; no new analysis is needed.",
+  "WAV · 应用音量、速度和移调": "WAV · Apply volume, tempo and pitch"
 }

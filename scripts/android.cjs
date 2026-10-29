@@ -62,6 +62,15 @@ if (action !== 'wrapper') {
       .digest('hex');
     if (hash !== spec.sha256) throw new Error('Bundled model checksum mismatch');
     fs.copyFileSync(model, path.join(modelDir, spec.file));
+    if (spec.melFile) {
+      const mel = path.join(root, '.runtime/android/models', spec.melFile);
+      if (
+        require('node:crypto').createHash('sha256').update(fs.readFileSync(mel)).digest('hex') !==
+        spec.melSha256
+      )
+        throw new Error('Beat feature checksum mismatch');
+      fs.copyFileSync(mel, path.join(modelDir, spec.melFile));
+    }
   }
   fs.cpSync(path.join(root, 'assets/licenses'), path.join(android, 'app/src/main/assets/legal'), {
     recursive: true,
@@ -69,6 +78,10 @@ if (action !== 'wrapper') {
   fs.copyFileSync(
     path.join(root, 'platforms/android/THIRD_PARTY_NOTICES.md'),
     path.join(android, 'app/src/main/assets/legal/ANDROID_NOTICES.md'),
+  );
+  fs.copyFileSync(
+    path.join(root, 'backend/vendor/beat_this/LICENSE'),
+    path.join(android, 'app/src/main/assets/legal/BeatThis-LICENSE.txt'),
   );
   fs.copyFileSync(
     path.join(root, 'platforms/android/model-catalog.json'),

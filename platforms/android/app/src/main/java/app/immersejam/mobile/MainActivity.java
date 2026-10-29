@@ -28,6 +28,8 @@ public class MainActivity extends ComponentActivity {
   private CompletableFuture<List<Uri>> selection;
   private PermissionRequest microphone;
   private long lastBack;
+  private boolean pageReady;
+  private Intent sharedIntent;
   final ExecutorService io = Executors.newSingleThreadExecutor();
   private final ActivityResultLauncher<String[]> files =
       registerForActivityResult(
@@ -75,6 +77,7 @@ public class MainActivity extends ComponentActivity {
     web.getSettings().setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
     WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
     bridge = new NativeBridge(this);
+    sharedIntent = getIntent();
     WebViewAssetLoader loader =
         new WebViewAssetLoader.Builder()
             .addPathHandler("/app/", path -> assetResponse(path))
@@ -82,6 +85,12 @@ public class MainActivity extends ComponentActivity {
             .build();
     web.setWebViewClient(
         new WebViewClient() {
+          @Override
+          public void onPageFinished(WebView view, String url) {
+            pageReady = true;
+            handleSharedIntent();
+          }
+
           @Override
           public WebResourceResponse shouldInterceptRequest(
               WebView view, WebResourceRequest request) {
@@ -198,6 +207,43 @@ public class MainActivity extends ComponentActivity {
     return current.get();
   }
 
+  @Override
+  protected void onNewIntent(Intent intent) {
+    super.onNewIntent(intent);
+    setIntent(intent);
+    sharedIntent = intent;
+    if (pageReady) handleSharedIntent();
+  }
+
+  void handleSharedIntent() {
+    Intent intent = sharedIntent;
+    sharedIntent = null;
+    if (intent == null) return;
+    List<Uri> uris = new ArrayList<>();
+    if (Intent.ACTION_VIEW.equals(intent.getAction())) {
+      if (intent.getData() != null) uris.add(intent.getData());
+    } else if (Intent.ACTION_SEND.equals(intent.getAction())) {
+      Uri uri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
+      if (uri != null) uris.add(uri);
+    } else if (Intent.ACTION_SEND_MULTIPLE.equals(intent.getAction())) {
+      ArrayList<Uri> list = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
+      if (list != null) uris.addAll(list);
+    }
+    if (uris.size() > 100) uris = uris.subList(0, 100);
+    for (Uri uri : uris) {
+      if (!"content".equals(uri.getScheme())) continue;
+      io.execute(
+          () -> {
+            try {
+              JSONObject p = bridge.store.importUri(uri);
+              bridge.emit(new JSONObject().put("type", "shared-import").put("result", p));
+            } catch (Exception error) {
+              bridge.emit(bridge.errorEvent(error.getMessage()));
+            }
+          });
+    }
+  }
+
   void backResult(boolean handled) {
     runOnUiThread(
         () -> {
@@ -236,9 +282,9 @@ public class MainActivity extends ComponentActivity {
   protected void onDestroy() {
     if (selection != null) selection.complete(List.of());
     if (microphone != null) microphone.deny();
+    io.shutdownNow();
     bridge.close();
     web.destroy();
-    io.shutdownNow();
     super.onDestroy();
   }
 }

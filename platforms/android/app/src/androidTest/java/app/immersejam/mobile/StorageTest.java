@@ -100,8 +100,31 @@ public class StorageTest {
             .put("createdAt", ProjectStore.now())
             .put("starred", false);
     store.save(p);
+    JSONObject analysis =
+        new JSONObject()
+            .put("bpm", 120.123)
+            .put("key", "C")
+            .put("method", "desktop-import")
+            .put("tempoMethod", "beat-this")
+            .put("tempoReviewed", true)
+            .put("beatsPerBar", 3)
+            .put("downbeat", .125)
+            .put("beats", new JSONArray(new double[] {.125, .6245, 1.124, 1.6235, 2.123, 2.6225}))
+            .put("downbeats", new JSONArray(new double[] {.125, 1.6235}))
+            .put(
+                "chords",
+                new JSONArray()
+                    .put(
+                        new JSONObject()
+                            .put("start", 0)
+                            .put("end", 12)
+                            .put("label", "C")
+                            .put("confidence", .8)));
+    p.put("analysis", analysis);
+    store.save(p);
     File archive = store.pack(id);
     JSONObject imported = store.importArchive(archive, UUID.randomUUID().toString());
+    assertEquals(analysis.toString(), imported.getJSONObject("analysis").toString());
     assertEquals(
         ProjectStore.sha(wave),
         ProjectStore.sha(store.asset(imported.getString("id"), imported.getString("original"))));
@@ -114,6 +137,7 @@ public class StorageTest {
                 .put("resultId", "test")
                 .put("title", "手机跟练验收"));
     assertEquals(2, practice.getJSONArray("tracks").length());
+    assertEquals(analysis.toString(), practice.getJSONObject("analysis").toString());
     assertNotEquals(id, practice.getString("id"));
     try {
       ProjectStore.contained(store.root, "../escape");

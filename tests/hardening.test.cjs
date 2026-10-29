@@ -255,6 +255,26 @@ test('desktop playback estimates actual file duration before decoding', async ()
   assert.ok(decodeBudget(16 * 1024 ** 3) <= 1536 * 1048576);
   await assert.rejects(check(store, p.id, ['missing.wav'], 'unused'), /无效/);
 });
+test('binary peer chunks avoid base64 on desktop while preserving integrity', async () => {
+  const { store, p } = createInteractionFixture(1),
+    sender = new PeerFiles(store, () => {}),
+    receiver = new PeerFiles(store, () => {});
+  try {
+    const [file] = await sender.prepare([p.id]);
+    const id = receiver.begin(file);
+    let offset = 0;
+    while (offset < file.size) {
+      const chunk = sender.read({ id: file.id, offset, binary: true });
+      assert.ok(chunk instanceof Uint8Array);
+      offset = receiver.append({ id, offset, chunk });
+    }
+    receiver.finish({ id });
+    assert.equal(receiver.pending.size, 1);
+  } finally {
+    sender.close();
+    receiver.close();
+  }
+});
 
 test('reset drains SoundTouch circular adapter history while preserving the worklet instance', async () => {
   const registry = await import('@soundtouchjs/core');
