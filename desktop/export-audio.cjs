@@ -24,7 +24,7 @@ function pan(value) {
 function exportMix(store, id, ffmpeg, dest, region) {
   const p = store.get(id);
   let tracks = [
-    ...(p.kind === 'creation'
+    ...(p.kind === 'creation' && !p.sessionSource
       ? []
       : p.tracks.length
         ? p.tracks
@@ -33,6 +33,10 @@ function exportMix(store, id, ffmpeg, dest, region) {
       .filter((t) => p.kind === 'creation' || (p.selectedTakeIds || []).includes(t.id))
       .map((t) => ({ ...t, start: (t.start || 0) + (t.offsetMs || 0) / 1000 })),
   ];
+  if (p.kind === 'practice' && p.practiceMode === 'mixed' && (p.selectedTakeIds || []).length) {
+    const takeIds = new Set(p.selectedTakeIds);
+    tracks = tracks.map((track) => ({ ...track, mute: track.mute || !takeIds.has(track.id) }));
+  }
   const solo = tracks.some((t) => t.solo && !t.mute);
   tracks = tracks.filter((t) => !t.mute && (!solo || t.solo));
   if (!tracks.length) throw new Error('当前所有音轨都已关闭声音');
@@ -73,7 +77,7 @@ function exportStems(store, id, folder) {
     out = path.join(folder, p.title.replace(/[<>:"/\\|?*]/g, '_') + '_' + Date.now());
   fs.mkdirSync(out, { recursive: true });
   for (const t of [
-    ...(p.kind === 'creation' ? [] : [{ name: 'original', file: p.original }]),
+    ...(p.kind === 'creation' && !p.sessionSource ? [] : [{ name: 'original', file: p.original }]),
     ...p.tracks,
     ...(p.takes || []).filter(
       (t) => p.kind === 'creation' || (p.selectedTakeIds || []).includes(t.id),

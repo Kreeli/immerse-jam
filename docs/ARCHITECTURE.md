@@ -2,6 +2,8 @@
 
 `src/app/App.tsx` composes views; `useWorkspace.ts` coordinates project selection, desktop events and playback. Features are split under `src/features/`: library, player, recording, chords, score, analysis, models, transfer, migration and settings. `src/shared/types.ts` defines the project contract.
 
+The active audio project is independent from the browse route (`showPlayer`/`page`). Navigation hides the workspace view without unmounting its recording controls or unloading audio; one integrated transport remains visible. `PracticeHub` lists sessions, `SessionCreateDialog` collects creation options before the first write, and `desktop/sessions.cjs` copies source media transactionally. `playbackTracks` applies practice capture/review routing without mutating stored controls. Project deletion is a checked desktop operation that uses the Windows Recycle Bin.
+
 `src/audio/Player.ts` owns the AudioContext, common source clock, mixing graph, SoundTouch DSP, metronome scheduling and cached waveforms. Reusable calculations live in `metronome.ts`, `performance.ts`, `envelope.ts` and `latency.ts`. `capture.ts` and its AudioWorklet collect timestamped stereo Float32 PCM with no software-monitor output. Peak extraction runs in a worker. Decoded audio and peaks are reused when mounted takes change.
 
 Recording and backing share an AudioContext clock. Input frames map through speed and latency correction to the original song timeline; FFmpeg normalizes recorded speed/pitch while preserving raw input.

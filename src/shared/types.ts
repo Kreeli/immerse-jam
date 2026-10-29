@@ -149,6 +149,8 @@ export interface Practice {
 }
 export interface Project {
   kind?: 'practice' | 'creation';
+  sessionSource?: { projectId: string; title: string; resultId: string | null };
+  practiceMode?: 'instrument' | 'mixed';
   selectedTakeIds?: string[];
   takes?: Take[];
   recordingSettings?: RecordingSettings;

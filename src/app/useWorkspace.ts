@@ -9,6 +9,9 @@ export function useWorkspace() {
   usePreferences();
   const [library, setLibrary] = useState<Project[]>([]),
     [project, setProject] = useState<Project | null>(null),
+    [showPlayer, setShowPlayer] = useState(false),
+    [creatingSession, setCreatingSession] = useState<'practice' | 'creation' | null>(null),
+    [deletingProject, setDeletingProject] = useState<Project | null>(null),
     [page, setPage] = useState('library'),
     [view, setView] = useState('wave'),
     [modal, setModal] = useState<string | null>(null),
@@ -64,6 +67,27 @@ export function useWorkspace() {
 
     setLibrary((list) => [p, ...list.filter((s) => s.id !== p.id)]);
   }, []);
+  const openProject = useCallback(
+    (p: Project) => {
+      adopt(p);
+      setShowPlayer(true);
+    },
+    [adopt],
+  );
+  const deleteProject = async () => {
+    if (!deletingProject) return;
+    const target = deletingProject;
+    if (current.current?.id === target.id) player.current.pause();
+    await window.jam.call('project-delete', { id: target.id });
+    if (current.current?.id === target.id) {
+      setProject(null);
+      setShowPlayer(false);
+      setPage(target.kind ? 'practice' : 'library');
+    }
+    setLibrary((list) => list.filter((item) => item.id !== target.id));
+    setDeletingProject(null);
+    notify(tr('已移至回收站'));
+  };
   const save = useCallback(
     (p: Project) => {
       adopt(p);
@@ -279,6 +303,9 @@ export function useWorkspace() {
         sourceTracks(project).map((t) => [t.id, t.gain, t.pan, t.mute, t.solo, t.start]),
 
         project.originalMix,
+        project.practiceMode,
+        recording,
+        player.current.captureActive,
       ])
     : '';
   useEffect(() => {
@@ -344,7 +371,7 @@ export function useWorkspace() {
     if (imported?.length) {
       await refresh();
 
-      adopt(imported[0]);
+      openProject(imported[0]);
 
       setPage('library');
 
@@ -492,7 +519,7 @@ export function useWorkspace() {
     else save({ ...p, originalMix: { ...track, ...patch } });
   };
   const togglePlay = useCallback(() => {
-    if (loading) return;
+    if (loading || !current.current) return;
 
     if (current.current)
       save({
@@ -510,6 +537,8 @@ export function useWorkspace() {
       if (
         (e.target as HTMLElement).matches('input,textarea,select') ||
         modal ||
+        creatingSession ||
+        deletingProject ||
         recording ||
         document.querySelector('.recorder-dialog')
       )
@@ -533,15 +562,23 @@ export function useWorkspace() {
     window.addEventListener('keydown', listener);
 
     return () => window.removeEventListener('keydown', listener);
-  }, [modal, recording, togglePlay, captureRange, addPoint]);
+  }, [modal, creatingSession, deletingProject, recording, togglePlay, captureRange, addPoint]);
   const songList = library.filter(
     (p) =>
+      !p.kind &&
       (!page.startsWith('playlist:') || p.playlist === page.slice(9)) &&
       (page !== 'starred' || p.starred) &&
-      (page !== 'recent' || !!p.practice.lastPlayedAt) &&
       (p.title + ' ' + p.artist).toLowerCase().includes(query.toLowerCase()),
   );
   return {
+    deletingProject,
+    setDeletingProject,
+    deleteProject,
+    showPlayer,
+    setShowPlayer,
+    openProject,
+    creatingSession,
+    setCreatingSession,
     library,
     setLibrary,
     project,

@@ -18,6 +18,8 @@ interface Props {
   onPractice: (patch: Partial<Practice>) => void;
   onStopLoop: () => void;
   onCancelRange: () => void;
+  browsing?: boolean;
+  onReturn?: () => void;
 }
 export default function Transport({
   project,
@@ -35,36 +37,47 @@ export default function Transport({
   onPractice,
   onStopLoop,
   onCancelRange,
+  browsing,
+  onReturn,
 }: Props) {
   return (
     <footer className="transport">
       <div className="transport-top">
-        <button
-          className={'range-capture ' + (pendingRange !== null ? 'recording-range' : '')}
-          onClick={onCaptureRange}
-        >
-          {pendingRange === null ? tr('设置循环段落开始') : tr('设置循环段落结束')}
-        </button>
-        {pendingRange !== null && (
+        {browsing ? (
+          <button className="transport-project" onClick={onReturn} title={tr('返回播放工程')}>
+            <strong>{project.title}</strong>
+            <span>{tr('返回播放界面')} →</span>
+          </button>
+        ) : (
           <>
-            <small className="pending-range-time">
-              {tr('开始于')}
-              {time(pendingRange)}
-            </small>
-            <button className="text-button" onClick={onCancelRange}>
-              {tr('取消选段')}
+            <button
+              className={'range-capture ' + (pendingRange !== null ? 'recording-range' : '')}
+              onClick={onCaptureRange}
+            >
+              {pendingRange === null ? tr('设置循环段落开始') : tr('设置循环段落结束')}
+            </button>
+            {pendingRange !== null && (
+              <>
+                <small className="pending-range-time">
+                  {tr('开始于')}
+                  {time(pendingRange)}
+                </small>
+                <button className="text-button" onClick={onCancelRange}>
+                  {tr('取消选段')}
+                </button>
+              </>
+            )}
+            {loop && (
+              <button className="text-button loop-stop" onClick={() => onStopLoop()}>
+                {tr('停止循环')}
+              </button>
+            )}
+            <button className="text-button" onClick={onAddPoint}>
+              <Bookmark size={14} />
+              {tr('添加标记点')}
             </button>
           </>
         )}
-        {loop && (
-          <button className="text-button loop-stop" onClick={() => onStopLoop()}>
-            {tr('停止循环')}
-          </button>
-        )}
-        <button className="text-button" onClick={onAddPoint}>
-          <Bookmark size={14} />
-          {tr('添加标记点')}
-        </button>
         <div className="transport-spacer" />
         <label className="tempo">
           <Gauge size={16} />

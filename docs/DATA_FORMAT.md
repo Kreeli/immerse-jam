@@ -24,6 +24,10 @@ All paths are project-relative. **`project.json` is the authoritative editable s
 
 Practice `selectedTakeIds[]` contains at most two distinct known takes; unselecting preserves files. `kind: "creation"` projects use their take collection without that limit. Empty creations have an original placeholder until takes establish duration.
 
+Music library entries have no `kind`. `kind: "practice"` and `kind: "creation"` belong to the separate practice workspace. `sessionSource` records the source project ID/title/result for provenance; all required media and the selected result are copied into the new project's own folder. It is not a live file dependency, and source deletion does not break existing sessions. Creation can include source stems when `sessionSource` exists.
+
+Practice `practiceMode` is `instrument` (stem backing) or `mixed` (recording already includes backing). Mixed review with mounted takes gates the backing stems; practice capture restores backing and gates previous takes. This routing never overwrites stored per-track mix controls. Creation keeps overdub routing. Deletion moves the selected entire project folder to the system Recycle Bin.
+
 `pending.json` retains the capture clock anchor, sample rate, speed/pitch, correction and identity. Ordered PCM chunks stream to disk; recovery rebuilds the WAV header from saved frames before normalization. Completed state updates atomically. Failed recovery leaves its source available.
 
 `practice` stores transport/count-in/metronome settings; `recordingSettings` stores device/channel/mode/correction. Per-device profiles and UI preferences live in browser storage separately from transferred projects. Beat/downbeat times, loops and bookmarks use original-song seconds. Chord charts retain measures with up to two slots independently of row placement; recognition preserves user charts. Score synchronization uses monotone mapping points.

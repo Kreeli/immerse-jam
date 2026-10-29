@@ -4,7 +4,7 @@ import { t as tr } from '../i18n';
 import { asset, interpolate, type Project, type Track } from '../shared/types';
 import { placeEnvelope } from './envelope';
 import { beatGrid, localInterval, nearestBeat, strongBeat } from './metronome';
-import { sessionDuration, sourceTracks } from './performance';
+import { playbackTracks, sessionDuration, sourceTracks } from './performance';
 type Channel = {
   buffer: AudioBuffer;
   track: Track;
@@ -17,7 +17,15 @@ type Channel = {
 };
 export class Player {
   context: AudioContext | null = null;
-  captureActive = false;
+  private capturing = false;
+  get captureActive() {
+    return this.capturing;
+  }
+  set captureActive(active: boolean) {
+    if (this.capturing === active) return;
+    this.capturing = active;
+    if (this.project) this.apply(this.project);
+  }
   metronomeGain: GainNode | null = null;
   countInGain: GainNode | null = null;
   metroBeats: number[] = [];
@@ -197,7 +205,7 @@ export class Player {
     this.pitch = project.practice.pitch;
     if (this.master)
       this.master.gain.setTargetAtTime(project.practice.master, this.context!.currentTime, 0.01);
-    const tracks = sourceTracks(project),
+    const tracks = playbackTracks(project, this.captureActive),
       solo = tracks.some((t) => t.solo && !t.mute);
     this.metroBeats = beatGrid(project, this.duration);
     this.metronomeGain?.gain.setTargetAtTime(

@@ -2,13 +2,17 @@
 
 [简体中文](README.md) · [Architecture](docs/ARCHITECTURE.md) · [Project format](docs/DATA_FORMAT.md)
 
-**0.1.4**, Windows 10/11 x64. Local stem separation, music practice and multitrack recording. Analysis runs on your computer, with no subscription or separation quota.
+**0.1.5**, Windows 10/11 x64. Local stem separation, music practice and multitrack recording. Analysis runs on your computer, with no subscription or separation quota.
 
 ## Install
 
 Get the installer from [Releases](https://github.com/Kreeli/immerse-jam/releases). Playback requires no preinstalled Python/Node.js. Audio import, recording normalization and mix export download a verified private FFmpeg when first needed. For analysis, choose NVIDIA or CPU in Settings & models and install the private environment. NVIDIA needs a compatible driver. Models download ahead of use or on demand. Initial setup needs internet and several GB of space; processing can then run offline. No private media or model weights are distributed.
 
 ## Practice and recording
+
+The music library is separate from practice/creation projects. The Practice workspace shows a list filtered by All/Practice/Creation. Create an independent project from a library song and selected stem result, or start an empty creation. Cancelling creates nothing. Browsing keeps the active project playing through an integrated bottom transport; click its name to return to the player. Deletion moves only the selected song/project into the system Recycle Bin, without deleting independent source copies elsewhere.
+
+Practice modes switch between Stem backing and Mixed recording. The former combines independent performance takes with adjustable stems; the latter reviews mounted recordings without doubled backing. During either recording mode, stem controls operate the backing while previous practice attempts are quiet. Creation continues to support overdubbing existing takes.
 
 - Synchronized stems, speed/pitch, gain, pan, meters and presets. Combine tracks with Listen; Mute clears Listen on that track. Click a track name for its waveform, then again for the actual mixed waveform.
 - Centered draggable waveform, named loops and bookmarks. Space plays/pauses, arrows seek, L marks loop boundaries, M adds bookmarks.

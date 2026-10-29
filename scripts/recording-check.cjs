@@ -201,6 +201,9 @@ async function record(seconds, creation = false) {
   await page.screenshot({ path: 'test-output/v014-recording-tracks.png' });
   await page.getByTitle('返回曲库', { exact: true }).click();
   await page.getByRole('button', { name: '新建创作', exact: true }).click();
+  await page.getByRole('textbox', { name: '工程名称', exact: true }).fill('录音创作验收');
+  await page.getByRole('button', { name: '创建工程', exact: true }).click();
+  await page.getByRole('button', { name: '录音', exact: true }).click();
   await page.waitForSelector('[aria-label="练琴录音设置"]');
   await page.getByRole('button', { name: '开始录音', exact: true }).click();
   await page.waitForSelector('.recording-bar');

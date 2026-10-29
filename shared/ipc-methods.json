@@ -3,6 +3,8 @@
   "audio-tools-ensure",
   "cancel",
   "creation-new",
+  "session-create",
+  "project-delete",
   "export",
   "export-audio",
   "import",

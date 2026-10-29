@@ -158,6 +158,21 @@ app.whenReady().then(async () => {
     return true;
   });
   handle('library', () => store.list());
+  handle('project-delete', async ({ id }) => {
+    if (jobs.active) throw new Error('请先等待处理任务完成或取消，再删除项目');
+    if ([...takes.sessions.values()].some((session) => session.projectId === id))
+      throw new Error('请先停止录音，再删除工程');
+    store.get(id);
+    const folder = path.resolve(store.dir(id));
+    if (
+      path.dirname(folder) !== path.resolve(store.projects) ||
+      fs.lstatSync(folder).isSymbolicLink()
+    )
+      throw new Error('无效项目目录');
+    await shell.trashItem(folder);
+    emit({ type: 'library-changed' });
+    return true;
+  });
   require('./ipc/recordings.cjs')({ handle, store, takes, emit, pick, runtimeBase, base });
 
   handle('import', async (data) => {

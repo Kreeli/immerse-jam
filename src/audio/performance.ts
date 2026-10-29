@@ -7,9 +7,9 @@ export function activeTakes(project: Project) {
     (take) => project.kind === 'creation' || (project.selectedTakeIds || []).includes(take.id),
   );
 }
-export function sourceTracks(project: Project): Track[] {
+export function backingTracks(project: Project): Track[] {
   const base =
-    project.kind === 'creation'
+    project.kind === 'creation' && !project.sessionSource
       ? []
       : project.tracks.length
         ? project.tracks
@@ -24,7 +24,29 @@ export function sourceTracks(project: Project): Track[] {
               solo: false,
             },
           ];
-  return [...base, ...activeTakes(project).map((take) => ({ ...take, start: takeStart(take) }))];
+  return base;
+}
+export function sourceTracks(project: Project): Track[] {
+  return [
+    ...backingTracks(project),
+    ...activeTakes(project).map((take) => ({ ...take, start: takeStart(take) })),
+  ];
+}
+export function playbackTracks(project: Project, capturing = false): Track[] {
+  const takes = activeTakes(project),
+    takeIds = new Set(takes.map((take) => take.id));
+  const reviewMixed =
+    project.kind === 'practice' &&
+    project.practiceMode === 'mixed' &&
+    !capturing &&
+    takes.length > 0;
+  return sourceTracks(project).map((track) => ({
+    ...track,
+    mute:
+      track.mute ||
+      (project.kind === 'practice' && capturing && takeIds.has(track.id)) ||
+      (reviewMixed && !takeIds.has(track.id)),
+  }));
 }
 export function sessionDuration(project: Project, baseDuration: number) {
   return Math.max(

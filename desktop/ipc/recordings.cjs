@@ -13,6 +13,11 @@ module.exports = function registerRecordings({
   runtimeBase,
   base,
 }) {
+  handle('session-create', (options) => {
+    const project = require('../sessions.cjs').createSession(store, options);
+    emit({ type: 'library-changed' });
+    return project;
+  });
   handle('creation-new', () => {
     const id = crypto.randomUUID(),
       folder = store.dir(id);

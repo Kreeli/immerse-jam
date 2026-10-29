@@ -2,6 +2,160 @@
   overflow: hidden;
   background: var(--tone-09070c, #09070c);
 }
+[hidden] {
+  display: none !important;
+}
+.browse-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.player-screen {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.transport-project {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  max-width: 55%;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  text-align: left;
+}
+.transport-project strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  font-size: 12px;
+}
+.transport-project span {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.session-tabs {
+  display: flex;
+  gap: 10px;
+  padding: 0 48px 25px;
+}
+.session-tabs .selected {
+  border-color: var(--tone-ae5b7d, #ae5b7d);
+  color: var(--tone-ed96af, #ed96af);
+}
+.session-create-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin: 20px 0;
+}
+.session-create-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+}
+.session-create-fields input,
+.session-create-fields select {
+  width: 100%;
+  min-height: 39px;
+}
+.session-card .song-info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.session-card small {
+  font-size: 10px;
+  color: var(--muted);
+}
+.session-badge {
+  font-size: 11px;
+}
+.session-list {
+  margin: 0 48px 30px;
+  overflow-x: auto;
+}
+.session-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 12px;
+}
+.session-table th {
+  font-weight: 400;
+  color: var(--muted);
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.session-table td {
+  padding: 17px 14px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.session-row:hover {
+  background: var(--tone-211d26, #211d26);
+}
+.session-title {
+  justify-content: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  width: 100%;
+  min-width: 170px;
+}
+.session-title span {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.session-title strong {
+  font-size: 13px;
+}
+.session-title small {
+  color: var(--muted);
+  font-size: 10px;
+}
+.session-row-actions {
+  display: flex;
+  gap: 7px;
+}
+.danger-button {
+  color: var(--tone-ff6d89, #ff6d89);
+}
+.practice-mode-control .recording-mode-options {
+  display: flex;
+  gap: 6px;
+}
+.practice-mode-control .recording-mode-options button {
+  padding: 10px 7px;
+  flex: 1;
+  font-size: 11px;
+  white-space: nowrap;
+  min-width: 0;
+}
+.practice-mode-control {
+  margin-bottom: 18px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.practice-mode-control p {
+  font-size: 10px;
+  line-height: 1.6;
+  margin: 10px 0 0;
+}
 .brand-mark img {
   display: block;
   width: 100%;

@@ -240,7 +240,7 @@ class Takes {
         duration,
         gain: 1,
         pan: 0,
-        mute: meta.mode === 'mixed',
+        mute: meta.mode === 'mixed' && p.kind !== 'practice',
         solo: false,
         mode: meta.mode,
         createdAt: meta.createdAt,

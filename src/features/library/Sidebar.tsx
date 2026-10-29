@@ -1,7 +1,7 @@
 import {
-  Clock,
   FileMusic,
   FolderInput,
+  Guitar,
   Heart,
   Library,
   Settings,
@@ -9,6 +9,7 @@ import {
   Star,
 } from 'lucide-react';
 import appIcon from '../../../assets/app-icon.png';
+import { version } from '../../../package.json';
 import type { WorkspaceController } from '../../app/useWorkspace';
 import { t as tr } from '../../i18n';
 type Props = Pick<
@@ -17,8 +18,8 @@ type Props = Pick<
   | 'library'
   | 'project'
   | 'ready'
-  | 'player'
-  | 'setProject'
+  | 'showPlayer'
+  | 'setShowPlayer'
   | 'setPage'
   | 'setSelected'
   | 'setModal'
@@ -28,8 +29,8 @@ export default function Sidebar({
   library,
   project,
   ready,
-  player,
-  setProject,
+  showPlayer,
+  setShowPlayer,
   setPage,
   setSelected,
   setModal,
@@ -53,19 +54,18 @@ export default function Sidebar({
         {[
           { id: 'library', label: tr('音乐库'), icon: Library },
 
-          { id: 'recent', label: tr('最近练习'), icon: Clock },
+          { id: 'practice', label: tr('练琴模式'), icon: Guitar },
 
           { id: 'starred', label: tr('我的收藏'), icon: Star },
         ].map(({ id, label, icon: Icon }) => (
           <button
             key={id}
+            aria-label={label}
 
-            className={page === id && !project ? 'active' : ''}
+            className={page === id && !showPlayer ? 'active' : ''}
 
             onClick={() => {
-              player.current.pause();
-
-              setProject(null);
+              setShowPlayer(false);
 
               setPage(id);
             }}
@@ -74,7 +74,9 @@ export default function Sidebar({
 
             {label}
 
-            {id === 'library' && <span className="count">{library.length}</span>}
+            {id === 'library' && (
+              <span className="count">{library.filter((item) => !item.kind).length}</span>
+            )}
           </button>
         ))}
       </nav>
@@ -82,14 +84,19 @@ export default function Sidebar({
       <div className="nav-label">{tr('歌单')}</div>
 
       <nav className="playlist-nav">
-        {[...new Set(library.map((p) => p.playlist).filter(Boolean))].map((name) => (
+        {[
+          ...new Set(
+            library
+              .filter((item) => !item.kind)
+              .map((p) => p.playlist)
+              .filter(Boolean),
+          ),
+        ].map((name) => (
           <button
             key={name}
 
             onClick={() => {
-              player.current.pause();
-
-              setProject(null);
+              setShowPlayer(false);
 
               setPage('playlist:' + name);
             }}
@@ -150,7 +157,7 @@ export default function Sidebar({
           <span>↗</span>
         </button>
 
-        <small className="version">IMMERSE JAM · 0.1.4</small>
+        <small className="version">IMMERSE JAM · {version}</small>
       </div>
     </aside>
   );

@@ -6,6 +6,7 @@ import { t as tr } from '../../i18n';
 import type { Practice, Project, Track } from '../../shared/types';
 import { transpose } from '../analysis/transposition';
 import ResultPicker from '../models/ResultPicker';
+import PracticeModeControl from '../recording/PracticeModeControl';
 import PracticeRecorder from '../recording/PracticeRecorder';
 import TakeTiming from '../recording/TakeTiming';
 import CountInControl from './CountInControl';
@@ -25,6 +26,7 @@ interface Props {
   onPractice: (patch: Partial<Practice>) => void;
   onTrackState: (track: Track, action: 'listen' | 'close') => void;
   onTrackChange: (track: Track, patch: Partial<Track>) => void;
+  recording: boolean;
 }
 export default function Mixer({
   project,
@@ -39,6 +41,7 @@ export default function Mixer({
   onPractice,
   onTrackState,
   onTrackChange,
+  recording,
 }: Props) {
   const act = async (work: () => Promise<unknown>) => {
     try {
@@ -87,6 +90,11 @@ export default function Mixer({
       {project.kind !== 'creation' && (
         <ResultPicker project={project} onProject={onAdopt} onError={onError} loading={loading} />
       )}
+      <PracticeModeControl
+        project={project}
+        onProject={onProject}
+        disabled={recording || loading}
+      />
       <label className="master-control">
         <span>
           <Volume2 size={15} />

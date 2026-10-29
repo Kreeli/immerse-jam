@@ -21,6 +21,7 @@ import { sourceTracks } from '../audio/performance';
 import { transpose } from '../features/analysis/transposition';
 import ChordSheet from '../features/chords/ChordSheet';
 import Attachments from '../features/library/Attachments';
+import DeleteProjectDialog from '../features/library/DeleteProjectDialog';
 import LibraryPage from '../features/library/LibraryPage';
 import ProjectHeading from '../features/library/ProjectHeading';
 import Sidebar from '../features/library/Sidebar';
@@ -33,6 +34,8 @@ import SyncedVideo from '../features/player/SyncedVideo';
 import { trackLabel } from '../features/player/TrackControl';
 import Transport from '../features/player/Transport';
 import Waveform from '../features/player/Waveform';
+import PracticeHub from '../features/recording/PracticeHub';
+import SessionCreateDialog from '../features/recording/SessionCreateDialog';
 import Score from '../features/score/Score';
 import AppearanceSettings from '../features/settings/AppearanceSettings';
 import RemoteTransfer from '../features/transfer/RemoteTransfer';
@@ -141,6 +144,14 @@ export default function App() {
     changeTrack,
     togglePlay,
     songList,
+    showPlayer,
+    setShowPlayer,
+    openProject,
+    creatingSession,
+    setCreatingSession,
+    deletingProject,
+    setDeletingProject,
+    deleteProject,
   } = controller;
   const isVideo = /\.(mp4|webm|mov)$/i.test(project?.original || '');
   return (
@@ -155,219 +166,237 @@ export default function App() {
     >
       <Sidebar {...controller} />
       <main className={'workspace ' + (project ? 'has-player' : '')}>
-        {!project ? (
-          <LibraryPage {...controller} />
-        ) : (
+        <div className="browse-content" hidden={!!project && showPlayer}>
+          {page === 'practice' ? (
+            <PracticeHub
+              library={library}
+              onOpen={openProject}
+              onCreate={setCreatingSession}
+              onDelete={setDeletingProject}
+            />
+          ) : (
+            <LibraryPage {...controller} />
+          )}
+        </div>
+        {project && (
           <>
-            <header className="player-header">
-              <button
-                className="icon-button"
-                title={tr('返回曲库')}
-                onClick={() => {
-                  player.current.pause();
-                  setProject(null);
-                }}
-              >
-                <ArrowLeft size={20} />
-              </button>
-              <div className="now-cover">
-                <Music2 size={24} />
-              </div>
-              <ProjectHeading project={project} onProject={save} />
-              <div className="view-switch">
-                {[
-                  { id: 'wave', label: tr('波形'), icon: AudioLines },
-                  { id: 'chords', label: tr('和弦'), icon: Library },
-                  { id: 'score', label: tr('乐谱'), icon: FileMusic },
-                  { id: 'attachments', label: tr('附件'), icon: Bookmark },
-                ].map(({ id, label, icon: Icon }) => (
-                  <button
-                    key={id}
-                    className={view === id ? 'selected' : ''}
-                    onClick={() => setView(id)}
-                  >
-                    <Icon size={16} />
-                    {label}
-                  </button>
-                ))}
-              </div>
-              <button
-                className="primary small"
-                disabled={!!job || project.kind === 'creation'}
-                onClick={() => setModal('separate')}
-              >
-                <Sparkles size={15} />
-                {tr('开始分析')}
-              </button>
-              <button
-                className="icon-button"
-                title={tr('导出歌曲项目')}
-                onClick={() => setModal('export')}
-              >
-                <Download size={18} />
-              </button>
-              <button
-                className={'icon-button ' + (mix ? 'pressed' : '')}
-                title={tr('混音面板')}
-                onClick={() => setMix(!mix)}
-              >
-                <SlidersHorizontal size={18} />
-              </button>
-            </header>
-            <div className="player-body">
-              <div className="practice-area">
-                {view === 'attachments' ? (
-                  <Attachments project={project} onProject={save} onError={notify} />
-                ) : view === 'score' ? (
-                  <Score
-                    project={project}
-                    position={position}
-                    onProject={save}
-                    onAlign={() => void run('align')}
-                    onError={notify}
-                  />
-                ) : view === 'chords' ? (
-                  <ChordSheet
-                    project={project}
-                    position={position}
-                    playing={playing}
-                    onSeek={(t) => player.current.seek(t)}
-                    onProject={save}
-                    onAnalyze={() => void run('analyze')}
-                    busy={!!job}
-                    formatLabel={(label) => transpose(label, project.practice.pitch)}
-                  />
-                ) : (
-                  <div className="wave-workspace">
-                    <div className="wave-caption">
-                      <div>
-                        <button
-                          className={'small ' + (waveSource === 'mix' ? 'wave-source-active' : '')}
-                          onClick={() => setWaveSource('mix')}
-                        >
-                          {tr('总混音波形')}
-                        </button>
-                        <span className="wave-source-name">
-                          {waveSource === 'mix'
-                            ? sourceTracks(project).length > 1
-                              ? tr('{0} 条音轨混合', [sourceTracks(project).length])
-                              : sourceTracks(project)[0]
-                                ? trackLabel(sourceTracks(project)[0])
-                                : tr('音轨')
-                            : trackLabel(
-                                sourceTracks(project).find((t) => t.id === waveSource) ||
-                                  project.originalMix ||
-                                  ({ name: tr('原曲') } as Track),
-                              )}
-                          {waveLoading ? tr(' \u00B7 正在生成波形…') : ''}
-                        </span>
-                      </div>
-                      <label>
-                        {tr('时间窗口')}
-                        <select
-                          aria-label={tr('波形窗口时长')}
-                          value={waveWindow}
-                          onChange={(e) => setWaveWindow(+e.target.value)}
-                        >
-                          {[10, 20, 30, 60].map((value) => (
-                            <option key={value} value={value}>
-                              {value}
-                              {tr('秒')}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                    </div>
-                    <Waveform
-                      peaks={peaks}
+            <div className="player-screen" hidden={!showPlayer}>
+              <header className="player-header">
+                <button
+                  className="icon-button"
+                  title={project.kind ? tr('返回工程列表') : tr('返回曲库')}
+                  onClick={() => {
+                    setPage(project.kind ? 'practice' : 'library');
+                    setShowPlayer(false);
+                  }}
+                >
+                  <ArrowLeft size={20} />
+                </button>
+                <div className="now-cover">
+                  <Music2 size={24} />
+                </div>
+                <ProjectHeading project={project} onProject={save} />
+                <div className="view-switch">
+                  {[
+                    { id: 'wave', label: tr('波形'), icon: AudioLines },
+                    { id: 'chords', label: tr('和弦'), icon: Library },
+                    { id: 'score', label: tr('乐谱'), icon: FileMusic },
+                    { id: 'attachments', label: tr('附件'), icon: Bookmark },
+                  ].map(({ id, label, icon: Icon }) => (
+                    <button
+                      key={id}
+                      className={view === id ? 'selected' : ''}
+                      onClick={() => setView(id)}
+                    >
+                      <Icon size={16} />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  className="primary small"
+                  disabled={!!job || project.kind === 'creation'}
+                  onClick={() => setModal('separate')}
+                >
+                  <Sparkles size={15} />
+                  {tr('开始分析')}
+                </button>
+                <button
+                  className="icon-button"
+                  title={tr('导出歌曲项目')}
+                  onClick={() => setModal('export')}
+                >
+                  <Download size={18} />
+                </button>
+                <button
+                  className={'icon-button ' + (mix ? 'pressed' : '')}
+                  title={tr('混音面板')}
+                  onClick={() => setMix(!mix)}
+                >
+                  <SlidersHorizontal size={18} />
+                </button>
+              </header>
+              <div className="player-body">
+                <div className="practice-area">
+                  {view === 'attachments' ? (
+                    <Attachments project={project} onProject={save} onError={notify} />
+                  ) : view === 'score' ? (
+                    <Score
+                      project={project}
                       position={position}
-                      duration={Math.max(project.duration, position)}
-                      windowSeconds={waveWindow}
-                      source={waveSource}
-                      a={loopA}
-                      b={loopB}
-                      onSeek={(seconds) => player.current.seek(seconds)}
-                      onScrubStart={() => {
-                        scrubResume.current = player.current.playing;
-                        player.current.pause();
-                      }}
-                      onScrubEnd={() => {
-                        if (scrubResume.current) {
-                          scrubResume.current = false;
-                          void player.current.play().catch((e) => notify(e.message));
-                        }
-                      }}
+                      onProject={save}
+                      onAlign={() => void run('align')}
+                      onError={notify}
                     />
-                    <div className="wave-window-hint">
-                      {tr(
-                        '播放位置固定在中央 \u00B7 左右拖动波形移动时间窗口 \u00B7 点击音轨切换波形，再点一次回到总混音',
+                  ) : view === 'chords' ? (
+                    <ChordSheet
+                      project={project}
+                      position={position}
+                      playing={playing}
+                      onSeek={(t) => player.current.seek(t)}
+                      onProject={save}
+                      onAnalyze={() => void run('analyze')}
+                      busy={!!job}
+                      formatLabel={(label) => transpose(label, project.practice.pitch)}
+                    />
+                  ) : (
+                    <div className="wave-workspace">
+                      <div className="wave-caption">
+                        <div>
+                          <button
+                            className={
+                              'small ' + (waveSource === 'mix' ? 'wave-source-active' : '')
+                            }
+                            onClick={() => setWaveSource('mix')}
+                          >
+                            {tr('总混音波形')}
+                          </button>
+                          <span className="wave-source-name">
+                            {waveSource === 'mix'
+                              ? sourceTracks(project).length > 1
+                                ? tr('{0} 条音轨混合', [sourceTracks(project).length])
+                                : sourceTracks(project)[0]
+                                  ? trackLabel(sourceTracks(project)[0])
+                                  : tr('音轨')
+                              : trackLabel(
+                                  sourceTracks(project).find((t) => t.id === waveSource) ||
+                                    project.originalMix ||
+                                    ({ name: tr('原曲') } as Track),
+                                )}
+                            {waveLoading ? tr(' \u00B7 正在生成波形…') : ''}
+                          </span>
+                        </div>
+                        <label>
+                          {tr('时间窗口')}
+                          <select
+                            aria-label={tr('波形窗口时长')}
+                            value={waveWindow}
+                            onChange={(e) => setWaveWindow(+e.target.value)}
+                          >
+                            {[10, 20, 30, 60].map((value) => (
+                              <option key={value} value={value}>
+                                {value}
+                                {tr('秒')}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      </div>
+                      <Waveform
+                        peaks={peaks}
+                        position={position}
+                        duration={Math.max(project.duration, position)}
+                        windowSeconds={waveWindow}
+                        source={waveSource}
+                        a={loopA}
+                        b={loopB}
+                        onSeek={(seconds) => player.current.seek(seconds)}
+                        onScrubStart={() => {
+                          scrubResume.current = player.current.playing;
+                          player.current.pause();
+                        }}
+                        onScrubEnd={() => {
+                          if (scrubResume.current) {
+                            scrubResume.current = false;
+                            void player.current.play().catch((e) => notify(e.message));
+                          }
+                        }}
+                      />
+                      <div className="wave-window-hint">
+                        {tr(
+                          '播放位置固定在中央 \u00B7 左右拖动波形移动时间窗口 \u00B7 点击音轨切换波形，再点一次回到总混音',
+                        )}
+                      </div>
+                      {isVideo && (
+                        <SyncedVideo project={project} position={position} playing={playing} />
                       )}
                     </div>
-                    {isVideo && (
-                      <SyncedVideo project={project} position={position} playing={playing} />
-                    )}
-                  </div>
+                  )}
+                  <PracticeMarks
+                    marks={project.bookmarks}
+                    tab={marksTab}
+                    onTab={setMarksTab}
+                    activeId={loop ? activeRange : null}
+                    onJump={(mark) => {
+                      setPendingRange(null);
+                      if (mark.end !== undefined && mark.end > mark.start) {
+                        setLoopA(mark.start);
+                        setLoopB(mark.end);
+                        setLoop(true);
+                        setActiveRange(mark.id);
+                      } else {
+                        setLoop(false);
+                        setActiveRange(null);
+                        setLoopA(null);
+                        setLoopB(null);
+                      }
+                      player.current.seek(mark.start);
+                    }}
+                    onRename={(id, name) =>
+                      save({
+                        ...project,
+                        bookmarks: project.bookmarks.map((mark) =>
+                          mark.id === id ? { ...mark, title: name } : mark,
+                        ),
+                      })
+                    }
+                    onDelete={(id) => {
+                      save({
+                        ...project,
+                        bookmarks: project.bookmarks.filter((mark) => mark.id !== id),
+                      });
+                      if (activeRange === id) {
+                        setLoop(false);
+                        setActiveRange(null);
+                        setLoopA(null);
+                        setLoopB(null);
+                      }
+                    }}
+                  />
+                </div>
+                {mix && (
+                  <Mixer
+                    key={project.id}
+                    project={project}
+                    player={player.current}
+                    loading={loading}
+                    waveSource={waveSource}
+                    onWaveSource={setWaveSource}
+                    onProject={save}
+                    onAdopt={adopt}
+                    onError={notify}
+                    onRecording={setRecording}
+                    onPractice={patchPractice}
+                    onTrackState={changeTrackState}
+                    onTrackChange={changeTrack}
+                    recording={recording}
+                  />
                 )}
-                <PracticeMarks
-                  marks={project.bookmarks}
-                  tab={marksTab}
-                  onTab={setMarksTab}
-                  activeId={loop ? activeRange : null}
-                  onJump={(mark) => {
-                    setPendingRange(null);
-                    if (mark.end !== undefined && mark.end > mark.start) {
-                      setLoopA(mark.start);
-                      setLoopB(mark.end);
-                      setLoop(true);
-                      setActiveRange(mark.id);
-                    } else {
-                      setLoop(false);
-                      setActiveRange(null);
-                      setLoopA(null);
-                      setLoopB(null);
-                    }
-                    player.current.seek(mark.start);
-                  }}
-                  onRename={(id, name) =>
-                    save({
-                      ...project,
-                      bookmarks: project.bookmarks.map((mark) =>
-                        mark.id === id ? { ...mark, title: name } : mark,
-                      ),
-                    })
-                  }
-                  onDelete={(id) => {
-                    save({
-                      ...project,
-                      bookmarks: project.bookmarks.filter((mark) => mark.id !== id),
-                    });
-                    if (activeRange === id) {
-                      setLoop(false);
-                      setActiveRange(null);
-                      setLoopA(null);
-                      setLoopB(null);
-                    }
-                  }}
-                />
               </div>
-              {mix && (
-                <Mixer
-                  project={project}
-                  player={player.current}
-                  loading={loading}
-                  waveSource={waveSource}
-                  onWaveSource={setWaveSource}
-                  onProject={save}
-                  onAdopt={adopt}
-                  onError={notify}
-                  onRecording={setRecording}
-                  onPractice={patchPractice}
-                  onTrackState={changeTrackState}
-                  onTrackChange={changeTrack}
-                />
-              )}
             </div>
             <Transport
+              browsing={!showPlayer}
+              onReturn={() => setShowPlayer(true)}
               project={project}
               player={player.current}
               recording={recording}
@@ -391,6 +420,27 @@ export default function App() {
           </>
         )}
       </main>
+      {deletingProject && (
+        <DeleteProjectDialog
+          project={deletingProject}
+          onClose={() => setDeletingProject(null)}
+          onDelete={deleteProject}
+          onError={notify}
+        />
+      )}
+      {creatingSession && (
+        <SessionCreateDialog
+          kind={creatingSession}
+          library={library}
+          onClose={() => setCreatingSession(null)}
+          onError={notify}
+          onCreated={(p) => {
+            setCreatingSession(null);
+            setPage('practice');
+            openProject(p);
+          }}
+        />
+      )}
       {job && (
         <div className="job-card">
           <div>

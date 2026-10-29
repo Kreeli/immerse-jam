@@ -28,12 +28,14 @@ export default function PracticeRecorder({
   onError: (message: string) => void;
   onActive: (active: boolean) => void;
 }) {
-  const [dialog, setDialog] = useState<'settings' | 'library' | null>(
-      project.kind === 'creation' && !project.takes?.length ? 'settings' : null,
-    ),
+  const [dialog, setDialog] = useState<'settings' | 'library' | null>(null),
     [devices, setDevices] = useState<MediaDeviceInfo[]>([]),
     [settings, setSettings] = useState<RecordingSettings>(() => {
-      const value = { ...defaults, ...project.recordingSettings },
+      const value = {
+          ...defaults,
+          ...project.recordingSettings,
+          ...(project.kind === 'practice' ? { mode: project.practiceMode || 'instrument' } : {}),
+        },
         saved = localStorage.getItem(profile(value.inputDeviceId, value.outputDeviceId));
       return saved === null ? value : { ...value, latencyMs: Number(saved) || 0 };
     }),
@@ -46,6 +48,10 @@ export default function PracticeRecorder({
     [importPosition, setImportPosition] = useState('0');
   const props = useRef({ project, onProject, onError, onActive });
   props.current = { project, onProject, onError, onActive };
+  useEffect(() => {
+    if (project.kind === 'practice')
+      setSettings((previous) => ({ ...previous, mode: project.practiceMode || 'instrument' }));
+  }, [project.kind, project.practiceMode]);
   const capture = useRef<AudioCapture | null>(null),
     session = useRef<string | null>(null),
     stopping = useRef(false),
@@ -294,7 +300,7 @@ export default function PracticeRecorder({
             </div>
             {dialog === 'settings' ? (
               <>
-                <div className="recording-mode-options">
+                <div className="recording-mode-options" hidden={project.kind === 'practice'}>
                   <button
                     className={settings.mode === 'instrument' ? 'selected' : ''}
                     onClick={() => setSettings({ ...settings, mode: 'instrument' })}

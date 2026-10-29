@@ -134,8 +134,11 @@ class Store {
       'takes',
       'selectedTakeIds',
       'recordingSettings',
+      'practiceMode',
     ])
       if (Object.hasOwn(patch, key)) {
+        if (key === 'practiceMode' && !['instrument', 'mixed'].includes(patch[key]))
+          throw new Error('跟练方式无效');
         if (key === 'takes' && patch[key] === undefined) continue;
         if (key === 'takes') {
           const expected = new Map((p.takes || []).map((t) => [t.id, t]));

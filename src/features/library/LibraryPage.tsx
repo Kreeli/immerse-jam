@@ -7,6 +7,7 @@ import {
   Plus,
   Search,
   Star,
+  Trash2,
   Upload,
   Waves,
 } from 'lucide-react';
@@ -22,7 +23,9 @@ type Props = Pick<
   | 'query'
   | 'setQuery'
   | 'act'
-  | 'adopt'
+  | 'openProject'
+  | 'setCreatingSession'
+  | 'setDeletingProject'
   | 'importSongs'
   | 'setModal'
   | 'setLibrary'
@@ -34,7 +37,9 @@ export default function LibraryPage({
   query,
   setQuery,
   act,
-  adopt,
+  openProject,
+  setCreatingSession,
+  setDeletingProject,
   importSongs,
   setModal,
   setLibrary,
@@ -49,14 +54,12 @@ export default function LibraryPage({
           <h1>
             {page === 'starred'
               ? tr('我的收藏')
-              : page === 'recent'
-                ? tr('最近练习')
-                : page.startsWith('playlist:')
-                  ? page.slice(9)
-                  : tr('音乐库')}
+              : page.startsWith('playlist:')
+                ? page.slice(9)
+                : tr('音乐库')}
 
             <span>
-              {library.length}
+              {songList.length}
 
               {tr('首歌曲')}
             </span>
@@ -66,15 +69,7 @@ export default function LibraryPage({
         </div>
 
         <div className="header-actions">
-          <button
-            onClick={() =>
-              void act(async () => {
-                const p = await window.jam.call<Project>('creation-new');
-
-                adopt(p);
-              })
-            }
-          >
+          <button onClick={() => setCreatingSession('creation')}>
             <Mic2 size={16} />
 
             {tr('新建创作')}
@@ -129,13 +124,13 @@ export default function LibraryPage({
       ) : (
         <div className="songs">
           {songList.map((p, i) => (
-            <article key={p.id} className="song" onDoubleClick={() => adopt(p)}>
+            <article key={p.id} className="song" onDoubleClick={() => openProject(p)}>
               <button
                 className="song-cover"
 
                 style={{ '--cover': colors[i % colors.length] } as React.CSSProperties}
 
-                onClick={() => adopt(p)}
+                onClick={() => openProject(p)}
               >
                 <Music2 size={30} />
 
@@ -144,7 +139,7 @@ export default function LibraryPage({
                 </span>
               </button>
 
-              <button className="song-info" onClick={() => adopt(p)}>
+              <button className="song-info" onClick={() => openProject(p)}>
                 <strong>{p.title}</strong>
 
                 <span>
@@ -190,13 +185,21 @@ export default function LibraryPage({
                 </button>
 
                 <span>{time(p.duration)}</span>
+                <button
+                  className="icon-button"
+                  aria-label={tr('删除歌曲 {0}', [p.title])}
+                  title={tr('删除歌曲')}
+                  onClick={() => setDeletingProject(p)}
+                >
+                  <Trash2 size={15} />
+                </button>
 
                 <button
                   className="icon-button"
 
                   aria-label={tr('打开歌曲')}
 
-                  onClick={() => adopt(p)}
+                  onClick={() => openProject(p)}
                 >
                   <ChevronRight size={20} />
                 </button>
