@@ -1,4 +1,5 @@
-import { Bookmark, Gauge, LoaderCircle, Pause, Play, Radio } from 'lucide-react';
+import { Gauge, LoaderCircle, Pause, Play, Radio } from 'lucide-react';
+import type { ReactNode } from 'react';
 import type { Player } from '../../audio/Player';
 import { t as tr } from '../../i18n';
 import { time, type Practice, type Project } from '../../shared/types';
@@ -9,17 +10,12 @@ interface Props {
   loading: boolean;
   playing: boolean;
   position: number;
-  pendingRange: number | null;
-  loop: boolean;
   countInRemaining: number;
-  onCaptureRange: () => void;
-  onAddPoint: () => void;
   onTogglePlay: () => void;
   onPractice: (patch: Partial<Practice>) => void;
-  onStopLoop: () => void;
-  onCancelRange: () => void;
   browsing?: boolean;
   onReturn?: () => void;
+  recorder: ReactNode;
 }
 export default function Transport({
   project,
@@ -28,17 +24,12 @@ export default function Transport({
   loading,
   playing,
   position,
-  pendingRange,
-  loop,
   countInRemaining,
-  onCaptureRange,
-  onAddPoint,
   onTogglePlay,
   onPractice,
-  onStopLoop,
-  onCancelRange,
   browsing,
   onReturn,
+  recorder,
 }: Props) {
   return (
     <footer className="transport">
@@ -49,34 +40,13 @@ export default function Transport({
             <span>{tr('返回播放界面')} →</span>
           </button>
         ) : (
-          <>
-            <button
-              className={'range-capture ' + (pendingRange !== null ? 'recording-range' : '')}
-              onClick={onCaptureRange}
-            >
-              {pendingRange === null ? tr('设置循环段落开始') : tr('设置循环段落结束')}
-            </button>
-            {pendingRange !== null && (
-              <>
-                <small className="pending-range-time">
-                  {tr('开始于')}
-                  {time(pendingRange)}
-                </small>
-                <button className="text-button" onClick={onCancelRange}>
-                  {tr('取消选段')}
-                </button>
-              </>
-            )}
-            {loop && (
-              <button className="text-button loop-stop" onClick={() => onStopLoop()}>
-                {tr('停止循环')}
-              </button>
-            )}
-            <button className="text-button" onClick={onAddPoint}>
-              <Bookmark size={14} />
-              {tr('添加标记点')}
-            </button>
-          </>
+          <span className="transport-context">
+            {project.kind === 'creation'
+              ? tr('创作模式')
+              : project.kind === 'practice'
+                ? tr('跟练模式')
+                : project.title}
+          </span>
         )}
         <div className="transport-spacer" />
         <label className="tempo">
@@ -84,13 +54,14 @@ export default function Transport({
           <input
             aria-label={tr('播放速度')}
             type="range"
-            min="0.25"
+            min=".25"
             max="2"
-            step="0.01"
+            step=".01"
             value={project.practice.tempo}
-            onChange={(e) => onPractice({ tempo: +e.target.value })}
+            disabled={recording}
+            onChange={(event) => onPractice({ tempo: +event.target.value })}
           />
-          <button onClick={() => onPractice({ tempo: 1 })}>
+          <button disabled={recording} onClick={() => onPractice({ tempo: 1 })}>
             {project.practice.tempo.toFixed(2)}×
           </button>
         </label>
@@ -99,7 +70,7 @@ export default function Transport({
         <button
           className="play-main"
           aria-label={playing ? tr('暂停') : tr('播放')}
-          disabled={loading || (!project.duration && !recording)}
+          disabled={loading || recording || !project.duration}
           onClick={onTogglePlay}
         >
           {loading ? (
@@ -110,6 +81,7 @@ export default function Transport({
             <Play size={23} fill="currentColor" />
           )}
         </button>
+        {recorder}
         <span className="time-now">{time(position)}</span>
         {countInRemaining > 0 && (
           <span className="count-in-badge">
@@ -123,22 +95,24 @@ export default function Transport({
           type="range"
           min="0"
           max={Math.max(project.duration, position, 0.01)}
-          step="0.01"
+          step=".01"
           value={position}
-          onChange={(e) => player.seek(+e.target.value)}
+          disabled={recording}
+          onChange={(event) => player.seek(+event.target.value)}
         />
         <span className="time-total">{time(project.duration)}</span>
         <button
           className="icon-button"
+          disabled={recording}
           title={tr('按住试听，松开返回')}
-          onPointerDown={(e) => {
-            e.currentTarget.setPointerCapture(e.pointerId);
-            (e.currentTarget as any)._start = position;
+          onPointerDown={(event) => {
+            event.currentTarget.setPointerCapture(event.pointerId);
+            (event.currentTarget as any)._start = position;
             void player.play();
           }}
-          onPointerUp={(e) => {
+          onPointerUp={(event) => {
             player.pause();
-            player.seek((e.currentTarget as any)._start || 0);
+            player.seek((event.currentTarget as any)._start || 0);
           }}
         >
           <Radio size={20} />

@@ -18,6 +18,46 @@ module.exports = function registerRecordings({
     emit({ type: 'library-changed' });
     return project;
   });
+  handle('creation-add-group', ({ id, sourceId, resultId, position }) => {
+    const project = require('../groups.cjs').addGroup(
+      store,
+      id,
+      store,
+      store.get(sourceId),
+      resultId,
+      position || 0,
+    );
+    emit({ type: 'library-changed' });
+    return project;
+  });
+  handle('creation-import-group', async ({ id, position, path: file }) => {
+    const selected = file
+      ? { canceled: false, filePaths: [file] }
+      : await pick([{ name: '分轨项目', extensions: ['ijam', 'aum'] }], false);
+    if (selected.canceled) return null;
+    const parent = path.resolve(runtimeBase, 'group-imports'),
+      temporary = path.join(parent, crypto.randomUUID());
+    try {
+      const temporaryStore = new (require('../store.cjs').Store)(temporary);
+      const source = await require('../archive.cjs').importArchive(
+        temporaryStore,
+        selected.filePaths[0],
+      );
+      const project = require('../groups.cjs').addGroup(
+        store,
+        id,
+        temporaryStore,
+        source,
+        null,
+        position || 0,
+      );
+      emit({ type: 'library-changed' });
+      return project;
+    } finally {
+      if (path.dirname(temporary) === parent)
+        fs.rmSync(temporary, { recursive: true, force: true });
+    }
+  });
   handle('creation-new', () => {
     const id = crypto.randomUUID(),
       folder = store.dir(id);

@@ -16,7 +16,9 @@ import {
   Sparkles,
   X,
 } from 'lucide-react';
+import { useState } from 'react';
 import donation from '../../assets/author-wechat.png';
+import type { LiveEnvelope } from '../audio/live-envelope';
 import { sourceTracks } from '../audio/performance';
 import { transpose } from '../features/analysis/transposition';
 import ChordSheet from '../features/chords/ChordSheet';
@@ -29,12 +31,16 @@ import DatabaseMigration from '../features/migration/DatabaseMigration';
 import { compatible } from '../features/models/compatibility';
 import ModelManager from '../features/models/ModelManager';
 import Mixer from '../features/player/Mixer';
-import PracticeMarks from '../features/player/PracticeMarks';
+import PracticeToolbar from '../features/player/PracticeToolbar';
+import SidePanel from '../features/player/SidePanel';
 import SyncedVideo from '../features/player/SyncedVideo';
 import { trackLabel } from '../features/player/TrackControl';
 import Transport from '../features/player/Transport';
 import Waveform from '../features/player/Waveform';
+import CreationTracks from '../features/recording/CreationTracks';
 import PracticeHub from '../features/recording/PracticeHub';
+import PracticeRecorder from '../features/recording/PracticeRecorder';
+import PracticeWaves from '../features/recording/PracticeWaves';
 import SessionCreateDialog from '../features/recording/SessionCreateDialog';
 import Score from '../features/score/Score';
 import AppearanceSettings from '../features/settings/AppearanceSettings';
@@ -53,6 +59,7 @@ const modes = () => [
 ];
 export default function App() {
   const controller = useWorkspace();
+  const [live, setLive] = useState<LiveEnvelope | null>(null);
   const {
     library,
     setLibrary,
@@ -144,6 +151,8 @@ export default function App() {
     changeTrack,
     togglePlay,
     songList,
+    sidePanel,
+    setSidePanel,
     showPlayer,
     setShowPlayer,
     openProject,
@@ -153,6 +162,25 @@ export default function App() {
     setDeletingProject,
     deleteProject,
   } = controller;
+  const timeline = {
+    player: player.current,
+    position,
+    duration: Math.max(project?.duration || 0, position),
+    windowSeconds: waveWindow,
+    recording,
+    loading,
+    onSeek: (seconds: number) => player.current.seek(seconds),
+    onScrubStart: () => {
+      scrubResume.current = player.current.playing;
+      player.current.pause();
+    },
+    onScrubEnd: () => {
+      if (scrubResume.current) {
+        scrubResume.current = false;
+        void player.current.play().catch((error) => notify(error.message));
+      }
+    },
+  };
   const isVideo = /\.(mp4|webm|mov)$/i.test(project?.original || '');
   return (
     <div
@@ -160,8 +188,23 @@ export default function App() {
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => {
         e.preventDefault();
-        if (e.dataTransfer.files.length)
-          void importSongs([...e.dataTransfer.files].map((f) => window.jam.filePath(f)));
+        const files = [...e.dataTransfer.files].map((f) => window.jam.filePath(f));
+        if (!files.length) return;
+        if (recording) {
+          notify(tr('请先停止录音后再导入文件'));
+          return;
+        }
+        if (project?.kind === 'creation' && showPlayer) {
+          void act(async () => {
+            for (const file of files) {
+              const updated = await window.jam.call<Project | null>(
+                /\.(ijam|aum)$/i.test(file) ? 'creation-import-group' : 'take-import',
+                { id: project.id, path: file, paths: [file], position: player.current.position() },
+              );
+              if (updated) adopt(updated);
+            }
+          });
+        } else void importSongs(files);
       }}
     >
       <Sidebar {...controller} />
@@ -198,7 +241,11 @@ export default function App() {
                 <ProjectHeading project={project} onProject={save} />
                 <div className="view-switch">
                   {[
-                    { id: 'wave', label: tr('波形'), icon: AudioLines },
+                    {
+                      id: 'wave',
+                      label: project.kind === 'creation' ? tr('音轨') : tr('波形'),
+                      icon: AudioLines,
+                    },
                     { id: 'chords', label: tr('和弦'), icon: Library },
                     { id: 'score', label: tr('乐谱'), icon: FileMusic },
                     { id: 'attachments', label: tr('附件'), icon: Bookmark },
@@ -213,14 +260,16 @@ export default function App() {
                     </button>
                   ))}
                 </div>
-                <button
-                  className="primary small"
-                  disabled={!!job || project.kind === 'creation'}
-                  onClick={() => setModal('separate')}
-                >
-                  <Sparkles size={15} />
-                  {tr('开始分析')}
-                </button>
+                {project.kind !== 'creation' && (
+                  <button
+                    className="primary small"
+                    disabled={!!job}
+                    onClick={() => setModal('separate')}
+                  >
+                    <Sparkles size={15} />
+                    {tr('开始分析')}
+                  </button>
+                )}
                 <button
                   className="icon-button"
                   title={tr('导出歌曲项目')}
@@ -236,6 +285,21 @@ export default function App() {
                   <SlidersHorizontal size={18} />
                 </button>
               </header>
+              <PracticeToolbar
+                pendingRange={pendingRange}
+                loop={loop}
+                onRange={captureRange}
+                onPoint={addPoint}
+                onStop={() => setLoop(false)}
+                onCancel={() => {
+                  setPendingRange(null);
+                  setLoopA(null);
+                  setLoopB(null);
+                }}
+                recording={recording}
+                windowSeconds={waveWindow}
+                onWindow={setWaveWindow}
+              />
               <div className="player-body">
                 <div className="practice-area">
                   {view === 'attachments' ? (
@@ -259,8 +323,24 @@ export default function App() {
                       busy={!!job}
                       formatLabel={(label) => transpose(label, project.practice.pitch)}
                     />
+                  ) : project.kind === 'creation' ? (
+                    <CreationTracks
+                      {...timeline}
+                      project={project}
+                      library={library}
+                      live={live}
+                      onProject={save}
+                      onError={notify}
+                      onTrackChange={changeTrack}
+                      onTrackState={changeTrackState}
+                    />
                   ) : (
-                    <div className="wave-workspace">
+                    <div
+                      className={
+                        'wave-workspace ' +
+                        (project.kind === 'practice' ? 'practice-wave-comparison' : '')
+                      }
+                    >
                       <div className="wave-caption">
                         <div>
                           <button
@@ -286,42 +366,23 @@ export default function App() {
                             {waveLoading ? tr(' \u00B7 正在生成波形…') : ''}
                           </span>
                         </div>
-                        <label>
-                          {tr('时间窗口')}
-                          <select
-                            aria-label={tr('波形窗口时长')}
-                            value={waveWindow}
-                            onChange={(e) => setWaveWindow(+e.target.value)}
-                          >
-                            {[10, 20, 30, 60].map((value) => (
-                              <option key={value} value={value}>
-                                {value}
-                                {tr('秒')}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
                       </div>
-                      <Waveform
-                        peaks={peaks}
-                        position={position}
-                        duration={Math.max(project.duration, position)}
-                        windowSeconds={waveWindow}
-                        source={waveSource}
-                        a={loopA}
-                        b={loopB}
-                        onSeek={(seconds) => player.current.seek(seconds)}
-                        onScrubStart={() => {
-                          scrubResume.current = player.current.playing;
-                          player.current.pause();
-                        }}
-                        onScrubEnd={() => {
-                          if (scrubResume.current) {
-                            scrubResume.current = false;
-                            void player.current.play().catch((e) => notify(e.message));
-                          }
-                        }}
-                      />
+                      <>
+                        <div className="comparison-lane main-wave-lane">
+                          <Waveform
+                            {...timeline}
+                            peaks={peaks}
+                            peakDuration={player.current.duration}
+                            source={waveSource}
+                            a={loopA}
+                            b={loopB}
+                            disabled={recording}
+                          />
+                        </div>
+                        {project.kind === 'practice' && (
+                          <PracticeWaves {...timeline} project={project} live={live} />
+                        )}
+                      </>
                       <div className="wave-window-hint">
                         {tr(
                           '播放位置固定在中央 \u00B7 左右拖动波形移动时间窗口 \u00B7 点击音轨切换波形，再点一次回到总混音',
@@ -332,69 +393,89 @@ export default function App() {
                       )}
                     </div>
                   )}
-                  <PracticeMarks
-                    marks={project.bookmarks}
-                    tab={marksTab}
-                    onTab={setMarksTab}
-                    activeId={loop ? activeRange : null}
-                    onJump={(mark) => {
-                      setPendingRange(null);
-                      if (mark.end !== undefined && mark.end > mark.start) {
-                        setLoopA(mark.start);
-                        setLoopB(mark.end);
-                        setLoop(true);
-                        setActiveRange(mark.id);
-                      } else {
-                        setLoop(false);
-                        setActiveRange(null);
-                        setLoopA(null);
-                        setLoopB(null);
-                      }
-                      player.current.seek(mark.start);
-                    }}
-                    onRename={(id, name) =>
-                      save({
-                        ...project,
-                        bookmarks: project.bookmarks.map((mark) =>
-                          mark.id === id ? { ...mark, title: name } : mark,
-                        ),
-                      })
-                    }
-                    onDelete={(id) => {
-                      save({
-                        ...project,
-                        bookmarks: project.bookmarks.filter((mark) => mark.id !== id),
-                      });
-                      if (activeRange === id) {
-                        setLoop(false);
-                        setActiveRange(null);
-                        setLoopA(null);
-                        setLoopB(null);
-                      }
-                    }}
-                  />
                 </div>
                 {mix && (
-                  <Mixer
-                    key={project.id}
-                    project={project}
-                    player={player.current}
-                    loading={loading}
-                    waveSource={waveSource}
-                    onWaveSource={setWaveSource}
-                    onProject={save}
-                    onAdopt={adopt}
-                    onError={notify}
-                    onRecording={setRecording}
-                    onPractice={patchPractice}
-                    onTrackState={changeTrackState}
-                    onTrackChange={changeTrack}
+                  <SidePanel
+                    tab={sidePanel}
+                    onTab={setSidePanel}
                     recording={recording}
+                    marks={{
+                      marks: project.bookmarks,
+                      tab: marksTab,
+                      onTab: setMarksTab,
+                      activeId: loop ? activeRange : null,
+                      onJump: (mark) => {
+                        setPendingRange(null);
+                        if (mark.end !== undefined && mark.end > mark.start) {
+                          setLoopA(mark.start);
+                          setLoopB(mark.end);
+                          setLoop(true);
+                          setActiveRange(mark.id);
+                        } else {
+                          setLoop(false);
+                          setActiveRange(null);
+                          setLoopA(null);
+                          setLoopB(null);
+                        }
+                        player.current.seek(mark.start);
+                      },
+                      onRename: (id, name) =>
+                        save({
+                          ...project,
+                          bookmarks: project.bookmarks.map((mark) =>
+                            mark.id === id ? { ...mark, title: name } : mark,
+                          ),
+                        }),
+                      onDelete: (id) => {
+                        save({
+                          ...project,
+                          bookmarks: project.bookmarks.filter((mark) => mark.id !== id),
+                        });
+                        if (activeRange === id) {
+                          setLoop(false);
+                          setActiveRange(null);
+                          setLoopA(null);
+                          setLoopB(null);
+                        }
+                      },
+                    }}
+                    mixer={
+                      <Mixer
+                        key={project.id}
+                        project={project}
+                        player={player.current}
+                        loading={loading}
+                        waveSource={waveSource}
+                        onWaveSource={setWaveSource}
+                        onProject={save}
+                        onAdopt={adopt}
+                        onError={notify}
+                        onPractice={patchPractice}
+                        onTrackState={changeTrackState}
+                        onTrackChange={changeTrack}
+                        recording={recording}
+                      />
+                    }
                   />
                 )}
               </div>
             </div>
             <Transport
+              recorder={
+                <PracticeRecorder
+                  key={project.id}
+                  project={project}
+                  player={player.current}
+                  onProject={save}
+                  onError={notify}
+                  onActive={(active) => {
+                    setRecording(active);
+                    if (active) setShowPlayer(true);
+                  }}
+                  onLive={setLive}
+                  disabled={loading}
+                />
+              }
               browsing={!showPlayer}
               onReturn={() => setShowPlayer(true)}
               project={project}
@@ -403,19 +484,11 @@ export default function App() {
               loading={loading}
               playing={playing}
               position={position}
-              pendingRange={pendingRange}
-              loop={loop}
+
               countInRemaining={countInRemaining}
-              onCaptureRange={captureRange}
-              onAddPoint={addPoint}
+
               onTogglePlay={togglePlay}
               onPractice={patchPractice}
-              onStopLoop={() => setLoop(false)}
-              onCancelRange={() => {
-                setPendingRange(null);
-                setLoopA(null);
-                setLoopB(null);
-              }}
             />
           </>
         )}

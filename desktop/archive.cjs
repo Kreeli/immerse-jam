@@ -14,6 +14,7 @@ async function pack(store, id, dest, full = false) {
       project.original,
       ...project.tracks.map((t) => t.file),
       ...(project.results || []).flatMap((result) => result.tracks.map((track) => track.file)),
+      ...(project.sourceGroups || []).flatMap((group) => group.tracks.map((track) => track.file)),
       ...(full || project.kind === 'creation'
         ? (project.takes || []).flatMap((t) => [t.file, ...(t.rawFile ? [t.rawFile] : [])])
         : []),
@@ -22,6 +23,10 @@ async function pack(store, id, dest, full = false) {
     ]);
   const manifest = {
     ...project,
+    schemaVersion:
+      project.kind === 'creation' && (project.sessionSource || project.sourceGroups?.length)
+        ? 2
+        : project.schemaVersion,
     attachments: full ? project.attachments : [],
     ...(full
       ? {}
@@ -174,7 +179,11 @@ async function importArchive(store, file) {
     let project;
     if (fs.existsSync(path.join(staging, 'project.json'))) {
       project = JSON.parse(fs.readFileSync(path.join(staging, 'project.json')));
-      if (project.schemaVersion !== 1 || !project.original || !Array.isArray(project.tracks))
+      if (
+        ![1, 2].includes(project.schemaVersion) ||
+        !project.original ||
+        !Array.isArray(project.tracks)
+      )
         throw new Error('不支持的歌曲项目格式');
       const hashes = JSON.parse(fs.readFileSync(path.join(staging, 'checksums.json')));
       for (const [name, expected] of Object.entries(hashes)) {
@@ -184,11 +193,13 @@ async function importArchive(store, file) {
       const m = JSON.parse(fs.readFileSync(path.join(staging, 'manifest.json'), 'utf8'));
       project = fromAudioJam(m, staging);
     } else throw new Error('未发现可识别的歌曲清单');
+    require('./groups.cjs').validateGroups(project);
     const files = [
       project.original,
       ...project.tracks.map((t) => t.file),
       ...(project.results || []).flatMap((result) => result.tracks.map((track) => track.file)),
       ...(project.takes || []).flatMap((t) => [t.file, ...(t.rawFile ? [t.rawFile] : [])]),
+      ...(project.sourceGroups || []).flatMap((group) => group.tracks.map((track) => track.file)),
       ...(project.attachments || []).map((a) => a.file),
       ...(project.scoreMidi ? [project.scoreMidi] : []),
     ];
@@ -202,7 +213,10 @@ async function importArchive(store, file) {
     project.originId = origin;
     project.updatedAt = new Date().toISOString();
     project.createdAt = project.createdAt || project.updatedAt;
-    project.schemaVersion = 1;
+    project.schemaVersion =
+      project.sourceGroups?.length || (project.kind === 'creation' && project.sessionSource)
+        ? 2
+        : 1;
     fs.renameSync(staging, store.dir(project.id));
     return store.save(project);
   } finally {

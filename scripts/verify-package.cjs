@@ -15,6 +15,7 @@ for (const file of [
   'shared/ipc-methods.json',
   'desktop/ipc/recordings.cjs',
   'desktop/audio-tools.cjs',
+  'desktop/groups.cjs',
 ])
   assert.ok(entries.includes(file), file);
 assert.ok(entries.some((file) => /capture-processor.*\.js$/.test(file)));

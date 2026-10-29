@@ -422,8 +422,11 @@
   gap: 8px !important;
   margin: 9px 0 16px !important;
 }
-.metronome-volume input {
-  width: 85px;
+.metronome-volume input[type='range'] {
+  flex: 1;
+  min-width: 90px;
+  width: 100%;
+  height: 24px;
   margin-left: auto;
 }
 .metronome-volume small {

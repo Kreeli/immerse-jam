@@ -7,7 +7,6 @@ import type { Practice, Project, Track } from '../../shared/types';
 import { transpose } from '../analysis/transposition';
 import ResultPicker from '../models/ResultPicker';
 import PracticeModeControl from '../recording/PracticeModeControl';
-import PracticeRecorder from '../recording/PracticeRecorder';
 import TakeTiming from '../recording/TakeTiming';
 import CountInControl from './CountInControl';
 import PresetControls from './PresetControls';
@@ -22,7 +21,6 @@ interface Props {
   onProject: (p: Project) => void;
   onAdopt: (p: Project) => void;
   onError: (message: string) => void;
-  onRecording: (active: boolean) => void;
   onPractice: (patch: Partial<Practice>) => void;
   onTrackState: (track: Track, action: 'listen' | 'close') => void;
   onTrackChange: (track: Track, patch: Partial<Track>) => void;
@@ -37,7 +35,6 @@ export default function Mixer({
   onProject,
   onAdopt,
   onError,
-  onRecording,
   onPractice,
   onTrackState,
   onTrackChange,
@@ -64,6 +61,22 @@ export default function Mixer({
           onClick={() =>
             onProject({
               ...project,
+              sourceMix: project.sourceMix
+                ? { ...project.sourceMix, gain: 1, mute: false, solo: false }
+                : undefined,
+              sourceGroups: project.sourceGroups?.map((group) => ({
+                ...group,
+                gain: 1,
+                mute: false,
+                solo: false,
+                tracks: group.tracks.map((track) => ({
+                  ...track,
+                  gain: 1,
+                  pan: 0,
+                  mute: false,
+                  solo: false,
+                })),
+              })),
               tracks: project.tracks.map((t) => ({
                 ...t,
                 gain: 1,
@@ -112,52 +125,49 @@ export default function Mixer({
         />
       </label>
       <PresetControls project={project} onProject={onProject} onError={onError} />
-      <PracticeRecorder
-        project={project}
-        player={player}
-        onProject={onProject}
-        onError={onError}
-        onActive={onRecording}
-      />
-      <div className="mixer-subheading">
-        {tr('音轨')}
-        <span>{sourceTracks(project).length}</span>
-      </div>
-      {sourceTracks(project).map((t, i) => (
-        <div key={t.id} className="mixer-track-entry">
-          <TrackControl
-            key={t.id}
-            track={t}
-            selected={waveSource === t.id}
-            onSelect={() => onWaveSource((source) => (source === t.id ? 'mix' : t.id))}
-            meterPlayer={player}
-            onState={(action) => onTrackState(t, action)}
-            color={colors[i % colors.length]}
-            onChange={(patch) => onTrackChange(t, patch)}
-          />
-          {project.takes?.some((take) => take.id === t.id) && (
-            <TakeTiming
-              take={project.takes.find((take) => take.id === t.id)!}
-              creation={project.kind === 'creation'}
-              onChange={(patch) => onTrackChange(t, patch)}
-              onRemove={() =>
-                void act(async () => {
-                  const p = await window.jam.call<Project>(
-                    project.kind === 'creation' ? 'take-delete' : 'take-select',
-                    project.kind === 'creation'
-                      ? { id: project.id, takeId: t.id }
-                      : {
-                          id: project.id,
-                          takeIds: (project.selectedTakeIds || []).filter((id) => id !== t.id),
-                        },
-                  );
-                  onAdopt(p);
-                })
-              }
-            />
-          )}
-        </div>
-      ))}
+      {project.kind !== 'creation' && (
+        <>
+          <div className="mixer-subheading">
+            {tr('音轨')}
+            <span>{sourceTracks(project).length}</span>
+          </div>
+          {sourceTracks(project).map((t, i) => (
+            <div key={t.id} className="mixer-track-entry">
+              <TrackControl
+                key={t.id}
+                track={t}
+                selected={waveSource === t.id}
+                onSelect={() => onWaveSource((source) => (source === t.id ? 'mix' : t.id))}
+                meterPlayer={player}
+                onState={(action) => onTrackState(t, action)}
+                color={colors[i % colors.length]}
+                onChange={(patch) => onTrackChange(t, patch)}
+              />
+              {project.takes?.some((take) => take.id === t.id) && (
+                <TakeTiming
+                  take={project.takes.find((take) => take.id === t.id)!}
+                  creation={project.kind === 'creation'}
+                  onChange={(patch) => onTrackChange(t, patch)}
+                  onRemove={() =>
+                    void act(async () => {
+                      const p = await window.jam.call<Project>(
+                        project.kind === 'creation' ? 'take-delete' : 'take-select',
+                        project.kind === 'creation'
+                          ? { id: project.id, takeId: t.id }
+                          : {
+                              id: project.id,
+                              takeIds: (project.selectedTakeIds || []).filter((id) => id !== t.id),
+                            },
+                      );
+                      onAdopt(p);
+                    })
+                  }
+                />
+              )}
+            </div>
+          ))}
+        </>
+      )}
       <div className="mixer-section">
         <div className="mixer-subheading">
           {tr('音调')}

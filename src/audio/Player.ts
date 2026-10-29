@@ -1,10 +1,17 @@
 import { SoundTouchNode } from '@soundtouchjs/audio-worklet';
 import processorUrl from '@soundtouchjs/audio-worklet/processor?url';
 import { t as tr } from '../i18n';
-import { asset, interpolate, type Project, type Track } from '../shared/types';
+import { asset, interpolate, type Project, type SourceGroup, type Track } from '../shared/types';
 import { placeEnvelope } from './envelope';
 import { beatGrid, localInterval, nearestBeat, strongBeat } from './metronome';
-import { playbackTracks, sessionDuration, sourceTracks } from './performance';
+import {
+  creationGroups,
+  groupTracks,
+  groupWaveRegion,
+  playbackTracks,
+  sessionDuration,
+  sourceTracks,
+} from './performance';
 type Channel = {
   buffer: AudioBuffer;
   track: Track;
@@ -177,7 +184,7 @@ export class Player {
         0,
         ...loaded
           .filter((c) => !(project.takes || []).some((t) => t.id === c.track.id))
-          .map((c) => c.buffer.duration),
+          .map((c) => Math.max(0, (c.track.start || 0) + c.buffer.duration)),
       ),
     );
     this.offset = 0;
@@ -192,7 +199,7 @@ export class Player {
         placeEnvelope(values, channel.buffer.duration, channel.track.start || 0, this.duration),
       );
     }
-    await this.waveform('mix');
+    if (project.kind !== 'creation') await this.waveform('mix');
     if (generation === this.generation) this.onUpdate(0, false);
   }
   apply(project: Project) {
@@ -233,7 +240,7 @@ export class Player {
       channel.pan.pan.value = track.pan;
     }
     if (this.mixWarmTimer) clearTimeout(this.mixWarmTimer);
-    if (!this.cachedWaveform('mix'))
+    if (project.kind !== 'creation' && !this.cachedWaveform('mix'))
       this.mixWarmTimer = setTimeout(() => void this.waveform('mix').catch(() => {}), 200);
     if (changed && was) {
       this.offset = position;
@@ -563,11 +570,57 @@ export class Player {
       ? this.mixWaves.get(this.waveKey()) || null
       : this.trackWaves.get(source) || null;
   }
-  async waveform(source = 'mix'): Promise<number[]> {
+  waveformRegion(source: string, override?: SourceGroup) {
+    const group =
+      override || creationGroups(this.project!).find((group) => source === 'group:' + group.id);
+    return group
+      ? groupWaveRegion(
+          group,
+          new Map(this.channels.map((channel) => [channel.track.id, channel.buffer.duration])),
+        )
+      : { origin: 0, duration: this.duration };
+  }
+  async waveform(source = 'mix', groupOverride?: SourceGroup): Promise<number[]> {
     if (!this.channels.length || !this.context) return [];
     const cached = this.cachedWaveform(source);
     if (cached) return cached;
     const generation = this.generation;
+    if (source.startsWith('group:')) {
+      const group =
+        groupOverride ||
+        creationGroups(this.project!).find((group) => group.id === source.slice(6));
+      if (!group) return [];
+      const tracks = groupTracks(group),
+        key = source + '|' + this.generation + '|' + JSON.stringify(tracks),
+        found = this.mixWaves.get(key);
+      if (found) return found;
+      const rate = this.context.sampleRate,
+        region = this.waveformRegion(source, group),
+        offline = new OfflineAudioContext(2, Math.max(1, Math.ceil(region.duration * rate)), rate);
+      for (const track of tracks) {
+        if (track.mute) continue;
+        const channel = this.channels.find((channel) => channel.track.id === track.id);
+        if (!channel) continue;
+        const input = offline.createBufferSource(),
+          gain = offline.createGain(),
+          pan = offline.createStereoPanner();
+        input.buffer = channel.buffer;
+        gain.gain.value = track.gain;
+        pan.pan.value = track.pan;
+        input.connect(gain);
+        gain.connect(pan);
+        pan.connect(offline.destination);
+        const start = (track.start || 0) - region.origin,
+          offset = Math.max(0, -start);
+        if (offset < channel.buffer.duration) input.start(Math.max(0, start), offset);
+      }
+      const values = await this.calculateWaveform(await offline.startRendering());
+      if (generation === this.generation) {
+        if (this.mixWaves.size >= 8) this.mixWaves.delete(this.mixWaves.keys().next().value!);
+        this.mixWaves.set(key, values);
+      }
+      return values;
+    }
     if (source !== 'mix') {
       const channel = this.channels.find((channel) => channel.track.id === source);
       if (!channel) throw new Error(tr('所选波形的音轨不存在'));

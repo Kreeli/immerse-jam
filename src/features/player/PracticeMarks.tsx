@@ -92,6 +92,7 @@ export default function PracticeMarks({
   onJump,
   onRename,
   onDelete,
+  embedded = false,
 }: {
   marks: Mark[];
   tab: 'ranges' | 'points';
@@ -100,6 +101,7 @@ export default function PracticeMarks({
   onJump: (mark: Mark) => void;
   onRename: (id: string, name: string) => void;
   onDelete: (id: string) => void;
+  embedded?: boolean;
 }) {
   const isRange = (mark: Mark) => Number.isFinite(mark.end) && mark.end! > mark.start;
   const ranges = marks.filter(isRange),
@@ -107,18 +109,20 @@ export default function PracticeMarks({
     visible = tab === 'ranges' ? ranges : points;
   return (
     <div className="practice-marks">
-      <div className="practice-marks-tabs">
-        <button className={tab === 'ranges' ? 'selected' : ''} onClick={() => onTab('ranges')}>
-          <Repeat2 size={13} />
-          {tr('循环段落')}
-          <small>{ranges.length}</small>
-        </button>
-        <button className={tab === 'points' ? 'selected' : ''} onClick={() => onTab('points')}>
-          <Bookmark size={13} />
-          {tr('标记点')}
-          <small>{points.length}</small>
-        </button>
-      </div>
+      {!embedded && (
+        <div className="practice-marks-tabs">
+          <button className={tab === 'ranges' ? 'selected' : ''} onClick={() => onTab('ranges')}>
+            <Repeat2 size={13} />
+            {tr('循环段落')}
+            <small>{ranges.length}</small>
+          </button>
+          <button className={tab === 'points' ? 'selected' : ''} onClick={() => onTab('points')}>
+            <Bookmark size={13} />
+            {tr('标记点')}
+            <small>{points.length}</small>
+          </button>
+        </div>
+      )}
       <div className="practice-marks-list">
         {visible.map((mark) => (
           <MarkRow

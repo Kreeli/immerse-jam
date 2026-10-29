@@ -14,6 +14,20 @@ export interface Track {
   solo: boolean;
   eq?: number[];
   start?: number;
+  groupId?: string;
+}
+export interface SourceMix {
+  gain: number;
+  mute: boolean;
+  solo: boolean;
+  start: number;
+  label?: string;
+}
+export interface SourceGroup extends SourceMix {
+  id: string;
+  name: string;
+  tracks: Track[];
+  sourceTitle: string;
 }
 export interface Take extends Track {
   duration: number;
@@ -151,6 +165,8 @@ export interface Project {
   kind?: 'practice' | 'creation';
   sessionSource?: { projectId: string; title: string; resultId: string | null };
   practiceMode?: 'instrument' | 'mixed';
+  sourceMix?: SourceMix;
+  sourceGroups?: SourceGroup[];
   selectedTakeIds?: string[];
   takes?: Take[];
   recordingSettings?: RecordingSettings;
@@ -160,6 +176,10 @@ export interface Project {
   activeChordChartId?: string;
   originalMix?: Track;
   presets?: {
+    sourceMix?: Pick<SourceMix, 'gain' | 'mute' | 'solo'>;
+    sourceGroupMix?: (Pick<SourceGroup, 'id' | 'gain' | 'mute' | 'solo'> & {
+      tracks: Pick<Track, 'id' | 'gain' | 'pan' | 'mute' | 'solo'>[];
+    })[];
     takeMix?: Pick<Take, 'id' | 'gain' | 'pan' | 'mute' | 'solo'>[];
     selectedTakeIds?: string[];
     name: string;

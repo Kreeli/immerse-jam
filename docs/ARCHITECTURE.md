@@ -8,6 +8,8 @@ The active audio project is independent from the browse route (`showPlayer`/`pag
 
 Recording and backing share an AudioContext clock. Input frames map through speed and latency correction to the original song timeline; FFmpeg normalizes recorded speed/pitch while preserving raw input.
 
+`CreationTracks` renders collapsible outer source groups and recording rows. `desktop/groups.cjs` owns checked copying, validation and export routing; `performance.ts` mirrors its playback policy with cross-module contract tests. Group waveform rendering covers only the group's local region, with a bounded mix cache; creation does not pre-render an unused full-project mix. `TrackWave` reuses decoded channels and waits for loading to finish. `LiveEnvelope` retains fixed 10 ms peak bins rather than PCM and sends only the visible window to the shared waveform canvas, preserving timing and envelope shape while recording. `PracticeWaves` aligns live/saved takes with the main mix. The recorder remains mounted beside Play in `Transport`; top quick actions and `SidePanel` keep marker lists from resizing the timeline.
+
 `desktop/main.cjs` composes windows, permissions, private paths and services. Modules separate store, takes (`ipc/recordings.cjs`), archives, export, models/runtime/jobs, migration, LAN and WebRTC transfer. `locale.cjs` translates native dialogs; `transfer-page.cjs` provides the LAN page.
 
 `shared/ipc-methods.json` is the request allowlist. `prepare-preload.cjs` generates a static sandbox-compatible bridge. A contract test compares registered handlers against it. Calls are accepted only from the workspace window.

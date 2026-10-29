@@ -127,6 +127,7 @@ const wait = (ms) => page.waitForTimeout(ms);
   );
   await page.getByRole('button', { name: '删除标记点 难点', exact: true }).click();
   assert.equal(store.get(p.id).bookmarks.length, 0);
+  await page.getByRole('combobox', { name: '右侧面板', exact: true }).selectOption('mixer');
   await page.getByRole('checkbox', { name: '启用预备拍', exact: true }).check();
   await page.getByRole('spinbutton', { name: '预备拍 BPM', exact: true }).fill('120');
   await page.getByRole('spinbutton', { name: '预备拍 BPM', exact: true }).blur();

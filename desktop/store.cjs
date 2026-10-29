@@ -9,6 +9,9 @@ function normalizePlayback(p) {
     ...(p.results || []).flatMap((result) => result.tracks || []),
     ...(p.originalMix ? [p.originalMix] : []),
     ...(p.takes || []),
+    ...(p.sourceGroups || []),
+    ...(p.sourceGroups || []).flatMap((group) => group.tracks),
+    ...(p.sourceMix ? [p.sourceMix] : []),
   ])
     if (track.mute && track.solo) {
       track.solo = false;
@@ -56,6 +59,7 @@ class Store {
   }
   save(p) {
     normalizePlayback(p);
+    require('./groups.cjs').validateGroups(p);
     if (p.takes) {
       const { validateTakes, validateSelection } = require('./takes.cjs');
       validateTakes(p.takes);
@@ -135,8 +139,28 @@ class Store {
       'selectedTakeIds',
       'recordingSettings',
       'practiceMode',
+      'sourceMix',
+      'sourceGroups',
     ])
       if (Object.hasOwn(patch, key)) {
+        if (key === 'sourceGroups') {
+          const expected = new Map(
+            (p.sourceGroups || []).map((group) => [
+              group.id,
+              group.tracks.map((track) => [track.id, track.file]),
+            ]),
+          );
+          if (
+            !Array.isArray(patch.sourceGroups) ||
+            patch.sourceGroups.length !== expected.size ||
+            patch.sourceGroups.some(
+              (group) =>
+                JSON.stringify(expected.get(group.id)) !==
+                JSON.stringify(group.tracks?.map((track) => [track.id, track.file])),
+            )
+          )
+            throw new Error('分轨分组已变化，请重新打开工程');
+        }
         if (key === 'practiceMode' && !['instrument', 'mixed'].includes(patch[key]))
           throw new Error('跟练方式无效');
         if (key === 'takes' && patch[key] === undefined) continue;

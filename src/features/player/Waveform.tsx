@@ -14,6 +14,12 @@ export default function Waveform({
   onSeek,
   onScrubStart,
   onScrubEnd,
+  peakOrigin = 0,
+  peakDuration = duration,
+  amplitudeScale,
+  label,
+  disabled = false,
+  preserveBins = false,
 }: {
   peaks: number[];
   position: number;
@@ -25,6 +31,12 @@ export default function Waveform({
   onSeek: (seconds: number) => void;
   onScrubStart: () => void;
   onScrubEnd: () => void;
+  peakOrigin?: number;
+  peakDuration?: number;
+  amplitudeScale?: number;
+  label?: string;
+  disabled?: boolean;
+  preserveBins?: boolean;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null),
     drag = useRef<{
@@ -43,18 +55,26 @@ export default function Waveform({
   }, []);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const scale = useMemo(() => {
+    if (amplitudeScale !== undefined) {
+      let max = 0;
+      for (const value of peaks) if (Number.isFinite(value)) max = Math.max(max, Math.abs(value));
+      return { normal: amplitudeScale, max };
+    }
     const sorted = peaks
       .filter(Number.isFinite)
       .map(Math.abs)
       .sort((a, b) => a - b);
     return {
-      normal: Math.max(0.01, sorted[Math.floor(sorted.length * 0.98)] || 0),
+      normal: amplitudeScale ?? Math.max(0.01, sorted[Math.floor(sorted.length * 0.98)] || 0),
       max: sorted.at(-1) || 0,
     };
-  }, [peaks]);
+  }, [peaks, amplitudeScale]);
   const envelope = useMemo(
-    () => fixedEnvelope(peaks, duration, windowSeconds, size.width),
-    [peaks, duration, windowSeconds, size.width],
+    () =>
+      preserveBins
+        ? { values: peaks, step: peakDuration / Math.max(1, peaks.length) }
+        : fixedEnvelope(peaks, peakDuration, windowSeconds, size.width),
+    [peaks, peakDuration, windowSeconds, size.width, preserveBins],
   );
   const start = position - windowSeconds / 2,
     end = position + windowSeconds / 2;
@@ -113,18 +133,26 @@ export default function Waveform({
     }
     const values = envelope.values,
       step = envelope.step,
-      first = Math.max(0, Math.floor(start / Math.max(step, 0.001)) - 1),
-      last = Math.min(values.length - 1, Math.ceil(end / Math.max(step, 0.001)) + 1);
+      first = Math.max(
+        0,
+        Math.ceil(-peakOrigin / Math.max(step, 0.001) - 0.5),
+        Math.floor((start - peakOrigin) / Math.max(step, 0.001)) - 1,
+      ),
+      last = Math.min(
+        values.length - 1,
+        Math.floor((duration - peakOrigin) / Math.max(step, 0.001) - 0.5),
+        Math.ceil((end - peakOrigin) / Math.max(step, 0.001)) + 1,
+      );
     if (values.length && last >= first) {
       ctx.beginPath();
       for (let i = first; i <= last; i++) {
-        const x = xAt((i + 0.5) * step),
+        const x = xAt(peakOrigin + (i + 0.5) * step),
           h = (Math.min(1, values[i] / scale.normal) * available) / 2;
         if (i === first) ctx.moveTo(x, center - h);
         else ctx.lineTo(x, center - h);
       }
       for (let i = last; i >= first; i--) {
-        const x = xAt((i + 0.5) * step),
+        const x = xAt(peakOrigin + (i + 0.5) * step),
           h = (Math.min(1, values[i] / scale.normal) * available) / 2;
         ctx.lineTo(x, center + h);
       }
@@ -159,6 +187,7 @@ export default function Waveform({
     end,
     envelope,
     themeRevision,
+    peakOrigin,
   ]);
   const bounded = (value: number) => Math.max(0, Math.min(duration, value));
   const finish = () => {
@@ -173,7 +202,8 @@ export default function Waveform({
         ref={canvas}
         className="waveform"
         role="slider"
-        aria-label={tr('拖动波形时间窗口')}
+        aria-label={label || tr('拖动波形时间窗口')}
+        aria-disabled={disabled}
         aria-valuemin={0}
         aria-valuemax={duration}
         aria-valuenow={position}
@@ -185,7 +215,7 @@ export default function Waveform({
         data-peak-count={peaks.length}
         tabIndex={0}
         onPointerDown={(event) => {
-          if (event.button !== 0) return;
+          if (disabled || event.button !== 0) return;
           event.preventDefault();
           event.currentTarget.focus();
           event.currentTarget.setPointerCapture(event.pointerId);
@@ -221,6 +251,7 @@ export default function Waveform({
         onPointerCancel={finish}
         onLostPointerCapture={finish}
         onKeyDown={(event) => {
+          if (disabled) return;
           if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
             event.preventDefault();
             event.stopPropagation();

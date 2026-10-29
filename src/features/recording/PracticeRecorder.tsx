@@ -1,6 +1,7 @@
-import { FolderOpen, Mic2, Square, Trash2, Upload, X } from 'lucide-react';
+import { FolderOpen, Mic2, Settings2, Square, Trash2, Upload, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { AudioCapture } from '../../audio/capture';
+import { LiveEnvelope } from '../../audio/live-envelope';
 import type { Player } from '../../audio/Player';
 import { t as tr } from '../../i18n';
 import { time, type Project, type RecordingSettings } from '../../shared/types';
@@ -21,12 +22,16 @@ export default function PracticeRecorder({
   onProject,
   onError,
   onActive,
+  onLive,
+  disabled = false,
 }: {
   project: Project;
   player: Player;
   onProject: (p: Project) => void;
   onError: (message: string) => void;
   onActive: (active: boolean) => void;
+  onLive: (live: LiveEnvelope | null) => void;
+  disabled?: boolean;
 }) {
   const [dialog, setDialog] = useState<'settings' | 'library' | null>(null),
     [devices, setDevices] = useState<MediaDeviceInfo[]>([]),
@@ -43,7 +48,6 @@ export default function PracticeRecorder({
     [busy, setBusy] = useState(false),
     [seconds, setSeconds] = useState(0),
     [level, setLevel] = useState(0),
-    [recentLevels, setRecentLevels] = useState<number[]>([]),
     [inputName, setInputName] = useState(''),
     [importPosition, setImportPosition] = useState('0');
   const props = useRef({ project, onProject, onError, onActive });
@@ -53,6 +57,7 @@ export default function PracticeRecorder({
       setSettings((previous) => ({ ...previous, mode: project.practiceMode || 'instrument' }));
   }, [project.kind, project.practiceMode]);
   const capture = useRef<AudioCapture | null>(null),
+    live = useRef<LiveEnvelope | null>(null),
     session = useRef<string | null>(null),
     stopping = useRef(false),
     restoredLoop = useRef<Player['loop']>(null);
@@ -107,6 +112,8 @@ export default function PracticeRecorder({
     } catch (error) {
       props.current.onError((error as Error).message);
     } finally {
+      live.current = null;
+      onLive(null);
       capture.current = null;
       setActive(false);
       setBusy(false);
@@ -118,7 +125,6 @@ export default function PracticeRecorder({
   const start = async () => {
     if (busy || active) return;
     setBusy(true);
-    setRecentLevels([]);
     stopping.current = false;
     props.current.onActive(true);
     try {
@@ -136,17 +142,21 @@ export default function PracticeRecorder({
       capture.current = await AudioCapture.open(
         player.context!,
         settings,
-        (sequence, contextTime, bytes) =>
-          window.jam.call('take-append', {
+        (sequence, contextTime, bytes) => {
+          live.current?.push(
+            contextTime,
+            new Float32Array(bytes.buffer, bytes.byteOffset, bytes.byteLength / 4),
+          );
+          return window.jam.call('take-append', {
             sessionId: session.current,
             sequence,
             contextTime,
             bytes,
-          }),
+          });
+        },
         (elapsed, value) => {
           setSeconds(elapsed);
           setLevel(value);
-          setRecentLevels((previous) => [...previous.slice(-99), value]);
         },
         () => void stop(),
       );
@@ -174,6 +184,14 @@ export default function PracticeRecorder({
       session.current = result.id;
       if (capture.current.error) throw capture.current.error;
       // Starting after IPC has returned still maps every captured frame to the same clock.
+      live.current = new LiveEnvelope(
+        anchorTime,
+        anchorPosition,
+        player.context!.sampleRate,
+        player.tempo,
+        settings.latencyMs,
+      );
+      onLive(live.current);
       capture.current.arm(anchorTime);
       localStorage.setItem(
         profile(settings.inputDeviceId, settings.outputDeviceId),
@@ -188,6 +206,8 @@ export default function PracticeRecorder({
       setActive(true);
       setDialog(null);
     } catch (error) {
+      live.current = null;
+      onLive(null);
       await capture.current?.stop();
       capture.current = null;
       if (session.current) {
@@ -225,18 +245,35 @@ export default function PracticeRecorder({
   return (
     <>
       <div className="practice-record-actions">
-        <button className="small" disabled={active || busy} onClick={() => setDialog('settings')}>
-          <Mic2 size={13} />
-          {project.kind === 'creation' ? tr('录音') : tr('练琴录音')}
+        {!active && (
+          <button
+            className="transport-record"
+            disabled={busy || disabled}
+            title={project.kind === 'creation' ? tr('录音') : tr('练琴录音')}
+            aria-label={project.kind === 'creation' ? tr('录音') : tr('练琴录音')}
+            onClick={() => (project.recordingSettings ? void start() : setDialog('settings'))}
+          >
+            <Mic2 size={13} />
+            {busy ? tr('准备录音…') : project.kind === 'creation' ? tr('录音') : tr('练琴录音')}
+          </button>
+        )}
+        <button
+          className="icon-button"
+          disabled={active || busy || disabled}
+          aria-label={tr('录音设置')}
+          title={tr('录音设置')}
+          onClick={() => setDialog('settings')}
+        >
+          <Settings2 size={16} />
         </button>
-        <button className="small" disabled={active || busy} onClick={openLibrary}>
+        <button className="small" disabled={active || busy || disabled} onClick={openLibrary}>
           <FolderOpen size={13} />
           {tr('录音库')}
           <small>{project.takes?.length || 0}</small>
         </button>
       </div>
-      {(active || (busy && !dialog)) && (
-        <div className="recording-bar">
+      {active && (
+        <div className="recording-bar recording-inline">
           <span className="record-dot" />
           <strong>
             {busy
@@ -246,23 +283,7 @@ export default function PracticeRecorder({
                 : tr('录制乐器输入')}
           </strong>
           <span>{time(seconds)}</span>
-          <svg
-            className="live-recording-wave"
-            viewBox="0 0 100 32"
-            preserveAspectRatio="none"
-            role="img"
-            aria-label={tr('当前录音波形')}
-          >
-            <path
-              d={recentLevels
-                .map((value, index) => {
-                  const x = 100 - recentLevels.length + index,
-                    h = Math.max(0.2, Math.min(15, value * 45));
-                  return `M${x},${16 - h}V${16 + h}`;
-                })
-                .join(' ')}
-            />
-          </svg>
+
           <div
             className="input-live-meter"
             role="meter"

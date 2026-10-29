@@ -23,6 +23,26 @@ export default function PresetControls({
           tracks: structuredClone(project.tracks),
           practice: structuredClone(project.practice),
           originalMix: project.originalMix,
+          sourceMix: project.sessionSource
+            ? {
+                gain: project.sourceMix?.gain ?? 1,
+                mute: project.sourceMix?.mute ?? false,
+                solo: project.sourceMix?.solo ?? false,
+              }
+            : undefined,
+          sourceGroupMix: project.sourceGroups?.map((group) => ({
+            id: group.id,
+            gain: group.gain,
+            mute: group.mute,
+            solo: group.solo,
+            tracks: group.tracks.map(({ id, gain, pan, mute, solo }) => ({
+              id,
+              gain,
+              pan,
+              mute,
+              solo,
+            })),
+          })),
           takeMix: project.takes?.map(({ id, gain, pan, mute, solo }) => ({
             id,
             gain,
@@ -63,6 +83,28 @@ export default function PresetControls({
             tracks: structuredClone(preset.tracks),
             practice: structuredClone(preset.practice),
             originalMix: preset.originalMix,
+            sourceMix: preset.sourceMix
+              ? {
+                  start: project.sourceMix?.start || 0,
+                  label: project.sourceMix?.label,
+                  ...preset.sourceMix,
+                }
+              : project.sourceMix,
+            sourceGroups: project.sourceGroups?.map((group) => {
+              const saved = preset.sourceGroupMix?.find((item) => item.id === group.id);
+              return saved
+                ? {
+                    ...group,
+                    gain: saved.gain,
+                    mute: saved.mute,
+                    solo: saved.solo,
+                    tracks: group.tracks.map((track) => ({
+                      ...track,
+                      ...saved.tracks.find((item) => item.id === track.id),
+                    })),
+                  }
+                : group;
+            }),
             takes: project.takes?.map((take) => ({
               ...take,
               ...preset.takeMix?.find((state) => state.id === take.id),

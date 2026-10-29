@@ -2,7 +2,7 @@
 
 [简体中文](README.md) · [Architecture](docs/ARCHITECTURE.md) · [Project format](docs/DATA_FORMAT.md)
 
-**0.1.5**, Windows 10/11 x64. Local stem separation, music practice and multitrack recording. Analysis runs on your computer, with no subscription or separation quota.
+**0.1.6**, Windows 10/11 x64. Local stem separation, music practice and multitrack recording. Analysis runs on your computer, with no subscription or separation quota.
 
 ## Install
 
@@ -15,11 +15,12 @@ The music library is separate from practice/creation projects. The Practice work
 Practice modes switch between Stem backing and Mixed recording. The former combines independent performance takes with adjustable stems; the latter reviews mounted recordings without doubled backing. During either recording mode, stem controls operate the backing while previous practice attempts are quiet. Creation continues to support overdubbing existing takes.
 
 - Synchronized stems, speed/pitch, gain, pan, meters and presets. Combine tracks with Listen; Mute clears Listen on that track. Click a track name for its waveform, then again for the actual mixed waveform.
-- Centered draggable waveform, named loops and bookmarks. Space plays/pauses, arrows seek, L marks loop boundaries, M adds bookmarks.
+- Centered draggable waveform, named loops and bookmarks. Quick actions sit above the workspace; the fixed right panel switches between Mixer, Loops and Markers with independent scrolling. Space plays/pauses, arrows seek, L marks loop boundaries, M adds bookmarks.
 - Beat-aware metronome, independent volume, count-in and nearest-beat start. Manual BPM and tap correction remain available.
 - Choose input, backing output and channels. No software mic monitoring; use interface direct monitoring. Instrument-only saves selected input without internal backing. Already-mixed mode captures hardware AUX/backing input and mutes the new take by default to avoid doubled backing.
 - Unlimited saved takes; **up to two mounted takes in practice**, both audible. Unmount keeps files. Takes support names, start positions, offsets and batch import with independent lengths.
-- **Creation** starts empty and supports multiple overdubs, imports, mixing and export without the two-take limit.
+- **Creation** uses a collapsible track list instead of one large waveform. Library songs and external `.ijam`/`.aum` stem projects stay in single outer groups with internal stem controls and scoped listening. Start empty or from a song, overdub at the current playback position, import audio, mix and export without the two-take limit.
+- Recording sits beside Play in the bottom transport; saved device settings allow one-click capture. Practice shows the main mix and live input/mounted take waveforms in aligned time windows.
 
 Follow-along calibration plays four listening beats then asks for eight short strums/claps. Keep the click out of the input. It estimates **human timing bias plus the audio path**, not pure hardware latency. Save a correction per input/output pair, then fine-tune it globally or per take. Raw recordings are preserved; normalized files map performances back through speed/pitch changes.
 
@@ -29,7 +30,7 @@ Six separation modes: four stems, six stems, lead/rhythm guitar, drums, bass, le
 
 Chord charts follow playback, with blank slots, moves/swaps, sections, bar calibration and up to two chords per bar. Guitar Pro/MusicXML/MIDI support score following, automatic alignment and manual corrections. Recognition needs listening checks; MIDI has basic synthesized sounds and not every Guitar Pro technique.
 
-Full `.ijam` projects retain independent model results, takes, scores and practice state. Export mixes as WAV/MP3 or copy ordinary stems. Read-only Audio Jam migration copies local media; cloud-only files cannot be recovered. See [project format](docs/DATA_FORMAT.md).
+Full `.ijam` projects retain independent model results, creation groups, takes, scores and practice state. Grouped creation archives require 0.1.6 or newer. Export mixes as WAV/MP3 or copy ordinary stems. Read-only Audio Jam migration copies local media; cloud-only files cannot be recovered. See [project format](docs/DATA_FORMAT.md).
 
 LAN/hotspot QR transfer works with phone browsers. Remote WebRTC uses exchanged connection codes and public STUN, without a configured TURN relay; some networks cannot connect. Cross-carrier and physical mobile-device testing remains limited. Native Android, Bluetooth, remote resume and conflict merging are future work.
 

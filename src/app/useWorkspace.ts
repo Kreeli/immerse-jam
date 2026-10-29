@@ -38,6 +38,7 @@ export function useWorkspace() {
     [loopB, setLoopB] = useState<number | null>(null),
     [loop, setLoop] = useState(false),
     [mix, setMix] = useState(true);
+  const [sidePanel, setSidePanel] = useState<'mixer' | 'ranges' | 'points'>('mixer');
   const [recording, setRecording] = useState(false);
   const [pendingRange, setPendingRange] = useState<number | null>(null),
     [activeRange, setActiveRange] = useState<string | null>(null),
@@ -69,6 +70,7 @@ export function useWorkspace() {
   }, []);
   const openProject = useCallback(
     (p: Project) => {
+      if (current.current?.id !== p.id) setView('wave');
       adopt(p);
       setShowPlayer(true);
     },
@@ -310,6 +312,11 @@ export function useWorkspace() {
     : '';
   useEffect(() => {
     if (loading || !project || player.current.project?.id !== project.id) return;
+    if (project.kind === 'creation') {
+      setPeaks([]);
+      setWaveLoading(false);
+      return;
+    }
 
     let disposed = false;
 
@@ -408,6 +415,8 @@ export function useWorkspace() {
     const now = player.current.position();
 
     setMarksTab('ranges');
+    setSidePanel('ranges');
+    setMix(true);
 
     if (pendingRange === null) {
       setPendingRange(now);
@@ -480,13 +489,19 @@ export function useWorkspace() {
     });
 
     setMarksTab('points');
+    setSidePanel('points');
+    setMix(true);
   }, [save]);
   const changeTrackState = (track: Track, action: 'listen' | 'close') => {
     const p = current.current;
 
     if (!p) return;
 
-    const changed = toggleTrackState(sourceTracks(p), track.id, action),
+    const changed = toggleTrackState(
+        p.kind === 'creation' ? p.takes || [] : sourceTracks(p),
+        track.id,
+        action,
+      ),
       state = changed.find((t) => t.id === track.id)!;
 
     if ((p.takes || []).some((t) => t.id === track.id))
@@ -540,7 +555,7 @@ export function useWorkspace() {
         creatingSession ||
         deletingProject ||
         recording ||
-        document.querySelector('.recorder-dialog')
+        document.querySelector('[role="dialog"]')
       )
         return;
 
@@ -571,6 +586,8 @@ export function useWorkspace() {
       (p.title + ' ' + p.artist).toLowerCase().includes(query.toLowerCase()),
   );
   return {
+    sidePanel,
+    setSidePanel,
     deletingProject,
     setDeletingProject,
     deleteProject,

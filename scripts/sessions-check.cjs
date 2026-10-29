@@ -98,7 +98,8 @@ async function level(name) {
   await wait(250);
   assert.ok((await level('人声')) < 1e-6);
   await (await button('练琴录音')).click();
-  await (await button('伴奏继续并开始录音')).click();
+  if (await page.locator('.recorder-dialog').count())
+    await (await button('伴奏继续并开始录音')).click();
   await page.locator('.recording-bar').waitFor();
   await wait(300);
   assert.ok((await level('人声')) > 0.03, 'recording routes backing stems');
@@ -115,7 +116,7 @@ async function level(name) {
   await page.getByRole('combobox', { name: '使用分离结果', exact: true }).selectOption(resultA);
   await (await button('创建工程')).click();
   await ready();
-  await page.waitForFunction(() => document.querySelectorAll('.track-control').length === 4);
+  await page.waitForFunction(() => document.querySelectorAll('.source-object').length === 1);
   const creation = store.list().find((project) => project.kind === 'creation');
   assert.equal(creation.tracks.length, 4);
   assert.equal(creation.sessionSource.projectId, p.id);

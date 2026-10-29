@@ -32,6 +32,7 @@ export default function TrackControl({
   onSelect,
   meterPlayer,
   onState,
+  grouped = false,
 }: {
   track: Track;
   color: string;
@@ -40,6 +41,7 @@ export default function TrackControl({
   onSelect: () => void;
   meterPlayer: Player;
   onState: (action: 'listen' | 'close') => void;
+  grouped?: boolean;
 }) {
   const [renaming, setRenaming] = useState(false),
     [name, setName] = useState('');
@@ -105,7 +107,11 @@ export default function TrackControl({
         <button
           className={'track-switch ' + (t.solo ? 'solo' : '')}
           aria-pressed={t.solo}
-          title={tr('选听：可选择多轨，存在选听音轨时只播放这些音轨')}
+          title={
+            grouped
+              ? tr('组内选听：只选择此分组中的声部，不影响其他音轨')
+              : tr('选听：可选择多轨，存在选听音轨时只播放这些音轨')
+          }
           onClick={() => onState('listen')}
         >
           {tr('选听')}

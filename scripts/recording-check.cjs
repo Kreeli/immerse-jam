@@ -54,9 +54,10 @@ async function range(name, value) {
 }
 async function record(seconds, creation = false) {
   await page.getByRole('button', { name: creation ? '录音' : '练琴录音', exact: true }).click();
-  await page
-    .getByRole('button', { name: /^(预备并开始录音|开始录音|伴奏继续并开始录音)$/ })
-    .click();
+  if (await page.locator('.recorder-dialog').count())
+    await page
+      .getByRole('button', { name: /^(预备并开始录音|开始录音|伴奏继续并开始录音)$/ })
+      .click();
   await page.waitForSelector('.recording-bar');
   await wait(seconds * 1000);
   await page.getByRole('button', { name: '停止并保存', exact: true }).click();
