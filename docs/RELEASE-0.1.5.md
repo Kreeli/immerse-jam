@@ -9,4 +9,6 @@
 
 Browsing now preserves playback in the integrated transport. Practice/creation projects have a separate filterable list, confirmed source-based creation, safe Recycle Bin deletion and practice-specific capture/review routing. Cancelling project creation writes nothing.
 
+25 项 Node 测试、静态／翻译／格式检查及生产构建通过；最终程序中的工程列表、筛选、创建／取消、独立源文件、两种跟练路由、回收站删除、中英文、录音、循环和乐谱跟随均通过验收。声卡测试使用模拟输入，真实 USB／AUX 设备延迟仍需试听。
+
 Windows 10/11 x64: `Immerse.Jam.Setup.0.1.5.exe`. Compare the download against `SHA256SUMS-0.1.5.txt`. Private music, recordings and model weights are not bundled. Original source remains under PolyForm Noncommercial 1.0.0; third-party licenses remain unchanged.
