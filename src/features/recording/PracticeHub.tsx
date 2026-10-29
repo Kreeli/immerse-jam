@@ -2,17 +2,21 @@ import { ChevronRight, Guitar, Layers, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { t as tr } from '../../i18n';
 import type { Project } from '../../shared/types';
+import { FolderPicker, type FolderProps } from '../library/Folders';
 export default function PracticeHub({
   library,
   onOpen,
   onCreate,
   onDelete,
+  folders,
+  onFolders,
+  onError,
 }: {
   library: Project[];
   onOpen: (project: Project) => void;
   onCreate: (kind: 'practice' | 'creation') => void;
   onDelete: (project: Project) => void;
-}) {
+} & FolderProps) {
   const [filter, setFilter] = useState<'all' | 'practice' | 'creation'>('all');
   const sessions = library.filter(
     (project) => project.kind && (filter === 'all' || project.kind === filter),
@@ -121,6 +125,12 @@ export default function PracticeHub({
                   </td>
                   <td>
                     <div className="session-row-actions">
+                      <FolderPicker
+                        project={project}
+                        folders={folders}
+                        onFolders={onFolders}
+                        onError={onError}
+                      />
                       <button
                         className="icon-button"
                         aria-label={tr('打开工程 {0}', [project.title])}

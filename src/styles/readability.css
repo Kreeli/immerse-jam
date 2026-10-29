@@ -1,0 +1,343 @@
+:root {
+  font-size: 15px;
+}
+small {
+  font-size: 12px;
+}
+.song-info strong {
+  font-size: 16px;
+  line-height: 1.5;
+  font-weight: 600;
+}
+.song-info > span {
+  font-size: 13px;
+  line-height: 1.6;
+  flex-wrap: wrap;
+  gap: 5px;
+  color: var(--muted);
+}
+.library-header p,
+.library-tools > span,
+.library-footer,
+.library-footer button,
+.search input {
+  font-size: 14px;
+}
+.library-tools > span {
+  color: var(--muted);
+}
+.library-header h1 > span,
+.song-right > span,
+.nav-label,
+.local-note,
+.brand small {
+  font-size: 12px;
+}
+.song {
+  flex-wrap: wrap;
+  align-items: center;
+  min-height: 170px;
+}
+.song-right {
+  flex: 0 0 33px;
+}
+.song-right .folder-picker {
+  width: 100%;
+  max-width: 115px;
+}
+.song .folder-picker {
+  position: absolute;
+  bottom: 12px;
+  left: 110px;
+  width: calc(100% - 165px);
+  max-width: 210px;
+}
+.song {
+  position: relative;
+  padding-bottom: 45px;
+}
+.song-info strong {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+}
+.player-header .now-title strong,
+.project-heading strong,
+.project-title {
+  font-size: 16px;
+}
+.player-header small,
+.analysis-meta button,
+.player-header .now-meta,
+.track-top,
+.track-slider,
+.track-switch,
+.mixer h4,
+.mixer label,
+.mixer .panel-heading h3,
+.preset-controls,
+.preset-controls button,
+.result-picker select,
+.result-picker small,
+.practice-toolbar button,
+.practice-toolbar small,
+.practice-toolbar > label {
+  font-size: 13px;
+}
+.mixer .small,
+.track-switch,
+.creation-object-heading > .track-switch,
+.transport-record,
+.transport .small,
+.count-in-control,
+.count-in-control button {
+  font-size: 12px;
+}
+.time-now,
+.time-total,
+.tempo button,
+.transport-context,
+.transport-project span,
+.wave-window-hint,
+.wave-source-name,
+.track-meter-wrap,
+.take-timing,
+.creation-tracks .take-timing,
+.comparison-lane h4 {
+  font-size: 12px;
+}
+.creation-list-heading small,
+.object-expand small,
+.source-stems > summary,
+.source-stem-row,
+.group-volume,
+.creation-list-heading button {
+  font-size: 12px;
+}
+.object-expand strong,
+.creation-tracks .track-name,
+.track-name,
+.session-open strong {
+  font-size: 14px;
+}
+.track-top {
+  min-height: 26px;
+}
+.track-slider {
+  gap: 7px;
+}
+.session-open small,
+.session-table td,
+.session-table th,
+.session-badge {
+  font-size: 13px;
+}
+.side-panel-selector select,
+.mixer-shell .practice-marks button,
+.mixer-shell .practice-marks strong {
+  font-size: 13px;
+}
+.mixer-shell .practice-marks small {
+  font-size: 12px;
+}
+.folder-nav-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.folder-nav-heading .icon-button {
+  padding: 5px;
+}
+.playlist-nav {
+  min-height: 40px;
+  max-height: 27vh;
+  overflow: auto;
+  flex-shrink: 1;
+}
+.playlist-nav button {
+  flex-shrink: 0;
+}
+.playlist-nav button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.folder-picker {
+  font-size: 12px;
+  padding: 6px 9px;
+  min-width: 80px;
+  max-width: 170px;
+}
+.folder-dialog label {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.folder-dialog p {
+  margin: 16px 0;
+  font-size: 13px;
+}
+.folder-project-list {
+  padding: 0 48px 35px;
+}
+.folder-project {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 15px 18px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  margin-bottom: 10px;
+  background: var(--panel);
+}
+.folder-project-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  text-align: left;
+}
+.folder-project-open strong {
+  font-size: 16px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.folder-project-open small {
+  color: var(--muted);
+  font-size: 13px;
+}
+.library-header h1 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.feedback-button {
+  background: transparent;
+  border: 0;
+  justify-content: flex-start;
+  color: var(--muted);
+  padding: 10px 12px;
+  font-size: 13px;
+  margin-bottom: 9px;
+}
+.feedback-options {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.storage-locations {
+  margin: 20px 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px;
+}
+.storage-locations p,
+.storage-locations dl {
+  font-size: 13px;
+}
+.storage-locations dt {
+  color: var(--muted);
+  margin: 8px 0 4px;
+}
+.storage-locations dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+.feedback-options button {
+  flex-direction: column;
+  align-items: flex-start;
+}
+.feedback-options button span,
+.feedback-options small {
+  font-size: 13px;
+  color: var(--muted);
+}
+.donation-qr {
+  width: 280px;
+  height: 280px;
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+  margin: 20px auto;
+}
+.donation .donation-qr img {
+  position: absolute;
+  width: 557.01px;
+  max-width: none;
+  height: auto;
+  left: -138.5px;
+  top: -175.37px;
+  border-radius: 0;
+  margin: 0;
+}
+@media (max-width: 1250px) {
+  .library-tools {
+    flex-wrap: wrap;
+  }
+  .session-row-actions .folder-picker {
+    max-width: 110px;
+  }
+  .creation-tracks .track-control {
+    grid-template-columns: minmax(110px, 1fr) minmax(190px, 1.5fr);
+  }
+  .transport .practice-record-actions .small {
+    font-size: 0;
+  }
+  .practice-toolbar {
+    gap: 7px;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+@media (max-height: 850px) {
+  .sidebar {
+    padding-top: 24px;
+    padding-bottom: 14px;
+  }
+  .brand {
+    margin-bottom: 30px;
+  }
+  .sidebar-divider {
+    margin: 16px 10px;
+  }
+  .local-note {
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+  .version {
+    font-size: 10px;
+    margin-top: 12px;
+  }
+  .playlist-nav {
+    max-height: 18vh;
+  }
+}
+@media (max-height: 740px) {
+  .sidebar {
+    padding-top: 16px;
+  }
+  .brand {
+    margin-bottom: 20px;
+  }
+  .sidebar nav button {
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
+  .feedback-button {
+    padding-top: 6px;
+    padding-bottom: 6px;
+    margin-bottom: 0;
+  }
+  .nav-label {
+    margin-bottom: 7px;
+  }
+}

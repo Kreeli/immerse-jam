@@ -20,6 +20,8 @@ library/projects/<project-id>/
 
 All paths are project-relative. **`project.json` is the authoritative editable state**; result/take sidecars are descriptive snapshots that may precede later name/mix edits. WAV files are directly usable outside the app.
 
+The library root also holds `folders.json`: `{schemaVersion: 1, folders: [{id, name, projectIds}]}`. Membership is local organization metadata, may mix all project kinds, and never changes audio paths. Moving a project removes prior membership. Deleting a category removes only its metadata and returns projects to Unfiled. Empty categories persist. Named old playlists migrate once, excluding the former default “未分类项目”. Individual project archives do not replace a receiver's folder catalog.
+
 `results[]` contains independent model runs, names, model/mode metadata and tracks. `activeResultId` selects a result; `tracks` retains the current compatible view. Switching must not delete other results or takes. Stem identity comes from the validated contract, not output count/order.
 
 `takes[]` holds the recording library: ID, name, file/rawFile, start/duration in original song seconds, offsetMs, gain/pan/mute/solo, mode, recordedTempo/Pitch, inputLabel, latencyMs and timestamps. Silence outside a take remains empty timeline. Captured raw PCM is stereo Float32 WAV; normalized playback is standard WAV. Imported original files remain beside it.

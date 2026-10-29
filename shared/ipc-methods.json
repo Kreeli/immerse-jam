@@ -51,5 +51,8 @@
   "take-start",
   "ui-language",
   "update",
-  "window"
+  "window",
+  "folders-list",
+  "folders-edit",
+  "feedback-open"
 ]

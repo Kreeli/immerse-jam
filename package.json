@@ -1,6 +1,6 @@
 {
   "name": "immerse-jam",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "private": true,
   "type": "module",
   "description": "Local music separation and synchronized practice workspace",
@@ -82,6 +82,7 @@
       "createDesktopShortcut": true,
       "shortcutName": "Immerse Jam",
       "runAfterFinish": true,
+      "include": "installer/setup.nsh",
       "installerLanguages": [
         "en_US",
         "zh_CN"

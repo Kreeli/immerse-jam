@@ -25,6 +25,10 @@ class Jobs {
         IMMERSE_FFMPEG: this.ffmpeg,
         TORCH_HOME: path.join(this.base, 'models'),
         HF_HOME: path.join(this.base, 'models', 'huggingface'),
+        XDG_CACHE_HOME: path.join(this.base, 'cache'),
+        NUMBA_CACHE_DIR: path.join(this.base, 'cache', 'numba'),
+        TEMP: path.join(this.base, 'temp'),
+        TMP: path.join(this.base, 'temp'),
         PATH: path.dirname(this.ffmpeg) + path.delimiter + process.env.PATH,
       },
     });

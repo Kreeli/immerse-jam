@@ -1,3 +1,8 @@
+export interface ProjectFolder {
+  id: string;
+  name: string;
+  projectIds: string[];
+}
 export interface ModelDownload {
   status: 'progress' | 'complete' | 'error';
   message?: string;

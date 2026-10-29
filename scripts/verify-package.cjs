@@ -10,12 +10,31 @@ const entries = asar
   .map((file) => file.replaceAll('\\', '/').replace(/^\//, ''));
 const manifest = JSON.parse(asar.extractFile(archive, 'package.json'));
 assert.equal(manifest.version, require('../package.json').version);
+const resedit = require('resedit'),
+  executable = resedit.NtExecutable.from(
+    fs.readFileSync(path.resolve('release/win-unpacked/Immerse Jam.exe')),
+  ),
+  resource = resedit.NtExecutableResource.from(executable);
+const actualIcons = resedit.Resource.IconGroupEntry.fromEntries(
+    resource.entries,
+  )[0].getIconItemsFromEntries(resource.entries),
+  expectedIcons = resedit.Data.IconFile.from(fs.readFileSync('assets/app-icon.ico')).icons;
+const iconBytes = (image) => Buffer.from(image.isRaw() ? image.bin : image.generate());
+assert.deepEqual(
+  actualIcons.map(iconBytes),
+  expectedIcons.map((icon) => iconBytes(icon.data)),
+  'executable icon pixels match the supplied icon at every size',
+);
 for (const file of [
   'shared/locales/en.json',
   'shared/ipc-methods.json',
   'desktop/ipc/recordings.cjs',
   'desktop/audio-tools.cjs',
   'desktop/groups.cjs',
+  'desktop/application.cjs',
+  'desktop/folders.cjs',
+  'desktop/installation.cjs',
+  'desktop/locations.cjs',
 ])
   assert.ok(entries.includes(file), file);
 assert.ok(entries.some((file) => /capture-processor.*\.js$/.test(file)));

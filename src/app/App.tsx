@@ -25,6 +25,7 @@ import ChordSheet from '../features/chords/ChordSheet';
 import Attachments from '../features/library/Attachments';
 import DeleteProjectDialog from '../features/library/DeleteProjectDialog';
 import LibraryPage from '../features/library/LibraryPage';
+import FolderPage, { FolderDialog } from '../features/library/Folders';
 import ProjectHeading from '../features/library/ProjectHeading';
 import Sidebar from '../features/library/Sidebar';
 import DatabaseMigration from '../features/migration/DatabaseMigration';
@@ -44,6 +45,7 @@ import PracticeWaves from '../features/recording/PracticeWaves';
 import SessionCreateDialog from '../features/recording/SessionCreateDialog';
 import Score from '../features/score/Score';
 import AppearanceSettings from '../features/settings/AppearanceSettings';
+import StorageLocations from '../features/settings/StorageLocations';
 import RemoteTransfer from '../features/transfer/RemoteTransfer';
 import { t as tr, message as translateMessage } from '../i18n';
 import { type Model, type Project, type Track } from '../shared/types';
@@ -60,6 +62,12 @@ const modes = () => [
 export default function App() {
   const controller = useWorkspace();
   const [live, setLive] = useState<LiveEnvelope | null>(null);
+  const [creatingFolder, setCreatingFolder] = useState(false);
+  const folderProps = {
+    folders: controller.folders,
+    onFolders: controller.setFolders,
+    onError: controller.notify,
+  };
   const {
     library,
     setLibrary,
@@ -207,11 +215,22 @@ export default function App() {
         } else void importSongs(files);
       }}
     >
-      <Sidebar {...controller} />
+      <Sidebar {...controller} onCreateFolder={() => setCreatingFolder(true)} />
       <main className={'workspace ' + (project ? 'has-player' : '')}>
         <div className="browse-content" hidden={!!project && showPlayer}>
-          {page === 'practice' ? (
+          {page.startsWith('folder:') ? (
+            <FolderPage
+              key={page}
+              {...folderProps}
+              id={page.slice(7)}
+              library={library}
+              onOpen={openProject}
+              onDelete={setDeletingProject}
+              onCreate={() => setCreatingFolder(true)}
+            />
+          ) : page === 'practice' ? (
             <PracticeHub
+              {...folderProps}
               library={library}
               onOpen={openProject}
               onCreate={setCreatingSession}
@@ -238,7 +257,7 @@ export default function App() {
                 <div className="now-cover">
                   <Music2 size={24} />
                 </div>
-                <ProjectHeading project={project} onProject={save} />
+                <ProjectHeading {...folderProps} project={project} onProject={save} />
                 <div className="view-switch">
                   {[
                     {
@@ -501,6 +520,7 @@ export default function App() {
           onError={notify}
         />
       )}
+      {creatingFolder && <FolderDialog {...folderProps} onClose={() => setCreatingFolder(false)} />}
       {creatingSession && (
         <SessionCreateDialog
           kind={creatingSession}
@@ -564,6 +584,7 @@ export default function App() {
                       transfer: tr('设备互传'),
                       migration: tr('迁移 Audio Jam'),
                       donate: tr('支持作者'),
+                      feedback: tr('用户反馈'),
                       export: tr('导出音乐'),
                     }[modal]
                   }
@@ -657,6 +678,7 @@ export default function App() {
             {modal === 'settings' && (
               <>
                 <AppearanceSettings />
+                <StorageLocations />
                 <div className="setup-card">
                   <div className="setup-icon">
                     <AudioLines size={26} />
@@ -797,8 +819,24 @@ export default function App() {
             {modal === 'donate' && (
               <div className="donation">
                 <p>{tr('如果 Immerse Jam 陪你度过了一段愉快的练琴时间，欢迎自愿支持作者。')}</p>
-                <img src={donation} alt={tr('作者微信收款码')} />
+                <div className="donation-qr">
+                  <img src={donation} alt={tr('作者微信收款码')} />
+                </div>
                 <p className="muted">{tr('所有功能免费使用，打赏完全自愿。')}</p>
+              </div>
+            )}
+            {modal === 'feedback' && (
+              <div className="feedback-options">
+                <p>{tr('告诉我遇到的问题或练琴时希望改进的地方。')}</p>
+                <button onClick={() => void window.jam.call('feedback-open', { target: 'email' })}>
+                  {tr('发送邮件')}
+                  <span>meowmeowneko999@gmail.com</span>
+                </button>
+                <button onClick={() => void window.jam.call('feedback-open', { target: 'github' })}>
+                  {tr('前往 GitHub 反馈')}
+                  <span>Kreeli / immerse-jam</span>
+                </button>
+                <small>{tr('可以附上应用版本、操作步骤和截图，方便定位问题。')}</small>
               </div>
             )}
             {modal === 'migration' && (

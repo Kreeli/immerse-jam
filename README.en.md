@@ -2,11 +2,11 @@
 
 [简体中文](README.md) · [Architecture](docs/ARCHITECTURE.md) · [Project format](docs/DATA_FORMAT.md)
 
-**0.1.6**, Windows 10/11 x64. Local stem separation, music practice and multitrack recording. Analysis runs on your computer, with no subscription or separation quota.
+**0.1.7**, Windows 10/11 x64. Local stem separation, music practice and multitrack recording. Analysis runs on your computer, with no subscription or separation quota.
 
 ## Install
 
-Get the installer from [Releases](https://github.com/Kreeli/immerse-jam/releases). Playback requires no preinstalled Python/Node.js. Audio import, recording normalization and mix export download a verified private FFmpeg when first needed. For analysis, choose NVIDIA or CPU in Settings & models and install the private environment. NVIDIA needs a compatible driver. Models download ahead of use or on demand. Initial setup needs internet and several GB of space; processing can then run offline. No private media or model weights are distributed.
+Get the installer from [Releases](https://github.com/Kreeli/immerse-jam/releases). Choose the program folder and a separate data folder, acceleration (automatic/CPU/NVIDIA) and optional models. Setup prepares and verifies private Python, inference dependencies, FFmpeg and selected models before finishing. A non-system fixed drive is preferred; system-drive storage requires explicit confirmation. Music, recordings, models, runtime and download caches stay in that data folder, which uninstall preserves. Six-stem BS RoFormer SW and Beat This! are selected by default. Vocal/guitar add-ons also install the six-stem base. Setup needs internet and several GB; NVIDIA requires a compatible driver. Failed preparation can be retried and never reports successful installation. Settings retains repair/download controls and displays storage locations. No private media or model weights are bundled.
 
 ## Practice and recording
 
@@ -35,6 +35,8 @@ Full `.ijam` projects retain independent model results, creation groups, takes, 
 LAN/hotspot QR transfer works with phone browsers. Remote WebRTC uses exchanged connection codes and public STUN, without a configured TURN relay; some networks cannot connect. Cross-carrier and physical mobile-device testing remains limited. Native Android, Bluetooth, remote resume and conflict merging are future work.
 
 Switch Chinese/English, dark/light/system and rose/blue/green/purple accents. User text is preserved.
+
+Project folders can hold music/separation, practice and creation projects together. Create, rename and move items through folder menus; deleting a folder returns projects to Unfiled and keeps media. Feedback opens an email to `meowmeowneko999@gmail.com` or GitHub Issues; nothing is sent automatically. The donation view crops the supplied image to show its original QR pixels.
 
 ## Develop and license
 

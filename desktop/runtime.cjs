@@ -110,6 +110,13 @@ async function ensureRuntime(base, mode = 'cpu', onEvent = () => {}) {
   const env = {
     UV_PYTHON_INSTALL_DIR: path.join(base, 'python'),
     UV_CACHE_DIR: path.join(base, 'cache'),
+    UV_TOOL_DIR: path.join(base, 'uv-tools'),
+    UV_TOOL_BIN_DIR: path.join(base, 'bin'),
+    HF_HOME: path.join(base, 'cache', 'huggingface'),
+    TORCH_HOME: path.join(base, 'cache', 'torch'),
+    XDG_CACHE_HOME: path.join(base, 'cache'),
+    PIP_CACHE_DIR: path.join(base, 'cache', 'pip'),
+    PYTHONUSERBASE: path.join(base, 'python-user'),
     PYTHONUTF8: '1',
     UV_HTTP_TIMEOUT: '180',
     UV_CONCURRENT_DOWNLOADS: '4',

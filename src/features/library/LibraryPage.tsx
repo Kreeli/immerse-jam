@@ -15,6 +15,7 @@ import type { WorkspaceController } from '../../app/useWorkspace';
 import { t as tr } from '../../i18n';
 import type { Project } from '../../shared/types';
 import { time } from '../../shared/types';
+import { FolderPicker } from './Folders';
 const colors = ['#ed7894', '#d9a86c', '#91bda9', '#a092cd', '#7fa8d3', '#8e949d'];
 type Props = Pick<
   WorkspaceController,
@@ -30,6 +31,9 @@ type Props = Pick<
   | 'setModal'
   | 'setLibrary'
   | 'songList'
+  | 'folders'
+  | 'setFolders'
+  | 'notify'
 >;
 export default function LibraryPage({
   page,
@@ -44,6 +48,9 @@ export default function LibraryPage({
   setModal,
   setLibrary,
   songList,
+  folders,
+  setFolders,
+  notify,
 }: Props) {
   return (
     <>
@@ -185,6 +192,12 @@ export default function LibraryPage({
                 </button>
 
                 <span>{time(p.duration)}</span>
+                <FolderPicker
+                  project={p}
+                  folders={folders}
+                  onFolders={setFolders}
+                  onError={notify}
+                />
                 <button
                   className="icon-button"
                   aria-label={tr('删除歌曲 {0}', [p.title])}

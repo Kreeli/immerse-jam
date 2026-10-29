@@ -3,11 +3,19 @@ import { Player } from '../audio/Player';
 import { sourceTracks } from '../audio/performance';
 import { toggleTrackState } from '../audio/track-state';
 import { t as tr, message as translateMessage } from '../i18n';
-import type { JamEvent, Model, ModelDownload, Project, Track } from '../shared/types';
+import type {
+  JamEvent,
+  Model,
+  ModelDownload,
+  Project,
+  ProjectFolder,
+  Track,
+} from '../shared/types';
 import { usePreferences } from './preferences';
 export function useWorkspace() {
   usePreferences();
   const [library, setLibrary] = useState<Project[]>([]),
+    [folders, setFolders] = useState<ProjectFolder[]>([]),
     [project, setProject] = useState<Project | null>(null),
     [showPlayer, setShowPlayer] = useState(false),
     [creatingSession, setCreatingSession] = useState<'practice' | 'creation' | null>(null),
@@ -62,7 +70,14 @@ export function useWorkspace() {
 
     toastTimer.current = setTimeout(() => setToast(''), 6500);
   }, []);
-  const refresh = useCallback(() => window.jam.call<Project[]>('library').then(setLibrary), []);
+  const refresh = useCallback(async () => {
+    const [projects, groups] = await Promise.all([
+      window.jam.call<Project[]>('library'),
+      window.jam.call<ProjectFolder[]>('folders-list'),
+    ]);
+    setLibrary(projects);
+    setFolders(groups);
+  }, []);
   const adopt = useCallback((p: Project) => {
     setProject(p);
 
@@ -125,7 +140,17 @@ export function useWorkspace() {
       if (!s.ready) setModal('settings');
     });
 
-    void window.jam.call<Model[]>('models').then(setModels);
+    void window.jam.call<Model[]>('models').then((items) => {
+      setModels(items);
+      const installed =
+        items.find((model) => model.installed && model.id === 'roformer-sw') ||
+        items.find((model) => model.installed && model.stems.length === 6) ||
+        items.find((model) => model.installed && model.stems.length === 4);
+      if (installed) {
+        setModelId(installed.id);
+        setMode(installed.stems.length === 4 ? 'basic' : 'six');
+      }
+    });
 
     const off = window.jam.onEvent((e) => {
       if (e.scope === 'audio-tools') {
@@ -586,6 +611,8 @@ export function useWorkspace() {
       (p.title + ' ' + p.artist).toLowerCase().includes(query.toLowerCase()),
   );
   return {
+    folders,
+    setFolders,
     sidePanel,
     setSidePanel,
     deletingProject,

@@ -1,5 +1,7 @@
 import {
-  FileMusic,
+  Folder,
+  FolderPlus,
+  MessageSquare,
   FolderInput,
   Guitar,
   Heart,
@@ -23,6 +25,7 @@ type Props = Pick<
   | 'setPage'
   | 'setSelected'
   | 'setModal'
+  | 'folders'
 >;
 export default function Sidebar({
   page,
@@ -34,7 +37,9 @@ export default function Sidebar({
   setPage,
   setSelected,
   setModal,
-}: Props) {
+  folders,
+  onCreateFolder,
+}: Props & { onCreateFolder: () => void }) {
   return (
     <aside className="sidebar">
       <div className="brand">
@@ -81,29 +86,33 @@ export default function Sidebar({
         ))}
       </nav>
 
-      <div className="nav-label">{tr('歌单')}</div>
+      <div className="nav-label folder-nav-heading">
+        {tr('分类文件夹')}
+        <button
+          className="icon-button"
+          aria-label={tr('新建分类')}
+          title={tr('新建分类')}
+          onClick={onCreateFolder}
+        >
+          <FolderPlus size={16} />
+        </button>
+      </div>
 
       <nav className="playlist-nav">
-        {[
-          ...new Set(
-            library
-              .filter((item) => !item.kind)
-              .map((p) => p.playlist)
-              .filter(Boolean),
-          ),
-        ].map((name) => (
+        {[{ id: 'unfiled', name: tr('未分类'), projectIds: [] }, ...folders].map((folder) => (
           <button
-            key={name}
+            key={folder.id}
+            className={page === 'folder:' + folder.id && !showPlayer ? 'active' : ''}
 
             onClick={() => {
               setShowPlayer(false);
 
-              setPage('playlist:' + name);
+              setPage('folder:' + folder.id);
             }}
           >
-            <FileMusic size={16} />
+            <Folder size={16} />
 
-            {name}
+            <span>{folder.name}</span>
           </button>
         ))}
       </nav>
@@ -139,6 +148,10 @@ export default function Sidebar({
       </nav>
 
       <div className="sidebar-bottom">
+        <button className="feedback-button" onClick={() => setModal('feedback')}>
+          <MessageSquare size={16} />
+          {tr('用户反馈')}
+        </button>
         <div className="local-note">
           <span className={'dot ' + (ready ? 'green-dot' : '')} />
 
