@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
 function atempo(value) {
+  if (!Number.isFinite(value) || value <= 0) throw new Error('播放速度必须是有限的正数');
   if (Math.abs(value - 1) < 1e-8) return 'anull';
   const chain = [];
   while (value < 0.5) {
@@ -23,6 +24,17 @@ function pan(value) {
 }
 function exportMix(store, id, ffmpeg, dest, region) {
   const p = store.get(id);
+  if (
+    !Number.isFinite(p.practice?.tempo) ||
+    p.practice.tempo < 0.25 ||
+    p.practice.tempo > 2 ||
+    !Number.isFinite(p.practice.pitch) ||
+    Math.abs(p.practice.pitch) > 24 ||
+    !Number.isFinite(p.practice.master) ||
+    p.practice.master < 0 ||
+    p.practice.master > 1
+  )
+    throw new Error('播放设置无效，请重新设置速度、音调和音量');
   let tracks = [
     ...(p.kind === 'creation' && !p.sessionSource
       ? []
@@ -75,8 +87,9 @@ function exportMix(store, id, ffmpeg, dest, region) {
 }
 function exportStems(store, id, folder) {
   const p = store.get(id),
-    out = path.join(folder, p.title.replace(/[<>:"/\\|?*]/g, '_') + '_' + Date.now());
+    out = path.join(folder, safeName(p.title, '音频') + '_' + Date.now());
   fs.mkdirSync(out, { recursive: true });
+  let index = 0;
   for (const t of [
     ...(p.kind === 'creation' && !p.sessionSource ? [] : [{ name: 'original', file: p.original }]),
     ...p.tracks,
@@ -89,12 +102,24 @@ function exportStems(store, id, folder) {
       store.asset(id, t.file),
       path.join(
         out,
-        (t.label || t.name).replace(/[<>:\"/\\|?*]/g, '_') +
+        safeName(t.label || t.name, '音轨') +
           '_' +
-          (t.id || 'original').slice(0, 8) +
+          String(index++).padStart(2, '0') +
+          '_' +
+          safeName(t.id, 'original').slice(0, 8) +
           path.extname(t.file),
       ),
     );
   return out;
+}
+function safeName(value, fallback) {
+  const text =
+    typeof value === 'string'
+      ? value
+          .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_')
+          .replace(/[. ]+$/g, '')
+          .slice(0, 100)
+      : '';
+  return text || fallback;
 }
 module.exports = { exportMix, exportStems, atempo };

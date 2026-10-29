@@ -86,8 +86,8 @@ async function stop() {
   page = await app.firstWindow();
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
-  await button('练琴模式').click();
-  await button('打开工程 ' + creation.title).click();
+  await button('跟练/创作').click();
+  await button('打开 ' + creation.title).click();
   await ready();
   assert.equal(await page.locator('.creation-audio-object').count(), 1);
   assert.equal(await page.locator('.mixer .track-control').count(), 0);
@@ -222,8 +222,8 @@ async function stop() {
     assert.ok(Math.abs(value - amount) < 0.12, String(value));
   }
   assert.ok(store.get(creation.id).practice.metronomeVolume < 0.3);
-  await button('练琴模式').click();
-  await button('打开工程 ' + practice.title).click();
+  await button('跟练/创作').click();
+  await button('打开 ' + practice.title).click();
   await ready();
   await button('播放').click();
   await button('练琴录音').click();
@@ -261,8 +261,8 @@ async function stop() {
   await button('Close window').click();
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.screenshot({ path: 'test-output/v016-practice-en-light.png' });
-  await button('Practice workspace').click();
-  await button('Open project ' + creation.title).click();
+  await button('Practice / Create').click();
+  await button('Open ' + creation.title).click();
   await ready();
   await button('Add stem project').click();
   const dialogText = await page.getByRole('dialog').innerText();

@@ -246,11 +246,14 @@ export function useWorkspace() {
 
       setCountInRemaining(player.current.countInRemaining());
     };
+    const dispose = () => player.current.dispose();
+    window.addEventListener('pagehide', dispose);
 
     return () => {
       off();
 
-      player.current.pause();
+      window.removeEventListener('pagehide', dispose);
+      player.current.dispose();
     };
   }, []);
   const fingerprint = project

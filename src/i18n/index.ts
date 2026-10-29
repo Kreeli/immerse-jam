@@ -48,7 +48,13 @@ export function message(input: string | undefined | null): string {
   if (text.includes('\n')) return text.split('\n').map(message).join('\n');
   const entries = en ? Object.entries(catalog) : [...reverse];
   for (const [key, value] of entries)
-    if (key.length >= 5 && !key.includes('{') && text.startsWith(key) && key !== text)
+    if (
+      key.length >= 5 &&
+      key.trim() === key &&
+      !key.includes('{') &&
+      text.startsWith(key) &&
+      key !== text
+    )
       return value + message(text.slice(key.length));
   return text;
 }

@@ -26,8 +26,8 @@ export default function PracticeHub({
       <header className="library-header">
         <div>
           <div className="eyebrow">IMMERSE JAM</div>
-          <h1>{tr('练琴模式')}</h1>
-          <p>{tr('选择跟练工程，或用多轨叠录开始创作。')}</p>
+          <h1>{tr('跟练/创作')}</h1>
+          <p>{tr('选择跟练，或用多轨叠录开始创作。')}</p>
         </div>
         <div className="header-actions">
           <button onClick={() => onCreate('practice')}>
@@ -40,12 +40,12 @@ export default function PracticeHub({
           </button>
         </div>
       </header>
-      <div className="session-tabs" role="group" aria-label={tr('工程类型')}>
+      <div className="session-tabs" role="group" aria-label={tr('内容类型')}>
         {(
           [
-            { id: 'all', label: tr('全部工程') },
-            { id: 'practice', label: tr('跟练模式') },
-            { id: 'creation', label: tr('创作模式') },
+            { id: 'all', label: tr('全部') },
+            { id: 'practice', label: tr('跟练') },
+            { id: 'creation', label: tr('创作') },
           ] as const
         ).map((tab) => (
           <button
@@ -63,7 +63,7 @@ export default function PracticeHub({
           <div className="empty-disc">
             <Layers size={42} />
           </div>
-          <h2>{tr('新建你的练琴工程')}</h2>
+          <h2>{tr('开始跟练或创作')}</h2>
           <p>{tr('跟练可选音乐库里的分轨歌曲；创作可从空白或源歌曲开始。')}</p>
           <div className="header-actions">
             {filter !== 'creation' && (
@@ -81,7 +81,7 @@ export default function PracticeHub({
           <table className="session-table">
             <thead>
               <tr>
-                <th>{tr('工程名称')}</th>
+                <th>{tr('名称')}</th>
                 <th>{tr('类型')}</th>
                 <th>{tr('跟练方式')}</th>
                 <th>{tr('录音')}</th>
@@ -100,14 +100,14 @@ export default function PracticeHub({
                         <small>
                           {project.sessionSource
                             ? tr('源歌曲：{0}', [project.sessionSource.title])
-                            : tr('空白工程')}
+                            : tr('空白创作')}
                         </small>
                       </span>
                     </button>
                   </td>
                   <td>
                     <span className="session-badge">
-                      {project.kind === 'practice' ? tr('跟练工程') : tr('创作工程')}
+                      {project.kind === 'practice' ? tr('跟练') : tr('创作')}
                     </span>
                   </td>
                   <td>
@@ -133,15 +133,15 @@ export default function PracticeHub({
                       />
                       <button
                         className="icon-button"
-                        aria-label={tr('打开工程 {0}', [project.title])}
+                        aria-label={tr('打开 {0}', [project.title])}
                         onClick={() => onOpen(project)}
                       >
                         <ChevronRight size={18} />
                       </button>
                       <button
                         className="icon-button"
-                        aria-label={tr('删除工程 {0}', [project.title])}
-                        title={tr('删除工程')}
+                        aria-label={tr('删除 {0}', [project.title])}
+                        title={tr('删除')}
                         onClick={() => onDelete(project)}
                       >
                         <Trash2 size={16} />

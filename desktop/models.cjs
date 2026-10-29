@@ -50,7 +50,9 @@ const catalog = [
     description: '较新的高质量四轨模型；适合鼓、贝斯与人声练习。',
     adapter: 'scnet',
     file: 'model_scnet_ep_36_sdr_10.0891.ckpt',
+    sha256: 'ac25975f0f5704f3d1a3c3c251505b7a0f417a22eafe82773440ee4f7e14b74f',
     config: 'config_musdb18_scnet_xl_more_wide_v5.yaml',
+    configSha256: '54ddcb8aeeae85c8d0e148741e7d87b0fbd38bd21cffa5d59ba124fe1e672f40',
     stems: ['drums', 'bass', 'other', 'vocals'],
     sampleRate: 44100,
     modelUrl: msst + 'v1.0.15/model_scnet_ep_36_sdr_10.0891.ckpt',
@@ -190,7 +192,11 @@ class Models {
       });
     return [...catalog, ...custom].map((m) => ({
       ...m,
-      installed: fs.existsSync(path.join(this.base, m.id, 'verified.json')),
+      installed:
+        fs.existsSync(path.join(this.base, m.id, 'verified.json')) &&
+        [m.file, m.config, ...(m.extraFiles || []).map((file) => file.file)]
+          .filter(Boolean)
+          .every((file) => fs.existsSync(path.join(this.base, m.id, file))),
     }));
   }
   get(id) {
@@ -223,12 +229,22 @@ class Models {
       dir = path.join(this.base, m.id);
     fs.mkdirSync(dir, { recursive: true });
     if (m.custom && !m.installed) throw new Error('自定义模型尚未通过试运行');
+    if (
+      m.custom &&
+      (fileHash(path.join(dir, m.file)) !== m.sha256 ||
+        (m.config &&
+          (!validHash(m.configSha256) || fileHash(path.join(dir, m.config)) !== m.configSha256)))
+    )
+      throw new Error('自定义模型文件校验失败');
     if (!m.custom) {
-      for (const f of [
+      const files = [
         { file: m.file, url: m.modelUrl, sha256: m.sha256 },
         ...(m.config ? [{ file: m.config, url: m.configUrl, sha256: m.configSha256 }] : []),
         ...(m.extraFiles || []),
-      ]) {
+      ];
+      if (files.some((file) => !validHash(file.sha256)))
+        throw new Error('模型文件缺少可信的 SHA-256，无法安装');
+      for (const f of files) {
         onEvent?.({ type: 'progress', message: `准备 ${m.name}：${f.file}` });
         await (m.adapter === 'BeatThis' ? require('./runtime.cjs').download : download)(
           f.url,
@@ -237,7 +253,10 @@ class Models {
           onEvent,
         );
       }
-      atomicJson(path.join(dir, 'verified.json'), { downloaded: true });
+      atomicJson(path.join(dir, 'verified.json'), {
+        downloaded: true,
+        files: files.map((file) => ({ file: file.file, sha256: file.sha256 })),
+      });
     }
     return { ...m, directory: dir };
   }
@@ -250,6 +269,11 @@ class Models {
     if (sha !== m.sha256) throw new Error('模型校验值不匹配');
     const id = 'custom-' + sha.slice(0, 16),
       dir = path.join(this.base, id);
+    if (
+      m.config &&
+      (!validHash(m.configSha256) || fileHash(contained(folder, m.config)) !== m.configSha256)
+    )
+      throw new Error('自定义模型配置需要正确的 SHA-256 校验值');
     fs.mkdirSync(dir, { recursive: true });
     for (const file of [m.file, m.config].filter(Boolean))
       fs.copyFileSync(contained(folder, file), path.join(dir, file));
@@ -259,3 +283,6 @@ class Models {
   }
 }
 module.exports = { Models, validateManifest, catalog };
+function validHash(value) {
+  return typeof value === 'string' && /^[a-f0-9]{64}$/i.test(value);
+}

@@ -15,12 +15,14 @@ function run(exe, args, env, onEvent) {
       cwd: path.dirname(exe),
     });
     let tail = '';
-    for (const stream of [child.stdout, child.stderr])
+    for (const stream of [child.stdout, child.stderr]) {
+      stream.setEncoding('utf8');
       stream.on('data', (b) => {
-        const message = b.toString();
+        const message = b;
         tail = (tail + message).slice(-6000);
         onEvent?.({ type: 'progress', message: message.trim() });
       });
+    }
     child.on('error', reject);
     child.on('close', (code) =>
       code === 0 ? resolve() : reject(new Error(`安装步骤未完成 (${code})：${tail}`)),

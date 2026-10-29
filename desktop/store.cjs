@@ -4,6 +4,22 @@ const crypto = require('node:crypto');
 const ID = /^[a-f0-9-]{36}$/;
 function normalizePlayback(p) {
   let changed = false;
+  if (!p.practice || typeof p.practice !== 'object' || Array.isArray(p.practice)) {
+    p.practice = { tempo: 1, pitch: 0, master: 0.8, eq: [0, 0, 0] };
+    changed = true;
+  }
+  for (const [key, min, max, fallback] of [
+    ['tempo', 0.25, 2, 1],
+    ['pitch', -24, 24, 0],
+    ['master', 0, 1, 0.8],
+  ]) {
+    const value = p.practice[key],
+      normalized = Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : fallback;
+    if (value !== normalized) {
+      p.practice[key] = normalized;
+      changed = true;
+    }
+  }
   for (const track of [
     ...(p.tracks || []),
     ...(p.results || []).flatMap((result) => result.tracks || []),

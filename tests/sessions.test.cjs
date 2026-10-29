@@ -47,7 +47,7 @@ test('practice and sourced creation copy selected stems independently and leave 
   assert.throws(() => createSession(store, { kind: 'practice', title: 'No source' }), /已分轨/);
   assert.throws(
     () => createSession(store, { kind: 'creation', sourceId: p.id, title: '', mode: 'instrument' }),
-    /工程名称/,
+    /名称/,
   );
   assert.equal(store.list().length, count);
   const broken = structuredClone(p);

@@ -1,5 +1,5 @@
 import { SoundTouchNode } from '@soundtouchjs/audio-worklet';
-import processorUrl from '@soundtouchjs/audio-worklet/processor?url';
+import processorUrl from './playback-processor.js?worker&url';
 import { t as tr } from '../i18n';
 import { asset, interpolate, type Project, type SourceGroup, type Track } from '../shared/types';
 import { placeEnvelope } from './envelope';
@@ -36,7 +36,7 @@ export class Player {
   metronomeGain: GainNode | null = null;
   countInGain: GainNode | null = null;
   metroBeats: number[] = [];
-  metroScheduled = new Set<number>();
+  metroScheduled = new Set<string>();
   peakCache = new Map<string, number[]>();
   channels: Channel[] = [];
   mix: GainNode | null = null;
@@ -50,10 +50,26 @@ export class Player {
   tempo = 1;
   pitch = 0;
   duration = 0;
-  loop: {
+  private _loop: {
     a: number;
     b: number;
   } | null = null;
+  get loop() {
+    return this._loop;
+  }
+  set loop(value: { a: number; b: number } | null) {
+    if (this._loop?.a === value?.a && this._loop?.b === value?.b) return;
+    const position = this.position();
+    this._loop = value;
+    if (this.playing) this.seek(position);
+  }
+  transportGain: GainNode | null = null;
+  playSerial = 0;
+  private resumeRequested = false;
+  scheduledCycles = new Set<number>();
+  activeSources = new Set<{ source: AudioBufferSourceNode; gate: GainNode }>();
+  private initPromise: Promise<void> | null = null;
+  private lifecycleSerial = 0;
   timer: ReturnType<typeof setInterval> | null = null;
   raf = 0;
   generation = 0;
@@ -72,14 +88,33 @@ export class Player {
   mixWarmTimer: ReturnType<typeof setTimeout> | null = null;
   countInInterval = 0;
   countInBeats = 0;
-  notesScheduled = new Set<number>();
+  notesScheduled = new Set<string>();
   midiGain: GainNode | null = null;
   voices = new Set<AudioScheduledSourceNode>();
   onUpdate: (position: number, playing: boolean) => void = () => {};
   async init() {
+    if (this.initPromise) return this.initPromise;
     if (this.context) return;
+    this.initPromise = this.initialize();
+    try {
+      await this.initPromise;
+    } finally {
+      this.initPromise = null;
+    }
+  }
+  private async initialize() {
+    const lifecycle = this.lifecycleSerial;
     const ctx = new AudioContext({ latencyHint: 'interactive', sampleRate: 48000 });
-    await SoundTouchNode.register(ctx, processorUrl);
+    try {
+      await SoundTouchNode.register(ctx, processorUrl);
+    } catch (error) {
+      await ctx.close();
+      throw error;
+    }
+    if (lifecycle !== this.lifecycleSerial) {
+      await ctx.close();
+      return;
+    }
     this.context = ctx;
     this.mix = ctx.createGain();
     this.metronomeGain = ctx.createGain();
@@ -94,7 +129,10 @@ export class Player {
     this.limiter.threshold.value = -2;
     this.limiter.knee.value = 0;
     this.limiter.ratio.value = 20;
-    this.midiGain.connect(this.limiter);
+    this.transportGain = ctx.createGain();
+    this.transportGain.gain.value = 0;
+    this.midiGain.connect(this.transportGain);
+    this.transportGain.connect(this.limiter);
     this.limiter.connect(this.master);
     this.master.connect(ctx.destination);
     this.initWaveWorker();
@@ -102,18 +140,19 @@ export class Player {
   }
   rebuildDsp() {
     if (!this.context || !this.mix) return;
+    if (this.dsp) return;
     this.mix.disconnect();
-    this.dsp?.disconnect();
     this.dsp = new SoundTouchNode({ context: this.context });
     this.dsp.playbackRate.value = this.tempo;
     this.dsp.pitchSemitones.value = this.pitch;
     this.mix.connect(this.dsp);
-    this.dsp.connect(this.limiter!);
+    this.dsp.connect(this.transportGain!);
   }
   async load(project: Project) {
     const generation = ++this.generation;
     this.pause();
     await this.init();
+    if (generation !== this.generation || !this.context) return;
     const same = this.project?.id === project.id,
       oldBuffers = new Map(
         (same ? this.channels : []).map((channel) => [channel.track.file, channel.buffer]),
@@ -204,12 +243,16 @@ export class Player {
   }
   apply(project: Project) {
     this.project = project;
-    const was = this.playing;
+    const was = this.playing || this.resumeRequested;
     const position = this.position();
     const changed = this.tempo !== project.practice.tempo || this.pitch !== project.practice.pitch;
     if (changed) this.pause();
     this.tempo = project.practice.tempo;
     this.pitch = project.practice.pitch;
+    if (this.dsp) {
+      this.dsp.playbackRate.value = this.tempo;
+      this.dsp.pitchSemitones.value = this.pitch;
+    }
     if (this.master)
       this.master.gain.setTargetAtTime(project.practice.master, this.context!.currentTime, 0.01);
     const tracks = playbackTracks(project, this.captureActive),
@@ -253,22 +296,58 @@ export class Player {
       Math.min(
         this.captureActive ? Infinity : this.duration,
         this.playing
-          ? this.offset + Math.max(0, this.context!.currentTime - this.started) * this.tempo
+          ? this.loopPosition(
+              this.offset + Math.max(0, this.context!.currentTime - this.started) * this.tempo,
+            )
           : this.offset,
       ),
     );
   }
+  private usableLoop() {
+    const loop = this.loop;
+    return !this.captureActive &&
+      loop &&
+      Number.isFinite(loop.a) &&
+      Number.isFinite(loop.b) &&
+      loop.a >= 0 &&
+      loop.b <= this.duration &&
+      loop.b - loop.a >= 0.02
+      ? loop
+      : null;
+  }
+  private loopPosition(position: number) {
+    const loop = this.usableLoop();
+    return loop && position >= loop.b
+      ? loop.a + ((position - loop.b) % (loop.b - loop.a))
+      : position;
+  }
   async play(countIn = false) {
     if (!this.context || (!this.channels.length && !this.captureActive) || this.playing) return;
-    await this.context.resume();
+    this.resumeRequested = true;
+    const serial = ++this.playSerial,
+      context = this.context;
+    try {
+      await context.resume();
+    } catch (error) {
+      if (serial !== this.playSerial) return;
+      this.resumeRequested = false;
+      throw error;
+    }
+    if (serial !== this.playSerial || this.context !== context) return;
     if (!this.captureActive && this.offset >= this.duration - 0.01) this.offset = 0;
     this.metroBeats = beatGrid(this.project!, this.duration);
     if (countIn && this.project?.practice.snapCountIn !== false)
       this.offset = nearestBeat(this.metroBeats, this.offset, this.loop);
-    this.rebuildDsp();
+    const loop = this.usableLoop();
+    if (loop && this.offset >= loop.b) this.offset = loop.a;
+    this.dsp!.port.postMessage({ type: 'reset', at: context.currentTime + 0.006, active: true });
+    this.transportGain!.gain.cancelAndHoldAtTime(context.currentTime);
+    this.transportGain!.gain.linearRampToValueAtTime(0, context.currentTime + 0.005);
+    this.transportGain!.gain.setValueAtTime(1, context.currentTime + 0.012);
+    this.scheduledCycles.clear();
     this.metroScheduled.clear();
     const origin = this.context.currentTime;
-    let delay = 0.12;
+    let delay = countIn ? 0.12 : 0.02;
     this.countInBeats = 0;
     this.countInInterval = 0;
     if (countIn) {
@@ -282,16 +361,7 @@ export class Player {
       delay += beats * interval;
     }
     this.started = origin + delay;
-    for (const c of this.channels) {
-      const start = c.track.start || 0,
-        offset = Math.max(0, this.offset - start);
-      if (offset >= c.buffer.duration) continue;
-      c.source = this.context.createBufferSource();
-      c.source.buffer = c.buffer;
-      c.source.playbackRate.value = this.tempo;
-      c.source.connect(c.gain);
-      c.source.start(this.started + Math.max(0, start - this.offset) / this.tempo, offset);
-    }
+    this.scheduleSources();
     this.playing = true;
     this.notesScheduled.clear();
     this.schedule();
@@ -299,10 +369,6 @@ export class Player {
     const tick = () => {
       if (!this.playing) return;
       const p = this.position();
-      if (!this.captureActive && this.loop && p >= this.loop.b) {
-        this.seek(this.loop.a);
-        return;
-      }
       if (!this.captureActive && p >= this.duration - 0.005) {
         this.pause();
         this.offset = this.duration;
@@ -328,72 +394,164 @@ export class Player {
     await context.setSinkId(id === 'default' ? '' : id);
   }
   pause() {
+    this.playSerial++;
+    this.resumeRequested = false;
     if (this.playing) this.offset = this.position();
     this.playing = false;
-    for (const c of this.channels) {
+    const now = this.context?.currentTime || 0;
+    if (this.transportGain) {
+      this.transportGain.gain.cancelAndHoldAtTime(now);
+      this.transportGain.gain.linearRampToValueAtTime(0, now + 0.005);
+    }
+    this.dsp?.port.postMessage({ type: 'reset', at: now + 0.006, active: false });
+    for (const item of this.activeSources) {
       try {
-        c.source?.stop();
+        item.source.stop(now + 0.006);
       } catch {
         /* source may already be complete */
       }
-      c.source?.disconnect();
-      c.source = undefined;
     }
+    this.activeSources.clear();
+    for (const channel of this.channels) channel.source = undefined;
     for (const source of this.voices) {
       try {
-        source.stop();
+        source.stop(now + 0.006);
       } catch {}
     }
     this.voices.clear();
     if (this.timer) clearInterval(this.timer);
     cancelAnimationFrame(this.raf);
-    this.dsp?.disconnect();
     this.onUpdate(this.offset, false);
   }
   seek(position: number) {
-    const was = this.playing;
+    const was = this.playing || this.resumeRequested;
     this.pause();
     this.offset = Math.max(0, Math.min(this.duration, position));
     this.onUpdate(this.offset, false);
     if (was) void this.play();
   }
+  private scheduleSources() {
+    if (!this.context) return;
+    const loop = this.usableLoop(),
+      now = this.context.currentTime,
+      horizon = now + 0.25;
+    const firstEnd = loop ? loop.b : this.duration;
+    const raw = this.offset + Math.max(0, now - this.started) * this.tempo;
+    const cycle = loop && raw >= loop.b ? 1 + Math.floor((raw - loop.b) / (loop.b - loop.a)) : 0;
+    for (
+      let index = cycle;
+      index <= cycle + (loop ? Math.ceil((0.25 * this.tempo) / (loop.b - loop.a)) + 1 : 0);
+      index++
+    ) {
+      const from = index === 0 ? this.offset : loop!.a,
+        to = loop ? loop.b : firstEnd;
+      const at =
+        index === 0
+          ? this.started
+          : this.started + (loop!.b - this.offset + (index - 1) * (loop!.b - loop!.a)) / this.tempo;
+      if (at > horizon && index !== 0) break;
+      if (this.scheduledCycles.has(index)) continue;
+      this.scheduledCycles.add(index);
+      for (const channel of this.channels) {
+        const trackStart = channel.track.start || 0,
+          start = Math.max(from, trackStart),
+          end = Math.min(to, trackStart + channel.buffer.duration);
+        if (!(end > start)) continue;
+        const nominal = at + (start - from) / this.tempo,
+          begins = Math.max(nominal, now + 0.003),
+          ends = at + (end - from) / this.tempo;
+        if (ends <= begins) continue;
+        const source = this.context.createBufferSource(),
+          gate = this.context.createGain(),
+          fade = Math.min(0.003, (ends - begins) / 3);
+        source.buffer = channel.buffer;
+        source.playbackRate.value = this.tempo;
+        source.connect(gate);
+        gate.connect(channel.gain);
+        gate.gain.setValueAtTime(0, begins);
+        gate.gain.linearRampToValueAtTime(1, begins + fade);
+        gate.gain.setValueAtTime(1, ends - fade);
+        gate.gain.linearRampToValueAtTime(0, ends);
+        const item = { source, gate };
+        this.activeSources.add(item);
+        channel.source = source;
+        source.onended = () => {
+          this.activeSources.delete(item);
+          source.disconnect();
+          gate.disconnect();
+        };
+        source.start(
+          begins,
+          start - trackStart + (begins - nominal) * this.tempo,
+          (ends - begins) * this.tempo,
+        );
+      }
+      for (const old of this.scheduledCycles) if (old < cycle - 1) this.scheduledCycles.delete(old);
+    }
+  }
   schedule() {
     if (!this.context || !this.project) return;
+    this.scheduleSources();
     const position = this.position(),
-      end = position + 0.22 * this.tempo;
+      loop = this.usableLoop(),
+      now = this.context.currentTime,
+      raw = this.offset + Math.max(0, now - this.started) * this.tempo,
+      cycle = loop && raw >= loop.b ? 1 + Math.floor((raw - loop.b) / (loop.b - loop.a)) : 0;
     if (this.captureActive && (this.metroBeats.at(-1) || 0) < position + 1)
       this.metroBeats = beatGrid(this.project, position + 30);
-    if (this.project.practice.metronome) {
-      for (let i = 0; i < this.metroBeats.length; i++) {
-        const beat = this.metroBeats[i];
-        if (beat < this.offset - 0.002 || beat < position - 0.025 || this.metroScheduled.has(i))
-          continue;
-        if (beat > end) break;
-        const at = this.started + (beat - this.offset) / this.tempo;
-        if (at >= this.context.currentTime - 0.003) {
-          this.metroScheduled.add(i);
-          this.click(
-            Math.max(this.context.currentTime, at),
-            strongBeat(this.project, this.metroBeats, i),
-          );
+    for (
+      let epoch = cycle;
+      epoch <= cycle + (loop ? Math.ceil((0.22 * this.tempo) / (loop.b - loop.a)) + 1 : 0);
+      epoch++
+    ) {
+      const origin =
+        epoch === 0
+          ? this.started
+          : this.started + (loop!.b - this.offset + (epoch - 1) * (loop!.b - loop!.a)) / this.tempo;
+      if (epoch > 0 && origin > now + 0.22) break;
+      const offset = epoch === 0 ? this.offset : loop!.a,
+        end = loop?.b || this.duration;
+      if (this.project.practice.metronome) {
+        for (let i = 0; i < this.metroBeats.length; i++) {
+          const beat = this.metroBeats[i];
+          const key = epoch + ':' + i,
+            at = origin + (beat - offset) / this.tempo;
+          if (
+            beat < offset - 0.002 ||
+            beat >= end ||
+            at < now - 0.003 ||
+            this.metroScheduled.has(key)
+          )
+            continue;
+          if (at > now + 0.22) break;
+          if (at >= this.context.currentTime - 0.003) {
+            this.metroScheduled.add(key);
+            this.click(
+              Math.max(this.context.currentTime, at),
+              strongBeat(this.project, this.metroBeats, i),
+            );
+          }
         }
       }
+      const alignment = this.project.alignment;
+      if (this.project.practice.midi && alignment) {
+        alignment.notes.forEach((n, i) => {
+          const key = epoch + ':' + i;
+          if (this.notesScheduled.has(key)) return;
+          const start = interpolate(alignment.points, n.start),
+            stop = interpolate(alignment.points, n.end);
+          const at = origin + (start - offset) / this.tempo;
+          if (start >= offset - 0.002 && start < end && at >= now && at < now + 0.22) {
+            this.notesScheduled.add(key);
+            const duration = Math.max(0.02, (Math.min(stop, end) - start) / this.tempo);
+            if (at >= this.context!.currentTime)
+              this.note(n.pitch, n.velocity, n.program, n.drum, at, duration);
+          }
+        });
+      }
     }
-    const alignment = this.project.alignment;
-    if (this.project.practice.midi && alignment) {
-      alignment.notes.forEach((n, i) => {
-        if (this.notesScheduled.has(i)) return;
-        const start = interpolate(alignment.points, n.start),
-          stop = interpolate(alignment.points, n.end);
-        if (start >= position - 0.02 && start < end) {
-          this.notesScheduled.add(i);
-          const at = this.started + (start - this.offset) / this.tempo,
-            duration = Math.max(0.02, (stop - start) / this.tempo);
-          if (at >= this.context!.currentTime)
-            this.note(n.pitch, n.velocity, n.program, n.drum, at, duration);
-        }
-      });
-    }
+    for (const set of [this.metroScheduled, this.notesScheduled])
+      for (const key of set) if (Number(key.split(':')[0]) < cycle - 1) set.delete(key);
   }
   note(
     pitch: number,
@@ -677,6 +835,7 @@ export class Player {
     }
   }
   dispose() {
+    this.lifecycleSerial++;
     this.pause();
     this.generation++;
     if (this.mixWarmTimer) clearTimeout(this.mixWarmTimer);
@@ -686,5 +845,19 @@ export class Player {
     this.peakJobs.clear();
     void this.context?.close();
     this.context = null;
+    this.dsp?.port.close();
+    this.dsp = null;
+    this.mix = null;
+    this.master = null;
+    this.transportGain = null;
+    this.metronomeGain = null;
+    this.countInGain = null;
+    this.midiGain = null;
+    this.limiter = null;
+    this.channels = [];
+    this.peakCache.clear();
+    this.trackWaves.clear();
+    this.mixWaves.clear();
+    this.mixInFlight.clear();
   }
 }

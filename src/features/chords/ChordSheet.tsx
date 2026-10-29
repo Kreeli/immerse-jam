@@ -39,6 +39,7 @@ export default function ChordSheet({
     barElements = useRef(new Map<string, HTMLDivElement>()),
     dragging = useRef(false);
   const [follow, setFollow] = useState(true),
+    [deleting, setDeleting] = useState(false),
     [selected, setSelected] = useState<Selection | null>(null),
     [editing, setEditing] = useState<
       | (Selection & {
@@ -353,6 +354,14 @@ export default function ChordSheet({
             {tr('新建自制谱')}
           </button>
           <button
+            className="small"
+            disabled={chart.id === 'auto'}
+            onClick={() => setDeleting(true)}
+          >
+            <Trash2 size={14} />
+            {tr('删除和弦谱')}
+          </button>
+          <button
             className={'small ' + (follow ? 'follow-active' : '')}
             aria-pressed={follow}
             onClick={() => setFollow(!follow)}
@@ -645,6 +654,34 @@ export default function ChordSheet({
           </div>
         </div>
       ))}
+      {deleting && (
+        <div className="modal-backdrop">
+          <section className="modal" role="dialog" aria-label={tr('删除和弦谱')}>
+            <h2>{tr('删除和弦谱')}</h2>
+            <p>{tr('确定删除和弦谱“{0}”吗？歌曲和其他和弦谱会保留。', [chart.name])}</p>
+            <div className="header-actions">
+              <button onClick={() => setDeleting(false)}>{tr('取消')}</button>
+              <button
+                className="primary"
+                onClick={() => {
+                  const remaining = charts.filter((item) => item.id !== chart.id);
+                  onProject({
+                    ...project,
+                    chordCharts: remaining,
+                    activeChordChartId: remaining[0]?.id || (automatic ? 'auto' : undefined),
+                  });
+                  setDeleting(false);
+                  setSelected(null);
+                  setEditing(null);
+                  setHistory([]);
+                }}
+              >
+                {tr('删除')}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </section>
   );
 }

@@ -63,9 +63,9 @@ function AddSource({
         </div>
         <div className="session-create-fields">
           <label>
-            {tr('音乐库源工程')}
+            {tr('音乐库歌曲')}
             <select
-              aria-label={tr('音乐库源工程')}
+              aria-label={tr('音乐库歌曲')}
               value={sourceId}
               onChange={(event) => {
                 setSourceId(event.target.value);

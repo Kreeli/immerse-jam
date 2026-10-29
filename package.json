@@ -1,6 +1,6 @@
 {
   "name": "immerse-jam",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "private": true,
   "type": "module",
   "description": "Local music separation and synchronized practice workspace",
@@ -22,6 +22,9 @@
   "dependencies": {
     "@coderline/alphatab": "1.8.4",
     "@soundtouchjs/audio-worklet": "2.1.1",
+    "@soundtouchjs/core": "2.1.1",
+    "@soundtouchjs/interpolation-strategy-lanczos": "2.1.1",
+    "@soundtouchjs/worklet-base": "2.1.1",
     "@tonejs/midi": "2.0.28",
     "adm-zip": "0.6.1",
     "archiver": "7.0.1",

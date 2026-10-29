@@ -39,6 +39,7 @@ for (const file of [
   assert.ok(entries.includes(file), file);
 assert.ok(entries.some((file) => /capture-processor.*\.js$/.test(file)));
 assert.ok(entries.some((file) => /waveform-worker.*\.js$/.test(file)));
+assert.ok(entries.some((file) => /playback-processor.*\.js$/.test(file)));
 assert.ok(
   !entries.some((file) =>
     /node_modules\/ffmpeg-static|(?:^|\/)(?:\.runtime|\.research|test-output)(?:\/|$)|\.(?:wav|mp3|ijam|aum|ckpt|safetensors)$/i.test(
@@ -48,6 +49,7 @@ assert.ok(
 );
 for (const file of [
   'backend/worker.py',
+  'backend/model_safety.py',
   'assets/app-icon.ico',
   'assets/licenses/IMMERSE_JAM_LICENSE.txt',
   'assets/licenses/THIRD_PARTY_NOTICES.txt',

@@ -6,6 +6,8 @@ The active audio project is independent from the browse route (`showPlayer`/`pag
 
 `src/audio/Player.ts` owns the AudioContext, common source clock, mixing graph, SoundTouch DSP, metronome scheduling and cached waveforms. Reusable calculations live in `metronome.ts`, `performance.ts`, `envelope.ts` and `latency.ts`. `capture.ts` and its AudioWorklet collect timestamped stereo Float32 PCM with no software-monitor output. Peak extraction runs in a worker. Decoded audio and peaks are reused when mounted takes change.
 
+One SoundTouch worklet lives for the player's lifetime. `playback-processor.js` extends the upstream processor with a render-clock FIFO reset for seeks, guarded by short output fades. Loop source segments are scheduled ahead on the AudioContext clock, with short edge fades; loop rollover does not pause transport or rebuild DSP. A serial cancels stale asynchronous resumes during rapid seeks. Workspace unmount and pagehide dispose the graph, worker and AudioContext; browse navigation keeps the workspace mounted. The Electron window disables background timer throttling so scheduling can continue while browsing or minimized.
+
 Recording and backing share an AudioContext clock. Input frames map through speed and latency correction to the original song timeline; FFmpeg normalizes recorded speed/pitch while preserving raw input.
 
 `CreationTracks` renders collapsible outer source groups and recording rows. `desktop/groups.cjs` owns checked copying, validation and export routing; `performance.ts` mirrors its playback policy with cross-module contract tests. Group waveform rendering covers only the group's local region, with a bounded mix cache; creation does not pre-render an unused full-project mix. `TrackWave` reuses decoded channels and waits for loading to finish. `LiveEnvelope` retains fixed 10 ms peak bins rather than PCM and sends only the visible window to the shared waveform canvas, preserving timing and envelope shape while recording. `PracticeWaves` aligns live/saved takes with the main mix. The recorder remains mounted beside Play in `Transport`; top quick actions and `SidePanel` keep marker lists from resizing the timeline.
@@ -19,6 +21,8 @@ Recording and backing share an AudioContext clock. Input frames map through spee
 Python jobs run privately via `backend/worker.py`: JSON request, JSON progress/result output, diagnostic stderr. Separation, analysis, rhythm, alignment and validation have distinct modules. Validated results commit together; failure retains previous playable results. Vendor sources retain their own licenses.
 
 `audio-tools.cjs` downloads pinned FFmpeg when needed. `runtime.cjs` prepares private Python; `models.cjs` validates model artifacts. No global Python/CUDA toolkit is required.
+
+All built-in artifact files, including SCNet XL configuration, require pinned SHA-256. Custom weights/configurations are rehashed before use; `model_safety.py` forces restricted PyTorch loading and prechecks safe YAML in the worker process. UTF-8 streams use incremental decoding. Every LAN archive response owns a UUID-scoped temporary package cleaned after streaming. Stored playback values are normalized, and audio export independently rejects invalid tempo/pitch/volume before constructing filters.
 
 Chinese messages map through `src/i18n/index.ts` and `shared/locales/en.json`. `preferences.ts` stores language/theme/accent outside projects. Native dialogs/LAN share the catalog; user text is not translated. Themes use CSS tokens, and canvas listens for appearance/language changes.
 

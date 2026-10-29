@@ -48,6 +48,10 @@ def tensor_model(model,x,sr,emit):
     return {name:(accum[i,:,:length]/np.maximum(weight[:length],1e-7)).T for i,name in enumerate(model['stems'])}
 
 def run_model(model,source,output,emit):
+    from model_safety import custom_model_guard
+    with custom_model_guard(model):return guarded_run_model(model,source,output,emit)
+
+def guarded_run_model(model,source,output,emit):
     try:return _run_model(model,source,output,emit)
     except RuntimeError as error:
         import torch

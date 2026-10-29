@@ -41,8 +41,10 @@ class Jobs {
       cancelled = false;
     const emit = (e) =>
       this.onEvent({ jobId: id, projectId: request.projectId, operation: request.operation, ...e });
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
     child.stdout.on('data', (b) => {
-      buffer += b.toString();
+      buffer += b;
       let n;
       while ((n = buffer.indexOf('\n')) >= 0) {
         const line = buffer.slice(0, n);

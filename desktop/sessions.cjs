@@ -7,17 +7,16 @@ const { atomicJson } = require('./store.cjs');
 function createSession(store, options) {
   const { kind, sourceId, resultId, mode = 'instrument' } = options;
   if (!['practice', 'creation'].includes(kind) || !['instrument', 'mixed'].includes(mode))
-    throw new Error('工程类型无效');
+    throw new Error('内容类型无效');
   const title = typeof options.title === 'string' ? options.title.trim() : '';
-  if (!title || title.length > 120) throw new Error('请输入 1–120 字的工程名称');
+  if (!title || title.length > 120) throw new Error('请输入 1–120 字的名称');
   const source = sourceId ? store.get(sourceId) : null;
-  if (source?.kind) throw new Error('请选择音乐库中的源工程');
+  if (source?.kind) throw new Error('请选择音乐库歌曲');
   const result = source
     ? (source.results || []).find((item) => item.id === (resultId || source.activeResultId))
     : null;
   if (resultId && !result) throw new Error('分离结果不存在');
-  if (kind === 'practice' && !result?.tracks.length)
-    throw new Error('跟练工程需要选择已分轨的歌曲');
+  if (kind === 'practice' && !result?.tracks.length) throw new Error('跟练需要选择已分轨的歌曲');
   const id = crypto.randomUUID(),
     folder = store.dir(id);
   try {

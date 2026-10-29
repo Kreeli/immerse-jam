@@ -35,7 +35,7 @@ export default function Transport({
     <footer className="transport">
       <div className="transport-top">
         {browsing ? (
-          <button className="transport-project" onClick={onReturn} title={tr('返回播放工程')}>
+          <button className="transport-project" onClick={onReturn} title={tr('返回播放')}>
             <strong>{project.title}</strong>
             <span>{tr('返回播放界面')} →</span>
           </button>

@@ -29,7 +29,7 @@ export function FolderPicker({
           .catch((error) => onError(error.message))
       }
     >
-      <option value="">{tr('未分类')}</option>
+      <option value="">{tr('默认分类')}</option>
       {folders.map((folder) => (
         <option value={folder.id} key={folder.id}>
           {folder.name}
@@ -78,7 +78,7 @@ export function FolderDialog({
             onChange={(event) => setName(event.target.value)}
           />
         </label>
-        <p className="muted">{tr('同一分类可以放入分轨、跟练与创作工程。')}</p>
+        <p className="muted">{tr('同一分类可以放入分轨、跟练与创作。')}</p>
         <div className="header-actions">
           <button type="button" disabled={busy} onClick={onClose}>
             {tr('取消')}
@@ -127,10 +127,10 @@ export default function FolderPage({
           <div className="eyebrow">IMMERSE JAM</div>
           <h1>
             <Folder size={28} />
-            {folder?.name || tr('未分类')}
-            <span>{tr('{0} 个工程', [projects.length])}</span>
+            {folder?.name || tr('默认分类')}
+            <span>{tr('{0} 项内容', [projects.length])}</span>
           </h1>
-          <p>{tr('分类收纳分轨、跟练与创作，工程文件保持独立。')}</p>
+          <p>{tr('分类收纳分轨、跟练与创作，文件保持独立。')}</p>
         </div>
         <div className="header-actions">
           {folder && (
@@ -153,20 +153,20 @@ export default function FolderPage({
       </header>
       <div className="library-tools">
         <input
-          aria-label={tr('搜索工程')}
-          placeholder={tr('搜索工程')}
+          aria-label={tr('搜索歌曲、跟练与创作')}
+          placeholder={tr('搜索歌曲、跟练与创作')}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
         <select
-          aria-label={tr('工程类型')}
+          aria-label={tr('内容类型')}
           value={filter}
           onChange={(event) => setFilter(event.target.value)}
         >
-          <option value="all">{tr('全部工程')}</option>
-          <option value="music">{tr('分轨工程')}</option>
-          <option value="practice">{tr('跟练工程')}</option>
-          <option value="creation">{tr('创作工程')}</option>
+          <option value="all">{tr('全部')}</option>
+          <option value="music">{tr('分轨歌曲')}</option>
+          <option value="practice">{tr('跟练')}</option>
+          <option value="creation">{tr('创作')}</option>
         </select>
       </div>
       <div className="folder-project-list">
@@ -177,24 +177,24 @@ export default function FolderPage({
                 <strong>{project.title}</strong>
                 <small>
                   {project.kind === 'practice'
-                    ? tr('跟练工程')
+                    ? tr('跟练')
                     : project.kind === 'creation'
-                      ? tr('创作工程')
-                      : tr('分轨工程')}
+                      ? tr('创作')
+                      : tr('分轨歌曲')}
                   {project.artist ? ' · ' + project.artist : ''}
                 </small>
               </button>
               <FolderPicker {...props} project={project} />
               <button
                 className="icon-button"
-                aria-label={tr('删除工程 {0}', [project.title])}
+                aria-label={tr('删除 {0}', [project.title])}
                 onClick={() => onDelete(project)}
               >
                 <Trash2 size={16} />
               </button>
               <button
                 className="icon-button"
-                aria-label={tr('打开工程 {0}', [project.title])}
+                aria-label={tr('打开 {0}', [project.title])}
                 onClick={() => onOpen(project)}
               >
                 <ChevronRight size={19} />
@@ -204,8 +204,8 @@ export default function FolderPage({
         ) : (
           <div className="empty">
             <Folder size={38} />
-            <h3>{tr('这个分类还没有工程')}</h3>
-            <p>{tr('在音乐库或练琴列表的分类菜单中移动工程。')}</p>
+            <h3>{tr('这个分类还没有内容')}</h3>
+            <p>{tr('在音乐库或跟练／创作列表的分类菜单中移动内容。')}</p>
           </div>
         )}
       </div>
@@ -214,7 +214,7 @@ export default function FolderPage({
         <div className="modal-backdrop">
           <section className="modal" role="dialog" aria-label={tr('删除分类')}>
             <h2>{tr('删除分类')}</h2>
-            <p>{tr('只删除分类，里面的所有工程会回到未分类，音频和录音保留。')}</p>
+            <p>{tr('只删除分类，里面的内容会回到默认分类，音频和录音保留。')}</p>
             <div className="header-actions">
               <button onClick={() => setDeleting(false)}>{tr('取消')}</button>
               <button

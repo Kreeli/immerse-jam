@@ -2,7 +2,9 @@ const { _electron: electron } = require('playwright');
 const path = require('node:path'),
   assert = require('node:assert/strict');
 const { createInteractionFixture } = require('./fixtures.cjs');
-const { data } = createInteractionFixture(20);
+const { createSession } = require('../desktop/sessions.cjs');
+const { data, store, p } = createInteractionFixture(20);
+createSession(store, { kind: 'practice', sourceId: p.id, title: '偏好验收' });
 let app, page;
 (async () => {
   app = await electron.launch({
@@ -31,7 +33,8 @@ let app, page;
       }
     };
   });
-  await page.locator('.song-info').filter({ hasText: '交互验收' }).click();
+  await page.getByRole('button', { name: '跟练/创作', exact: true }).click();
+  await page.getByRole('button', { name: '打开 偏好验收', exact: true }).click();
   await page.waitForFunction(() => !document.querySelector('.play-main').disabled);
   await page.getByRole('button', { name: '设置与模型', exact: true }).click();
   await page.getByRole('combobox', { name: '界面语言', exact: true }).selectOption('en');

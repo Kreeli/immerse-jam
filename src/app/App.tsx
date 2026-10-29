@@ -41,6 +41,7 @@ import Waveform from '../features/player/Waveform';
 import CreationTracks from '../features/recording/CreationTracks';
 import PracticeHub from '../features/recording/PracticeHub';
 import PracticeRecorder from '../features/recording/PracticeRecorder';
+import CreateFromSong from '../features/recording/CreateFromSong';
 import PracticeWaves from '../features/recording/PracticeWaves';
 import SessionCreateDialog from '../features/recording/SessionCreateDialog';
 import Score from '../features/score/Score';
@@ -63,6 +64,7 @@ export default function App() {
   const controller = useWorkspace();
   const [live, setLive] = useState<LiveEnvelope | null>(null);
   const [creatingFolder, setCreatingFolder] = useState(false);
+  const [sessionSource, setSessionSource] = useState<Project | null>(null);
   const folderProps = {
     folders: controller.folders,
     onFolders: controller.setFolders,
@@ -246,7 +248,7 @@ export default function App() {
               <header className="player-header">
                 <button
                   className="icon-button"
-                  title={project.kind ? tr('返回工程列表') : tr('返回曲库')}
+                  title={project.kind ? tr('返回列表') : tr('返回曲库')}
                   onClick={() => {
                     setPage(project.kind ? 'practice' : 'library');
                     setShowPlayer(false);
@@ -279,6 +281,15 @@ export default function App() {
                     </button>
                   ))}
                 </div>
+                {!project.kind && (
+                  <CreateFromSong
+                    project={project}
+                    onCreate={(kind) => {
+                      setSessionSource(project);
+                      setCreatingSession(kind);
+                    }}
+                  />
+                )}
                 {project.kind !== 'creation' && (
                   <button
                     className="primary small"
@@ -481,19 +492,22 @@ export default function App() {
             </div>
             <Transport
               recorder={
-                <PracticeRecorder
-                  key={project.id}
-                  project={project}
-                  player={player.current}
-                  onProject={save}
-                  onError={notify}
-                  onActive={(active) => {
-                    setRecording(active);
-                    if (active) setShowPlayer(true);
-                  }}
-                  onLive={setLive}
-                  disabled={loading}
-                />
+                project.kind || project.takes?.length ? (
+                  <PracticeRecorder
+                    key={project.id}
+                    project={project}
+                    libraryOnly={!project.kind}
+                    player={player.current}
+                    onProject={save}
+                    onError={notify}
+                    onActive={(active) => {
+                      setRecording(active);
+                      if (active) setShowPlayer(true);
+                    }}
+                    onLive={setLive}
+                    disabled={loading}
+                  />
+                ) : null
               }
               browsing={!showPlayer}
               onReturn={() => setShowPlayer(true)}
@@ -524,11 +538,16 @@ export default function App() {
       {creatingSession && (
         <SessionCreateDialog
           kind={creatingSession}
+          initialSource={sessionSource || undefined}
           library={library}
-          onClose={() => setCreatingSession(null)}
+          onClose={() => {
+            setCreatingSession(null);
+            setSessionSource(null);
+          }}
           onError={notify}
           onCreated={(p) => {
             setCreatingSession(null);
+            setSessionSource(null);
             setPage('practice');
             openProject(p);
           }}
@@ -583,7 +602,7 @@ export default function App() {
                       settings: tr('设置与模型'),
                       transfer: tr('设备互传'),
                       migration: tr('迁移 Audio Jam'),
-                      donate: tr('支持作者'),
+                      donate: tr('请作者喝一瓶冰可乐'),
                       feedback: tr('用户反馈'),
                       export: tr('导出音乐'),
                     }[modal]
@@ -818,7 +837,11 @@ export default function App() {
             )}
             {modal === 'donate' && (
               <div className="donation">
-                <p>{tr('如果 Immerse Jam 陪你度过了一段愉快的练琴时间，欢迎自愿支持作者。')}</p>
+                <p>
+                  {tr(
+                    '如果 Immerse Jam 陪你度过了一段愉快的练琴时间，欢迎自愿请作者喝一瓶冰可乐。',
+                  )}
+                </p>
                 <div className="donation-qr">
                   <img src={donation} alt={tr('作者微信收款码')} />
                 </div>

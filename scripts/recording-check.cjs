@@ -3,7 +3,9 @@ const fs = require('node:fs'),
   path = require('node:path'),
   assert = require('node:assert/strict');
 const { createInteractionFixture } = require('./fixtures.cjs');
-const { data, store, p } = createInteractionFixture(20);
+const { createSession } = require('../desktop/sessions.cjs');
+const { data, store, p: source } = createInteractionFixture(20);
+let p = source;
 p.practice = {
   ...p.practice,
   countIn: true,
@@ -12,6 +14,7 @@ p.practice = {
   metronomeVolume: 0.25,
 };
 store.save(p);
+p = createSession(store, { kind: 'practice', sourceId: p.id, title: '录音验收' });
 function wav(file, seconds) {
   const rate = 48000,
     frames = rate * seconds,
@@ -95,7 +98,8 @@ async function record(seconds, creation = false) {
     observer.observe(document.body, { childList: true, subtree: true });
   });
   page.on('pageerror', (error) => errors.push(error.message));
-  await page.locator('.song-info').filter({ hasText: '交互验收' }).click();
+  await page.getByRole('button', { name: '跟练/创作', exact: true }).click();
+  await page.getByRole('button', { name: '打开 录音验收', exact: true }).click();
   await page.waitForFunction(() => !document.querySelector('.play-main').disabled);
   const seek = page.getByRole('slider', { name: '播放进度', exact: true });
   await seek.focus();
@@ -200,10 +204,10 @@ async function record(seconds, creation = false) {
   await page.screenshot({ path: 'test-output/v014-recording-library.png' });
   await page.getByRole('button', { name: '关闭录音窗口', exact: true }).click();
   await page.screenshot({ path: 'test-output/v014-recording-tracks.png' });
-  await page.getByTitle('返回曲库', { exact: true }).click();
+  await page.getByTitle('返回列表', { exact: true }).click();
   await page.getByRole('button', { name: '新建创作', exact: true }).click();
-  await page.getByRole('textbox', { name: '工程名称', exact: true }).fill('录音创作验收');
-  await page.getByRole('button', { name: '创建工程', exact: true }).click();
+  await page.getByRole('textbox', { name: '名称', exact: true }).fill('录音创作验收');
+  await page.getByRole('button', { name: '创建', exact: true }).click();
   await page.getByRole('button', { name: '录音', exact: true }).click();
   await page.waitForSelector('[aria-label="练琴录音设置"]');
   await page.getByRole('button', { name: '开始录音', exact: true }).click();

@@ -59,7 +59,7 @@ export default function Sidebar({
         {[
           { id: 'library', label: tr('音乐库'), icon: Library },
 
-          { id: 'practice', label: tr('练琴模式'), icon: Guitar },
+          { id: 'practice', label: tr('跟练/创作'), icon: Guitar },
 
           { id: 'starred', label: tr('我的收藏'), icon: Star },
         ].map(({ id, label, icon: Icon }) => (
@@ -99,7 +99,7 @@ export default function Sidebar({
       </div>
 
       <nav className="playlist-nav">
-        {[{ id: 'unfiled', name: tr('未分类'), projectIds: [] }, ...folders].map((folder) => (
+        {[{ id: 'unfiled', name: tr('默认分类'), projectIds: [] }, ...folders].map((folder) => (
           <button
             key={folder.id}
             className={page === 'folder:' + folder.id && !showPlayer ? 'active' : ''}
@@ -148,10 +148,6 @@ export default function Sidebar({
       </nav>
 
       <div className="sidebar-bottom">
-        <button className="feedback-button" onClick={() => setModal('feedback')}>
-          <MessageSquare size={16} />
-          {tr('用户反馈')}
-        </button>
         <div className="local-note">
           <span className={'dot ' + (ready ? 'green-dot' : '')} />
 
@@ -162,12 +158,17 @@ export default function Sidebar({
           </div>
         </div>
 
+        <button className="feedback-button" onClick={() => setModal('feedback')}>
+          <MessageSquare size={16} />
+          {tr('用户反馈')}
+        </button>
+
         <button className="donate" onClick={() => setModal('donate')}>
           <Heart size={17} />
 
-          {tr('支持作者')}
+          <span className="donate-label">{tr('请作者喝一瓶冰可乐')}</span>
 
-          <span>↗</span>
+          <span className="donate-arrow">↗</span>
         </button>
 
         <small className="version">IMMERSE JAM · {version}</small>

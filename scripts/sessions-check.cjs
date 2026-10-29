@@ -51,24 +51,24 @@ async function level(name) {
   await (await button('播放')).click();
   await wait(350);
   const before = await position();
-  await (await button('练琴模式')).click();
+  await (await button('跟练/创作')).click();
   await page.locator('.session-tabs').waitFor();
   await wait(400);
   assert.ok((await position()) > before + 0.2);
   assert.ok(await page.locator('.transport-project').isVisible());
   assert.equal(await page.getByText('最近练习', { exact: true }).count(), 0);
   await (await button('新建创作')).first().click();
-  await page.getByRole('textbox', { name: '工程名称', exact: true }).fill('Cancelled project');
-  await page.getByRole('combobox', { name: '音乐库源工程', exact: true }).selectOption(p.id);
+  await page.getByRole('textbox', { name: '名称', exact: true }).fill('Cancelled project');
+  await page.getByRole('combobox', { name: '音乐库歌曲', exact: true }).selectOption(p.id);
   await (await button('取消')).click();
   assert.equal(store.list().length, 1);
   assert.ok((await position()) > before);
   const original = fs.readFileSync(path.join(store.dir(p.id), 'project.json'));
   await (await button('新建跟练')).first().click();
-  await page.getByRole('textbox', { name: '工程名称', exact: true }).fill('跟练验收');
+  await page.getByRole('textbox', { name: '名称', exact: true }).fill('跟练验收');
   await page.getByRole('combobox', { name: '使用分离结果', exact: true }).selectOption(resultB);
   await (await button('录音含伴奏')).click();
-  await (await button('创建工程')).click();
+  await (await button('创建')).click();
   await ready();
   await page.waitForFunction(() => document.querySelectorAll('.track-control').length === 6);
   let practice = store.list().find((project) => project.kind === 'practice');
@@ -107,14 +107,14 @@ async function level(name) {
   await (await button('停止并保存')).click();
   await page.locator('.recording-bar').waitFor({ state: 'detached' });
   await ready();
-  await (await button('练琴模式')).click();
+  await (await button('跟练/创作')).click();
   await page.locator('.session-row').waitFor();
   await page.screenshot({ path: 'test-output/v015-practice-hub.png' });
   await (await button('新建创作')).first().click();
-  await page.getByRole('textbox', { name: '工程名称', exact: true }).fill('有源创作验收');
-  await page.getByRole('combobox', { name: '音乐库源工程', exact: true }).selectOption(p.id);
+  await page.getByRole('textbox', { name: '名称', exact: true }).fill('有源创作验收');
+  await page.getByRole('combobox', { name: '音乐库歌曲', exact: true }).selectOption(p.id);
   await page.getByRole('combobox', { name: '使用分离结果', exact: true }).selectOption(resultA);
-  await (await button('创建工程')).click();
+  await (await button('创建')).click();
   await ready();
   await page.waitForFunction(() => document.querySelectorAll('.source-object').length === 1);
   const creation = store.list().find((project) => project.kind === 'creation');
@@ -131,14 +131,14 @@ async function level(name) {
   );
   await page.locator('.transport-project').click();
   await page.screenshot({ path: 'test-output/v015-sourced-creation.png' });
-  await (await button('练琴模式')).click();
+  await (await button('跟练/创作')).click();
   assert.equal(await page.locator('.session-row').count(), 2);
-  const filters = page.getByRole('group', { name: '工程类型', exact: true });
-  await filters.getByRole('button', { name: '创作模式', exact: true }).click();
+  const filters = page.getByRole('group', { name: '内容类型', exact: true });
+  await filters.getByRole('button', { name: '创作', exact: true }).click();
   assert.equal(await page.locator('.session-row').count(), 1);
-  await filters.getByRole('button', { name: '跟练模式', exact: true }).click();
+  await filters.getByRole('button', { name: '跟练', exact: true }).click();
   assert.equal(await page.locator('.session-row').count(), 1);
-  await filters.getByRole('button', { name: '全部工程', exact: true }).click();
+  await filters.getByRole('button', { name: '全部', exact: true }).click();
   assert.equal(await page.locator('.session-row').count(), 2);
   await page.screenshot({ path: 'test-output/v015-project-list.png' });
   await (await button('设置与模型')).click();
@@ -146,9 +146,9 @@ async function level(name) {
   await page.getByRole('combobox', { name: 'Color mode', exact: true }).selectOption('light');
   await page.getByRole('combobox', { name: 'Accent color', exact: true }).selectOption('blue');
   await (await button('Close window')).click();
-  assert.ok((await page.locator('.session-table th').allTextContents()).includes('Project name'));
+  assert.ok((await page.locator('.session-table th').allTextContents()).includes('Name'));
   await page.screenshot({ path: 'test-output/v015-project-list-en-light.png' });
-  await page.getByRole('button', { name: 'Open project ' + practice.title, exact: true }).click();
+  await page.getByRole('button', { name: 'Open ' + practice.title, exact: true }).click();
   await ready();
   assert.ok(
     await page
@@ -166,27 +166,23 @@ async function level(name) {
   await page.getByRole('combobox', { name: '明暗主题', exact: true }).selectOption('dark');
   await page.getByRole('combobox', { name: '强调色', exact: true }).selectOption('rose');
   await (await button('关闭窗口')).click();
-  await (await button('练琴模式')).click();
-  await page.getByRole('button', { name: '打开工程 ' + creation.title, exact: true }).click();
+  await (await button('跟练/创作')).click();
+  await page.getByRole('button', { name: '打开 ' + creation.title, exact: true }).click();
   await ready();
-  await (await button('练琴模式')).click();
-  await page.getByRole('button', { name: '删除工程 ' + creation.title, exact: true }).click();
+  await (await button('跟练/创作')).click();
+  await page.getByRole('button', { name: '删除 ' + creation.title, exact: true }).click();
   await (await button('取消')).click();
   assert.ok(store.get(creation.id));
-  await page.getByRole('button', { name: '删除工程 ' + creation.title, exact: true }).click();
+  await page.getByRole('button', { name: '删除 ' + creation.title, exact: true }).click();
   await (await button('移至回收站')).click();
-  await page
-    .getByRole('dialog', { name: '删除项目确认', exact: true })
-    .waitFor({ state: 'detached' });
+  await page.getByRole('dialog', { name: '删除确认', exact: true }).waitFor({ state: 'detached' });
   assert.equal(store.list().filter((project) => project.kind === 'creation').length, 0);
   assert.equal(await page.locator('.transport-project').count(), 0);
   assert.ok(fs.existsSync(store.asset(p.id, p.original)));
   await (await button('音乐库')).click();
   await page.getByRole('button', { name: '删除歌曲 ' + p.title, exact: true }).click();
   await (await button('移至回收站')).click();
-  await page
-    .getByRole('dialog', { name: '删除项目确认', exact: true })
-    .waitFor({ state: 'detached' });
+  await page.getByRole('dialog', { name: '删除确认', exact: true }).waitFor({ state: 'detached' });
   assert.equal(store.list().filter((project) => !project.kind).length, 0);
   const surviving = store.get(practice.id);
   for (const file of [surviving.original, ...surviving.tracks.map((track) => track.file)])

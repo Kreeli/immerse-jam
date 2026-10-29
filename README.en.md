@@ -2,7 +2,7 @@
 
 [简体中文](README.md) · [Architecture](docs/ARCHITECTURE.md) · [Project format](docs/DATA_FORMAT.md)
 
-**0.1.7**, Windows 10/11 x64. Local stem separation, music practice and multitrack recording. Analysis runs on your computer, with no subscription or separation quota.
+**0.1.8**, Windows 10/11 x64. Local stem separation, music practice and multitrack recording. Analysis runs on your computer, with no subscription or separation quota.
 
 ## Install
 
@@ -10,7 +10,7 @@ Get the installer from [Releases](https://github.com/Kreeli/immerse-jam/releases
 
 ## Practice and recording
 
-The music library is separate from practice/creation projects. The Practice workspace shows a list filtered by All/Practice/Creation. Create an independent project from a library song and selected stem result, or start an empty creation. Cancelling creates nothing. Browsing keeps the active project playing through an integrated bottom transport; click its name to return to the player. Deletion moves only the selected song/project into the system Recycle Bin, without deleting independent source copies elsewhere.
+The music library is separate from practice/creation projects. The Practice / Create workspace shows a list filtered by All/Practice/Creation. The ordinary music player offers Create from this song at the top right; recording controls appear in practice/creation. Create an independent project from a library song and selected stem result, or start an empty creation. Cancelling creates nothing. Browsing keeps the active project playing through an integrated bottom transport; click its name to return to the player. Deletion moves only the selected song/project into the system Recycle Bin, without deleting independent source copies elsewhere.
 
 Practice modes switch between Stem backing and Mixed recording. The former combines independent performance takes with adjustable stems; the latter reviews mounted recordings without doubled backing. During either recording mode, stem controls operate the backing while previous practice attempts are quiet. Creation continues to support overdubbing existing takes.
 
@@ -36,7 +36,7 @@ LAN/hotspot QR transfer works with phone browsers. Remote WebRTC uses exchanged 
 
 Switch Chinese/English, dark/light/system and rose/blue/green/purple accents. User text is preserved.
 
-Project folders can hold music/separation, practice and creation projects together. Create, rename and move items through folder menus; deleting a folder returns projects to Unfiled and keeps media. Feedback opens an email to `meowmeowneko999@gmail.com` or GitHub Issues; nothing is sent automatically. The donation view crops the supplied image to show its original QR pixels.
+Project folders can hold music/separation, practice and creation projects together. Create, rename and move items through folder menus; deleting a folder returns items to Default folder and keeps media. Feedback opens an email to `meowmeowneko999@gmail.com` or GitHub Issues; nothing is sent automatically. Buy the author an iced cola crops the supplied image to show its original QR pixels.
 
 ## Develop and license
 

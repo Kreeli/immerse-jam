@@ -59,7 +59,7 @@ const button = (name) => page.getByRole('button', { name, exact: true });
   await page.locator('.song-info').click();
   await page.waitForFunction(() => !document.querySelector('.play-main').disabled);
   await button('播放').click();
-  await button('练琴模式').click();
+  await button('跟练/创作').click();
   for (const project of [practice, creation])
     await page
       .getByRole('combobox', { name: '移动到分类 ' + project.title, exact: true })
@@ -75,15 +75,15 @@ const button = (name) => page.getByRole('button', { name, exact: true });
   await page.getByRole('dialog').locator('input').fill('我的练习');
   await button('保存').click();
   await page.getByRole('heading', { name: /我的练习/ }).waitFor();
-  await page.getByRole('combobox', { name: '工程类型', exact: true }).selectOption('creation');
+  await page.getByRole('combobox', { name: '内容类型', exact: true }).selectOption('creation');
   assert.equal(await page.locator('.folder-project').count(), 1);
   await button('删除分类').click();
   await page.getByRole('dialog').getByRole('button', { name: '取消', exact: true }).click();
   assert.equal(await page.locator('.folder-project').count(), 1);
   await button('删除分类').click();
   await page.getByRole('dialog').getByRole('button', { name: '删除分类', exact: true }).click();
-  await button('未分类').click();
-  await page.getByRole('combobox', { name: '工程类型', exact: true }).selectOption('all');
+  await button('默认分类').click();
+  await page.getByRole('combobox', { name: '内容类型', exact: true }).selectOption('all');
   assert.equal(await page.locator('.folder-project').count(), 3);
   assert.equal(store.list().length, 3);
   assert.ok(fs.existsSync(store.asset(p.id, p.original)));

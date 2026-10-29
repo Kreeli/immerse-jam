@@ -70,11 +70,16 @@ class Transfer {
       if (!this.ids.has(id)) throw new Error('此歌曲未被选择');
       const dir = path.join(this.store.base, 'transfers');
       fs.mkdirSync(dir, { recursive: true });
-      const dest = path.join(dir, id + '.ijam');
-      await pack(this.store, id, dest);
-      res.setHeader('Content-Type', 'application/zip');
-      res.setHeader('Content-Disposition', `attachment; filename="${id}.ijam"`);
-      return pipeline(fs.createReadStream(dest), res);
+      const dest = path.join(dir, crypto.randomUUID() + '.ijam');
+      try {
+        await pack(this.store, id, dest);
+        res.setHeader('Content-Type', 'application/zip');
+        res.setHeader('Content-Disposition', `attachment; filename="${id}.ijam"`);
+        await pipeline(fs.createReadStream(dest), res);
+      } finally {
+        fs.rmSync(dest, { force: true });
+      }
+      return;
     }
     if (req.method === 'POST' && url.pathname === '/api/upload') {
       const name = path.basename(url.searchParams.get('name') || 'audio.wav');

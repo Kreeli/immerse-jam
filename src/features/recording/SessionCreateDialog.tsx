@@ -8,12 +8,14 @@ export default function SessionCreateDialog({
   onClose,
   onCreated,
   onError,
+  initialSource,
 }: {
   library: Project[];
   kind: 'practice' | 'creation';
   onClose: () => void;
   onCreated: (project: Project) => void;
   onError: (message: string) => void;
+  initialSource?: Project;
 }) {
   const songs = library.filter(
     (project) =>
@@ -21,7 +23,9 @@ export default function SessionCreateDialog({
       (kind === 'creation' || project.results?.some((result) => result.tracks.length)),
   );
   const [title, setTitle] = useState(''),
-    [sourceId, setSourceId] = useState(kind === 'practice' ? songs[0]?.id || '' : ''),
+    [sourceId, setSourceId] = useState(
+      initialSource?.id || (kind === 'practice' ? songs[0]?.id || '' : ''),
+    ),
     [resultId, setResultId] = useState(''),
     [mode, setMode] = useState<'instrument' | 'mixed'>('instrument'),
     [busy, setBusy] = useState(false);
@@ -36,7 +40,11 @@ export default function SessionCreateDialog({
         kind,
         title:
           title.trim() ||
-          `${source?.title || tr('未命名')} · ${kind === 'practice' ? tr('跟练工程') : tr('创作工程')}`,
+          (source
+            ? `${source.title} · ${kind === 'practice' ? tr('跟练') : tr('创作')}`
+            : kind === 'creation'
+              ? tr('我的创作')
+              : tr('我的跟练')),
         sourceId: sourceId || undefined,
         resultId: selectedResult || undefined,
         mode,
@@ -58,13 +66,13 @@ export default function SessionCreateDialog({
       <section
         className="modal"
         role="dialog"
-        aria-label={kind === 'practice' ? tr('新建跟练工程') : tr('新建创作工程')}
+        aria-label={kind === 'practice' ? tr('新建跟练') : tr('新建创作')}
       >
         <div className="modal-heading">
-          <h2>{kind === 'practice' ? tr('新建跟练工程') : tr('新建创作工程')}</h2>
+          <h2>{kind === 'practice' ? tr('新建跟练') : tr('新建创作')}</h2>
           <button
             className="icon-button"
-            aria-label={tr('关闭新建工程')}
+            aria-label={tr('关闭新建窗口')}
             disabled={busy}
             onClick={onClose}
           >
@@ -73,27 +81,27 @@ export default function SessionCreateDialog({
         </div>
         <div className="session-create-fields">
           <label>
-            {tr('工程名称')}
+            {tr('名称')}
             <input
               autoFocus
-              aria-label={tr('工程名称')}
+              aria-label={tr('名称')}
               maxLength={120}
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              placeholder={kind === 'practice' ? tr('我的跟练工程') : tr('我的创作工程')}
+              placeholder={kind === 'practice' ? tr('我的跟练') : tr('我的创作')}
             />
           </label>
           <label>
-            {tr('音乐库源工程')}
+            {tr('音乐库歌曲')}
             <select
-              aria-label={tr('音乐库源工程')}
+              aria-label={tr('音乐库歌曲')}
               value={sourceId}
               onChange={(event) => {
                 setSourceId(event.target.value);
                 setResultId('');
               }}
             >
-              {kind === 'creation' && <option value="">{tr('空白工程')}</option>}
+              {kind === 'creation' && <option value="">{tr('空白创作')}</option>}
               {songs.map((song) => (
                 <option key={song.id} value={song.id}>
                   {song.title}
@@ -144,7 +152,7 @@ export default function SessionCreateDialog({
               )}
             </>
           )}
-          <p className="muted">{tr('确认后建立独立工程，音乐库中的源歌曲保持不变。')}</p>
+          <p className="muted">{tr('确认后建立独立跟练或创作，音乐库中的源歌曲保持不变。')}</p>
         </div>
         <div className="modal-actions">
           <button disabled={busy} onClick={onClose}>
@@ -155,7 +163,7 @@ export default function SessionCreateDialog({
             disabled={busy || (kind === 'practice' && !sourceId)}
             onClick={() => void submit()}
           >
-            {busy ? tr('正在创建…') : tr('创建工程')}
+            {busy ? tr('正在创建…') : tr('创建')}
           </button>
         </div>
       </section>

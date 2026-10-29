@@ -24,6 +24,7 @@ export default function PracticeRecorder({
   onActive,
   onLive,
   disabled = false,
+  libraryOnly = false,
 }: {
   project: Project;
   player: Player;
@@ -32,6 +33,7 @@ export default function PracticeRecorder({
   onActive: (active: boolean) => void;
   onLive: (live: LiveEnvelope | null) => void;
   disabled?: boolean;
+  libraryOnly?: boolean;
 }) {
   const [dialog, setDialog] = useState<'settings' | 'library' | null>(null),
     [devices, setDevices] = useState<MediaDeviceInfo[]>([]),
@@ -126,6 +128,8 @@ export default function PracticeRecorder({
     if (busy || active) return;
     setBusy(true);
     stopping.current = false;
+    restoredLoop.current = player.loop;
+    const wasPlaying = player.playing;
     props.current.onActive(true);
     try {
       if (!Number.isFinite(settings.latencyMs) || Math.abs(settings.latencyMs) > 2000)
@@ -160,10 +164,9 @@ export default function PracticeRecorder({
         },
         () => void stop(),
       );
-      restoredLoop.current = player.loop;
       player.loop = null;
       player.captureActive = true;
-      if (!player.playing) await player.play(!!project.practice.countIn);
+      if (!player.playing) await player.play(!wasPlaying && !!project.practice.countIn);
       const anchorTime = Math.max(player.started, player.context!.currentTime + 0.025),
         anchorPosition = player.offset + Math.max(0, anchorTime - player.started) * player.tempo;
       const result = await window.jam.call<{
@@ -245,7 +248,7 @@ export default function PracticeRecorder({
   return (
     <>
       <div className="practice-record-actions">
-        {!active && (
+        {!active && !libraryOnly && (
           <button
             className="transport-record"
             disabled={busy || disabled}
@@ -257,15 +260,17 @@ export default function PracticeRecorder({
             {busy ? tr('准备录音…') : project.kind === 'creation' ? tr('录音') : tr('练琴录音')}
           </button>
         )}
-        <button
-          className="icon-button"
-          disabled={active || busy || disabled}
-          aria-label={tr('录音设置')}
-          title={tr('录音设置')}
-          onClick={() => setDialog('settings')}
-        >
-          <Settings2 size={16} />
-        </button>
+        {!libraryOnly && (
+          <button
+            className="icon-button"
+            disabled={active || busy || disabled}
+            aria-label={tr('录音设置')}
+            title={tr('录音设置')}
+            onClick={() => setDialog('settings')}
+          >
+            <Settings2 size={16} />
+          </button>
+        )}
         <button className="small" disabled={active || busy || disabled} onClick={openLibrary}>
           <FolderOpen size={13} />
           {tr('录音库')}
@@ -306,10 +311,10 @@ export default function PracticeRecorder({
           <section
             className="modal wide"
             role="dialog"
-            aria-label={dialog === 'settings' ? tr('练琴录音设置') : tr('项目录音库')}
+            aria-label={dialog === 'settings' ? tr('练琴录音设置') : tr('录音库')}
           >
             <div className="modal-heading">
-              <h2>{dialog === 'settings' ? tr('录音设置') : tr('项目录音库')}</h2>
+              <h2>{dialog === 'settings' ? tr('录音设置') : tr('录音库')}</h2>
               <button
                 className="icon-button"
                 aria-label={tr('关闭录音窗口')}
@@ -463,7 +468,7 @@ export default function PracticeRecorder({
               <>
                 <p className="muted">
                   {project.kind === 'creation'
-                    ? tr('创作模式：录音会加入工程，可多轨叠加。')
+                    ? tr('创作模式：录音会加入音轨列表，可多轨叠加。')
                     : tr(
                         '可保存多次录音，最多选择两条加入练习音轨。移出音轨会保留录音库中的文件。',
                       )}
