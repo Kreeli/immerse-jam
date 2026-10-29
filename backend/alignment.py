@@ -1,5 +1,12 @@
 import numpy as np
 
+MAX_CELLS = 2_000_000
+def bounded_step(rows, columns, limit=MAX_CELLS):
+    import math
+    step = max(1, math.ceil(math.sqrt(rows * columns / limit)))
+    while math.ceil(rows / step) * math.ceil(columns / step) > limit: step += 1
+    return step
+
 def midi_features(file, rate=10):
     import pretty_midi
     midi=pretty_midi.PrettyMIDI(str(file)); duration=midi.get_end_time()
@@ -17,33 +24,38 @@ def align(file,midi_file,emit):
     from scipy.ndimage import median_filter
     emit(.08,'展开乐谱反复并读取 MIDI 时间轴')
     rate=10; midi,score,notes=midi_features(midi_file,rate)
-    y,sr=librosa.load(file,sr=11025,mono=True);hop=1102
+    import tempfile
+    from audio_io import pcm, chroma_blocks
+    # Store decoded audio on disk; only the 12-bin feature series stays in RAM.
+    with tempfile.TemporaryDirectory() as temporary:
+        y=pcm(file,temporary,11025,1);sr=11025;hop=1102
+        audio=chroma_blocks(y,sr,hop)
+        del y
     emit(.2,'计算原曲音高特征')
-    audio=librosa.feature.chroma_stft(y=y,sr=sr,n_fft=2048,hop_length=hop)
     audio=median_filter(audio,size=(1,3));score=median_filter(score,size=(1,3))
-    # Bounded at 10 Hz: 10-minute songs use ~144 MB for the cost matrix.
-    if score.shape[1]*audio.shape[1]>80_000_000:
-        score=score[:,::2];audio=audio[:,::2];rate=5
+    # Bound every DTW array even for hour-long inputs (not a single /2 pass).
+    step=bounded_step(score.shape[1],audio.shape[1]);score=score[:,::step];audio=audio[:,::step]
+    score_rate=rate/step;audio_rate=sr/hop/step
     score/=np.maximum(np.linalg.norm(score,axis=0,keepdims=True),1e-7)
     audio/=np.maximum(np.linalg.norm(audio,axis=0,keepdims=True),1e-7)
     # Match transposed recordings as well as concert-pitch scores.
     offset=max(range(12),key=lambda k:float(np.dot(np.roll(score.mean(axis=1),k),audio.mean(axis=1))))
     emit(.35,'匹配小节、速度变化与原曲位置')
-    similarity=np.clip(1-np.roll(score,offset,axis=0).T@audio,0,2).astype(np.float32)
+    shifted=np.roll(score,offset,axis=0)
+    cost=shifted.T@audio;np.subtract(1,cost,out=cost);np.clip(cost,0,2,out=cost)
     subsequence=score.shape[1]<audio.shape[1]*.8
     # Whole-song scores need an end-to-end path: unconstrained subsequence
     # matching can incorrectly squeeze repeated harmonies into half a song.
-    cost=similarity.copy()
     if not subsequence:
-        relative=np.abs(np.linspace(0,1,cost.shape[0])[:,None]-np.linspace(0,1,cost.shape[1])[None,:])
-        cost+=np.maximum(0,relative-.12)*1.5
+        columns=np.linspace(0,1,cost.shape[1],dtype=np.float32)
+        for i in range(cost.shape[0]):cost[i]+=np.maximum(0,np.abs(i/max(1,cost.shape[0]-1)-columns)-.12)*1.5
     _,path=librosa.sequence.dtw(C=cost,subseq=subsequence,step_sizes_sigma=np.array([[1,1],[1,2],[2,1]]),weights_add=np.array([0.,.15,.15]))
     # With an explicit C matrix librosa flips the returned axes when N > M,
     # although C itself was not transposed. Restore score/audio ordering.
     if subsequence and cost.shape[0]>cost.shape[1]:path=path[:,::-1]
     path=path[::-1];mapping=[];confidences=[]
     for i in np.unique(path[:,0]):
-        js=path[path[:,0]==i,1];j=float(np.median(js));confidence=float(1-np.mean(similarity[i,js]));mapping.append((float(i/rate),j/rate));confidences.append(confidence)
+        js=path[path[:,0]==i,1];j=float(np.median(js));confidence=float(np.clip(np.mean(shifted[:,i]@audio[:,js]),0,1));mapping.append((float(i/score_rate),j/audio_rate));confidences.append(confidence)
     # Resample to half-second anchors; each anchor stays monotone.
     times=np.arange(0,midi.get_end_time()+.001,.5);xs=np.array([p[0] for p in mapping]);ys=np.array([p[1] for p in mapping]);values=np.maximum.accumulate(np.interp(times,xs,ys))
     points=[{'scoreTime':round(float(t),4),'audioTime':round(float(a),4),'confidence':round(float(np.interp(t,xs,confidences)),3)} for t,a in zip(times,values)]

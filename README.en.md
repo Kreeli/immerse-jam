@@ -2,7 +2,9 @@
 
 [简体中文](README.md) · [Architecture](docs/ARCHITECTURE.md) · [Project format](docs/DATA_FORMAT.md)
 
-**0.1.8**, Windows 10/11 x64. Local stem separation, music practice and multitrack recording. Analysis runs on your computer, with no subscription or separation quota.
+**0.1.9 development source — pending user review, unreleased**, Windows 10/11 x64. The published desktop version remains 0.1.8. Local stem separation, music practice and multitrack recording. Analysis runs on your computer, with no subscription or separation quota.
+
+An initial Android preview has a native host, phone/tablet layouts and local mobile inference. This revision updates source only; installers and Releases wait for explicit user approval. Android input is limited to 44 minutes, with additional playback/inference memory checks. It does not yet match every Windows feature; see [Android coverage](docs/ANDROID.md) and [build instructions](platforms/android/README.md). Android system code is separate from the Windows main process and Python runtime.
 
 ## Install
 

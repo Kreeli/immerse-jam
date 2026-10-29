@@ -12,6 +12,7 @@ import type {
   Track,
 } from '../shared/types';
 import { usePreferences } from './preferences';
+import { isAndroid } from '../platform/environment';
 export function useWorkspace() {
   usePreferences();
   const [library, setLibrary] = useState<Project[]>([]),
@@ -47,6 +48,7 @@ export function useWorkspace() {
     [loop, setLoop] = useState(false),
     [mix, setMix] = useState(true);
   const [sidePanel, setSidePanel] = useState<'mixer' | 'ranges' | 'points'>('mixer');
+  const [recoveryProject, setRecoveryProject] = useState<Project | null>(null);
   const [recording, setRecording] = useState(false);
   const [pendingRange, setPendingRange] = useState<number | null>(null),
     [activeRange, setActiveRange] = useState<string | null>(null),
@@ -59,6 +61,7 @@ export function useWorkspace() {
   const scrubResume = useRef(false);
   const [engine] = useState(() => new Player());
   const player = useRef(engine),
+    pendingNotes = useRef(new Map<string, string>()),
     current = useRef<Project | null>(null),
     saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null),
     toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -73,7 +76,7 @@ export function useWorkspace() {
   const refresh = useCallback(async () => {
     const [projects, groups] = await Promise.all([
       window.jam.call<Project[]>('library'),
-      window.jam.call<ProjectFolder[]>('folders-list'),
+      window.jam.call<ProjectFolder[]>('folders-list').catch(() => []),
     ]);
     setLibrary(projects);
     setFolders(groups);
@@ -83,13 +86,37 @@ export function useWorkspace() {
 
     setLibrary((list) => [p, ...list.filter((s) => s.id !== p.id)]);
   }, []);
+  const flushNotes = useCallback(async () => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    const entries = [...pendingNotes.current];
+    pendingNotes.current.clear();
+    await Promise.all(
+      entries.map(([id, notes]) =>
+        window.jam.call('update', { id, patch: { notes } }).catch((e) => notify(e.message)),
+      ),
+    );
+  }, [notify]);
+  const saveNotes = useCallback(
+    (p: Project) => {
+      adopt(p);
+      pendingNotes.current.set(p.id, p.notes || '');
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(() => void flushNotes(), 300);
+    },
+    [adopt, flushNotes],
+  );
   const openProject = useCallback(
     (p: Project) => {
+      void flushNotes();
+      if (p.broken) {
+        setRecoveryProject(p);
+        return;
+      }
       if (current.current?.id !== p.id) setView('wave');
       adopt(p);
       setShowPlayer(true);
     },
-    [adopt],
+    [adopt, flushNotes],
   );
   const deleteProject = async () => {
     if (!deletingProject) return;
@@ -145,14 +172,25 @@ export function useWorkspace() {
       const installed =
         items.find((model) => model.installed && model.id === 'roformer-sw') ||
         items.find((model) => model.installed && model.stems.length === 6) ||
-        items.find((model) => model.installed && model.stems.length === 4);
+        items.find((model) => model.installed && model.stems.length === 4) ||
+        (isAndroid ? items.find((model) => model.installed) : undefined);
       if (installed) {
         setModelId(installed.id);
-        setMode(installed.stems.length === 4 ? 'basic' : 'six');
+        setMode(
+          installed.stems.length === 2 ? 'vocal' : installed.stems.length === 4 ? 'basic' : 'six',
+        );
       }
     });
 
     const off = window.jam.onEvent((e) => {
+      if (e.type === 'closing') {
+        void flushNotes().then(() => window.jam.call('window', { action: 'close-ready' }));
+        return;
+      }
+      if (e.type === 'import-report') {
+        notify(e.message || '');
+        return;
+      }
       if (e.scope === 'audio-tools') {
         if (e.type === 'ready') setJob(null);
         else setJob({ ...e, operation: 'tools' });
@@ -247,12 +285,20 @@ export function useWorkspace() {
       setCountInRemaining(player.current.countInRemaining());
     };
     const dispose = () => player.current.dispose();
+    const flush = () => {
+      void flushNotes();
+    };
+    window.addEventListener('blur', flush);
+    window.addEventListener('pagehide', flush);
     window.addEventListener('pagehide', dispose);
 
     return () => {
       off();
 
       window.removeEventListener('pagehide', dispose);
+      window.removeEventListener('blur', flush);
+      window.removeEventListener('pagehide', flush);
+      void flushNotes();
       player.current.dispose();
     };
   }, []);
@@ -614,6 +660,10 @@ export function useWorkspace() {
       (p.title + ' ' + p.artist).toLowerCase().includes(query.toLowerCase()),
   );
   return {
+    saveNotes,
+    flushNotes,
+    recoveryProject,
+    setRecoveryProject,
     folders,
     setFolders,
     sidePanel,

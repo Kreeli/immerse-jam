@@ -1,6 +1,6 @@
 {
   "name": "immerse-jam",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "private": true,
   "type": "module",
   "description": "Local music separation and synchronized practice workspace",
@@ -17,7 +17,11 @@
     "package:portable": "npm run build && node scripts/package.cjs dir",
     "check": "tsc --noEmit && node scripts/check-i18n.cjs && node scripts/check-desktop.cjs",
     "format": "prettier --write src desktop shared scripts tests docs .github *.json *.md *.ts index.html",
-    "format:check": "prettier --check src desktop shared scripts tests docs .github *.json *.md *.ts index.html"
+    "format:check": "prettier --check src desktop shared scripts tests docs .github *.json *.md *.ts index.html",
+    "android:models": "node scripts/android-models.cjs",
+    "android:build": "node scripts/android.cjs assembleDebug",
+    "android:test": "node scripts/android.cjs testDebugUnitTest",
+    "android:check": "node scripts/android-check.cjs"
   },
   "dependencies": {
     "@coderline/alphatab": "1.8.4",

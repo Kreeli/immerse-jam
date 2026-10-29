@@ -9,8 +9,10 @@ class PeerFiles {
     this.outgoing = new Map();
     this.incoming = new Map();
     this.pending = new Map();
+    this.generation = 0;
   }
   async prepare(ids) {
+    const generation = this.generation;
     if (!Array.isArray(ids) || ids.length > 100) throw new Error('一次最多传输 100 首歌曲');
     const result = [];
     for (const id of ids) {
@@ -18,7 +20,13 @@ class PeerFiles {
         key = crypto.randomUUID();
       const file = path.join(this.store.base, 'transfers', key + '.ijam');
       fs.mkdirSync(path.dirname(file), { recursive: true });
-      await pack(this.store, id, file);
+      try {
+        await pack(this.store, id, file);
+        if (generation !== this.generation) throw new Error('连接已关闭');
+      } catch (error) {
+        fs.rmSync(file, { force: true });
+        throw error;
+      }
       const hash = crypto.createHash('sha256');
       for await (const b of fs.createReadStream(file)) hash.update(b);
       const item = {
@@ -27,7 +35,7 @@ class PeerFiles {
         size: fs.statSync(file).size,
         sha256: hash.digest('hex'),
       };
-      this.outgoing.set(key, { ...item, file });
+      this.outgoing.set(key, { ...item, file, fd: fs.openSync(file, 'r') });
       result.push(item);
     }
     return result;
@@ -37,16 +45,12 @@ class PeerFiles {
     if (!item || !Number.isSafeInteger(offset) || offset < 0 || offset > item.size)
       throw new Error('无效传输片段');
     const buffer = Buffer.alloc(Math.min(48 * 1024, item.size - offset)),
-      fd = fs.openSync(item.file, 'r');
-    try {
-      fs.readSync(fd, buffer, 0, buffer.length, offset);
-    } finally {
-      fs.closeSync(fd);
-    }
+      fd = item.fd;
+    fs.readSync(fd, buffer, 0, buffer.length, offset);
     return buffer.toString('base64');
   }
   begin(item) {
-    if (this.incoming.size >= 4) throw new Error('同时接收的文件过多');
+    if (this.incoming.size) throw new Error('已有文件正在接收');
     if (
       !Number.isSafeInteger(item.size) ||
       item.size < 1 ||
@@ -96,13 +100,19 @@ class PeerFiles {
     return true;
   }
   close() {
+    this.generation++;
     for (const item of this.incoming.values()) {
       fs.closeSync(item.fd);
       fs.unlinkSync(item.file);
     }
     this.incoming.clear();
-    for (const item of this.outgoing.values()) fs.rmSync(item.file, { force: true });
+    for (const item of this.outgoing.values()) {
+      fs.closeSync(item.fd);
+      fs.rmSync(item.file, { force: true });
+    }
     this.outgoing.clear();
+    for (const item of this.pending.values()) fs.rmSync(item.file, { force: true });
+    this.pending.clear();
   }
 }
 module.exports = { PeerFiles };

@@ -2,6 +2,14 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { spawn } = require('node:child_process');
+const { atomicJson } = require('./store.cjs');
+function readState(file) {
+  try {
+    return JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch {
+    return null;
+  }
+}
 const root = path.resolve(__dirname, '..');
 const UV = {
   url: 'https://files.pythonhosted.org/packages/7c/9d/714523188aea3054644d8e69ae8089aac70325a3cee2d3d05509d4f23398/uv-0.13.6-py3-none-win_amd64.whl',
@@ -102,8 +110,13 @@ async function ensureRuntime(base, mode = 'cpu', onEvent = () => {}) {
   const python = path.join(base, 'venv', 'Scripts', 'python.exe'),
     marker = path.join(base, 'ready.json');
   if (fs.existsSync(marker) && fs.existsSync(python)) {
-    const state = JSON.parse(fs.readFileSync(marker));
-    if (state.recipe === 2 && state.mode === mode) return python;
+    const state = readState(marker);
+    if (
+      state?.recipe === 2 &&
+      state.mode === mode &&
+      (await require('./runtime-health.cjs').healthy(python))
+    )
+      return python;
   }
   fs.mkdirSync(base, { recursive: true });
   const temp = path.join(base, 'temp');
@@ -191,10 +204,9 @@ async function ensureRuntime(base, mode = 'cpu', onEvent = () => {}) {
     env,
     onEvent,
   );
-  fs.writeFileSync(
-    marker,
-    JSON.stringify({ recipe: 2, mode, createdAt: new Date().toISOString() }),
-  );
+  if (!(await require('./runtime-health.cjs').healthy(python, true)))
+    throw new Error('本地环境验证失败，请重试安装');
+  atomicJson(marker, { recipe: 2, mode, createdAt: new Date().toISOString() });
   onEvent({ type: 'ready', message: '本地环境已就绪' });
   return python;
 }
@@ -220,8 +232,8 @@ async function downloadModel(url, dest, sha256, onEvent) {
     part = dest + '.part';
   let state;
   if (fs.existsSync(stateFile) && fs.existsSync(target)) {
-    state = JSON.parse(fs.readFileSync(stateFile));
-    if (state.url !== url || state.total !== total) state = null;
+    state = readState(stateFile);
+    if (!validRanges(state, url, total, fs.statSync(target).size)) state = null;
   }
   if (!state) {
     const existing =
@@ -239,7 +251,7 @@ async function downloadModel(url, dest, sha256, onEvent) {
         received: 0,
       })),
     };
-    fs.writeFileSync(stateFile, JSON.stringify(state));
+    atomicJson(stateFile, state);
   }
   const fd = fs.openSync(target, 'r+');
   let last = 0;
@@ -263,7 +275,7 @@ async function downloadModel(url, dest, sha256, onEvent) {
               range.received += chunk.length;
               if (Date.now() - last > 1000) {
                 last = Date.now();
-                fs.writeFileSync(stateFile, JSON.stringify(state));
+                atomicJson(stateFile, state);
                 const size = state.existing + state.ranges.reduce((n, r) => n + r.received, 0);
                 onEvent?.({
                   type: 'progress',
@@ -273,7 +285,7 @@ async function downloadModel(url, dest, sha256, onEvent) {
               }
             }
             if (range.start + range.received !== range.end + 1) throw new Error('下载分块不完整');
-            fs.writeFileSync(stateFile, JSON.stringify(state));
+            atomicJson(stateFile, state);
             return;
           } catch (error) {
             if (attempt === 3) throw error;
@@ -304,3 +316,30 @@ async function downloadModel(url, dest, sha256, onEvent) {
   return dest;
 }
 module.exports.downloadModel = downloadModel;
+function validRanges(state, url, total, size) {
+  if (
+    !state ||
+    state.url !== url ||
+    state.total !== total ||
+    !Number.isSafeInteger(state.existing) ||
+    state.existing < 0 ||
+    state.existing >= total ||
+    size < state.existing ||
+    size > total ||
+    !Array.isArray(state.ranges) ||
+    state.ranges.length !== 8
+  )
+    return false;
+  const chunk = Math.ceil((total - state.existing) / 8);
+  return state.ranges.every(
+    (r, i) =>
+      r &&
+      [r.start, r.end, r.received].every(Number.isSafeInteger) &&
+      r.start === state.existing + i * chunk &&
+      r.end === Math.min(total - 1, state.existing + (i + 1) * chunk - 1) &&
+      r.received >= 0 &&
+      r.received <= Math.max(0, r.end - r.start + 1) &&
+      (!r.received || size >= r.start + r.received),
+  );
+}
+module.exports.validRanges = validRanges;

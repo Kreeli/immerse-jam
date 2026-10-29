@@ -8,11 +8,11 @@
   min-height: 48px;
 }
 .practice-toolbar button {
-  font-size: 10px;
+  font-size: 14px;
   white-space: nowrap;
 }
 .practice-toolbar small {
-  font-size: 10px;
+  font-size: 14px;
   color: var(--muted);
 }
 .practice-toolbar > label {
@@ -20,13 +20,13 @@
   display: flex;
   align-items: center;
   gap: 9px;
-  font-size: 10px;
+  font-size: 14px;
   color: var(--muted);
   white-space: nowrap;
 }
 .practice-toolbar select {
   padding: 6px 9px;
-  font-size: 10px;
+  font-size: 14px;
 }
 .mixer-shell {
   width: 290px;
@@ -46,7 +46,7 @@
 .side-panel-selector select {
   width: 100%;
   min-height: 39px;
-  font-size: 12px;
+  font-size: 14px;
 }
 .mixer-shell .mixer {
   width: 100%;
@@ -94,7 +94,7 @@
   max-width: 115px;
 }
 .marks-panel .mark-jump small {
-  font-size: 9px;
+  font-size: 14px;
 }
 .marks-panel .practice-mark-row form {
   flex-wrap: wrap;
@@ -108,7 +108,7 @@
   min-height: 24px;
 }
 .transport-context {
-  font-size: 10px;
+  font-size: 14px;
   color: var(--muted);
 }
 .toast {
@@ -127,7 +127,7 @@
   color: var(--tone-ed7894, #ed7894);
   background: transparent;
   padding: 10px 12px;
-  font-size: 11px;
+  font-size: 14px;
   min-height: 40px;
 }
 .transport-record svg {
@@ -172,7 +172,7 @@
   display: flex;
   align-items: center;
   gap: 9px;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 450;
   margin: 4px 0 6px;
   color: var(--muted);
@@ -206,13 +206,13 @@
   min-height: 120px;
 }
 .recording-wave-empty p {
-  font-size: 11px;
+  font-size: 14px;
   color: var(--muted);
   padding: 20px 0;
 }
 .practice-wave-comparison .wave-window-hint {
   padding-top: 8px;
-  font-size: 9px;
+  font-size: 14px;
 }
 .creation-tracks {
   padding: 18px 25px 30px;
@@ -236,7 +236,7 @@
   margin: 0 0 7px;
 }
 .creation-list-heading small {
-  font-size: 10px;
+  font-size: 14px;
   color: var(--muted);
 }
 .creation-list-heading > div:last-child {
@@ -245,7 +245,7 @@
 }
 .creation-list-heading button {
   white-space: nowrap;
-  font-size: 10px;
+  font-size: 14px;
 }
 .creation-audio-object {
   border: 1px solid var(--line);
@@ -277,10 +277,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: 14px;
 }
 .object-expand small {
-  font-size: 10px;
+  font-size: 14px;
   color: var(--muted);
   white-space: nowrap;
 }
@@ -291,7 +291,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 10px;
+  font-size: 14px;
   color: var(--muted);
 }
 .group-volume input {
@@ -299,7 +299,7 @@
 }
 .creation-object-heading > .track-switch {
   padding: 6px 9px;
-  font-size: 10px;
+  font-size: 14px;
   white-space: nowrap;
 }
 .creation-object-heading > .track-switch[aria-pressed='true'] {
@@ -321,7 +321,7 @@
   padding-top: 9px;
 }
 .source-stems > summary {
-  font-size: 11px;
+  font-size: 14px;
   color: var(--muted);
   cursor: pointer;
   margin-bottom: 12px;
@@ -389,14 +389,14 @@
   flex-wrap: wrap;
   gap: 15px;
   padding-top: 8px;
-  font-size: 10px;
+  font-size: 14px;
 }
 .live-object {
   border-color: var(--tone-ae5b7d, #ae5b7d);
 }
 .live-object .creation-object-heading {
   min-height: 45px;
-  font-size: 12px;
+  font-size: 14px;
 }
 .creation-empty {
   min-height: 300px;

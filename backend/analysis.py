@@ -16,18 +16,24 @@ def peaks(file, count=1800):
     return {'duration':info.duration,'sampleRate':info.samplerate,'peaks':result}
 
 def analyze(file, emit, tempo_model=None):
+    import tempfile
+    from audio_io import pcm
+    with tempfile.TemporaryDirectory() as temporary:
+        y=pcm(file,temporary,22050,1)
+        try:return analyze_pcm(y,22050,emit,tempo_model)
+        finally:del y
+
+def analyze_pcm(y, sr, emit, tempo_model=None):
     import librosa
+    from audio_io import chroma_blocks,onset_blocks
     from scipy.ndimage import median_filter
     emit(.12,'提取节拍与音高特征')
-    y,sr=librosa.load(file,sr=22050,mono=True)
     if len(y)<2048: raise ValueError('音频太短，无法分析')
     hop=1024
     # Percussive attacks should locate beats, not dominate chord names.
-    spectrum=librosa.stft(y,n_fft=4096,hop_length=hop)
-    harmonic,_=librosa.decompose.hpss(spectrum)
-    chroma=librosa.feature.chroma_stft(S=np.abs(harmonic)**2,sr=sr,hop_length=hop,n_fft=4096)
+    chroma=chroma_blocks(y,sr,hop,harmonic=True)
     chroma=median_filter(chroma,size=(1,5))
-    onset=librosa.onset.onset_strength(y=y,sr=sr,hop_length=hop)
+    onset=onset_blocks(y,sr,hop)
     from rhythm import detect
     rhythm=detect(y,sr,tempo_model,emit)
     beat_times=np.array(rhythm['beats']);beat_times=beat_times[(beat_times>=0)&(beat_times<len(y)/sr)];rhythm['downbeats']=[time for time in rhythm['downbeats'] if 0<=time<len(y)/sr];bpm=rhythm['bpm']

@@ -2,16 +2,17 @@ import contextlib,gc,hashlib,json,logging,os,re,tempfile,uuid,time
 from pathlib import Path
 import numpy as np
 import soundfile as sf
+from audio_io import pcm,mapped,BLOCK
 
 ALIASES={'vocal':'vocals','vocals':'vocals','drum':'drums','drums':'drums','bass':'bass','guitar':'guitar','piano':'piano','other':'other','others':'other','instrumental':'other','lead':'lead','rhythm':'rhythm','lead vocals':'lead_vocals','backing vocals':'backing_vocals'}
 
 def assert_outputs(outputs,stems,frames=None):
     if set(outputs)!=set(stems) or len(outputs)!=len(stems):raise ValueError(f'模型声部不匹配：期望 {stems}，实际 {list(outputs)}')
     for name,array in outputs.items():
-        if array.ndim!=2 or array.shape[1]!=2 or not np.all(np.isfinite(array)):raise ValueError(f'{name} 输出格式无效，应为有限数值的立体声音频')
+        if array.ndim!=2 or array.shape[1]!=2 or any(not np.all(np.isfinite(array[i:i+BLOCK])) for i in range(0,len(array),BLOCK)):raise ValueError(f'{name} 输出格式无效，应为有限数值的立体声音频')
         if frames is not None and abs(len(array)-frames)>4096:raise ValueError(f'{name} 输出长度不匹配')
 
-def tensor_model(model,x,sr,emit):
+def tensor_model(model,x,sr,emit,output):
     import torch,yaml
     class ConfigLoader(yaml.SafeLoader):pass
     ConfigLoader.add_constructor('tag:yaml.org,2002:python/tuple',lambda loader,node:tuple(loader.construct_sequence(node)))
@@ -38,14 +39,18 @@ def tensor_model(model,x,sr,emit):
             if out.ndim==4 and out.shape[0]==1:out=out[0]
             return out
     chunk=int(sr*model.get('chunkSeconds',6));step=chunk//2;length=len(x)
-    accum=np.zeros((len(model['stems']),2,length+chunk),np.float32);weight=np.zeros(length+chunk,np.float32);window=np.hanning(chunk).astype(np.float32);window[:32]=np.maximum(window[:32],.001);window[-32:]=np.maximum(window[-32:],.001)
+    accum=mapped(output,(len(model['stems']),2,length+chunk));weight=mapped(output,(length+chunk,));window=np.hanning(chunk).astype(np.float32);window[:32]=np.maximum(window[:32],.001);window[-32:]=np.maximum(window[-32:],.001)
     for start in range(0,length,step):
         data=np.zeros((chunk,2),np.float32);n=min(chunk,length-start);data[:n]=x[start:start+n]
         out=infer(data)
         if out.shape!=(len(model['stems']),2,chunk):raise ValueError(f'模型输出维度错误：{out.shape}，期望 {(len(model["stems"]),2,chunk)}')
         if not np.isfinite(out).all():raise ValueError('模型产生了无效数值')
         accum[:,:,start:start+chunk]+=out*window;weight[start:start+chunk]+=window;emit(min(.9,.1+.8*start/max(1,length)),f'本机推理 {start/sr:.0f} / {length/sr:.0f} 秒')
-    return {name:(accum[i,:,:length]/np.maximum(weight[:length],1e-7)).T for i,name in enumerate(model['stems'])}
+    result={name:mapped(output,(length,2)) for name in model['stems']}
+    for begin in range(0,length,BLOCK):
+        end=min(length,begin+BLOCK)
+        for i,name in enumerate(model['stems']): result[name][begin:end]=(accum[i,:,begin:end]/np.maximum(weight[begin:end],1e-7)).T
+    return result
 
 def run_model(model,source,output,emit):
     from model_safety import custom_model_guard
@@ -63,10 +68,8 @@ def guarded_run_model(model,source,output,emit):
 
 
 def _run_model(model,source,output,emit):
-    import librosa
-    sr=model['sampleRate'];x,_=librosa.load(str(source),sr=sr,mono=False);x=x.T
-    if x.ndim==1:x=np.repeat(x[:,None],2,axis=1)
-    if model['adapter'] in ['scnet','onnx-waveform']:return tensor_model(model,x,sr,emit),sr
+    sr=model['sampleRate'];x=pcm(source,output,sr)
+    if model['adapter'] in ['scnet','onnx-waveform']:return tensor_model(model,x,sr,emit,output),sr
     from audio_separator.separator import Separator
     class LocalSeparator(Separator):
         def setup_torch_device(self,system_info):
@@ -108,20 +111,37 @@ def _run_model(model,source,output,emit):
     finally:
         RoformerLoader._create_mel_band_roformer=original_creator
         logging.getLogger().removeHandler(diagnostics)
+    # Preserve raw floating-point model amplitudes across chunk boundaries.
+    # Upstream otherwise independently peak-normalizes loud input/output chunks.
+    separator.model_instance.normalization_threshold=float('inf')
+    separator.model_instance.amplification_threshold=0
+    separator.model_instance.input_subtype='FLOAT'
     emit(.15,'模型已加载，正在使用 '+('NVIDIA 显卡' if separator.torch_device.type=='cuda' else 'CPU')+' 分离音轨')
     # Compressed input subtypes (MPEG_LAYER_III, VORBIS…) cannot be used
     # as WAV encodings by upstream's soundfile writer. Feed lossless float WAV.
-    decoded=Path(output)/'_input.wav';sf.write(decoded,x,sr,subtype='FLOAT')
-    files=separator.separate(str(decoded));outputs={}
-    for filename in files:
-        match=re.search(r'_\(([^)]+)\)',Path(filename).name)
-        if not match:raise ValueError('模型输出文件缺少声部标记')
-        raw=match.group(1);name=model.get('outputMap',{}).get(raw,ALIASES.get(raw.lower(),raw.lower()))
-        if name in outputs:raise ValueError('模型产生了重复声部')
-        y,out_sr=sf.read(Path(output)/filename,dtype='float32',always_2d=True)
-        if out_sr!=sr:raise ValueError('模型输出采样率错误')
-        if y.shape[1]==1:y=np.repeat(y,2,axis=1)
-        outputs[name]=y
+    outputs={name:mapped(output,(len(x),2)) for name in model['stems']}
+    # The upstream adapters buffer complete files; feed bounded files while
+    # keeping one loaded network. Extra context is trimmed at each join.
+    core=30*sr;context=4*sr
+    for begin in range(0,len(x),core):
+        left=max(0,begin-context);end=min(len(x),begin+core);right=min(len(x),end+context)
+        decoded=Path(output)/'_input.wav';sf.write(decoded,x[left:right],sr,subtype='FLOAT')
+        files=separator.separate(str(decoded));seen=set()
+        for filename in files:
+            match=re.search(r'_\(([^)]+)\)',Path(filename).name)
+            if not match:raise ValueError('模型输出文件缺少声部标记')
+            raw=match.group(1);name=model.get('outputMap',{}).get(raw,ALIASES.get(raw.lower(),raw.lower()))
+            if name not in outputs or name in seen:raise ValueError('模型产生了重复或未知声部')
+            seen.add(name)
+            with sf.SoundFile(Path(output)/filename) as f:
+                if f.samplerate!=sr or abs(f.frames-(right-left))>4096:raise ValueError('模型输出采样率或长度错误')
+                f.seek(begin-left);y=f.read(end-begin,dtype='float32',always_2d=True)
+                if y.shape[1]==1:y=np.repeat(y,2,axis=1)
+                if y.shape!=(end-begin,2) or not np.isfinite(y).all():raise ValueError('模型输出不完整或数值无效')
+                outputs[name][begin:end]=y
+            (Path(output)/filename).unlink(missing_ok=True)
+        if seen!=set(model['stems']):raise ValueError('模型未输出所有声明的声部')
+        emit(min(.9,.15+.75*end/max(1,len(x))),f'本机推理 {end/sr:.0f} / {len(x)/sr:.0f} 秒')
     assert_outputs(outputs,model['stems'],len(x));del separator;gc.collect()
     try:
         import torch
@@ -130,15 +150,20 @@ def _run_model(model,source,output,emit):
     return outputs,sr
 
 def normalized(outputs,length):
-    return {name:np.pad(data,((0,max(0,length-len(data))),(0,0)))[:length] for name,data in outputs.items()}
+    if any(len(data)!=length for data in outputs.values()):raise ValueError('分轨长度与原曲不一致')
+    return outputs
+
+def combine(directory,length,fn):
+    result=mapped(directory,(length,2))
+    for begin in range(0,length,BLOCK):
+        end=min(length,begin+BLOCK);result[begin:end]=fn(slice(begin,end))
+    return result
 
 def separate(request,emit):
-    import librosa
     started=time.perf_counter()
     directory=Path(request['directory']);dest=directory/'.work'/str(uuid.uuid4());dest.mkdir(parents=True)
     model=request['model'];mode=request.get('mode','six');outputs,sr=run_model(model,request['source'],dest,emit)
-    original,_=librosa.load(request['source'],sr=sr,mono=False);original=original.T
-    if original.ndim==1:original=np.repeat(original[:,None],2,axis=1)
+    original=pcm(request['source'],dest,sr)
     outputs=normalized(outputs,len(original));emit(.92,'校验分轨并构建练习模式')
     if mode in ['guitarist','singer']:
         target='guitar' if mode=='guitarist' else 'vocals'
@@ -146,19 +171,23 @@ def separate(request,emit):
         stage=dest/'stage';stage.mkdir();source=stage/'input.wav';sf.write(source,outputs[target],sr,subtype='FLOAT')
         pair,_=run_model(request['secondaryModel'],source,stage,emit)
         pair=normalized(pair,len(original));keys=['lead','rhythm'] if mode=='guitarist' else ['lead_vocals','backing_vocals']
-        assert_outputs(pair,keys,len(original));outputs={keys[0]:pair[keys[0]],keys[1]:outputs[target]-pair[keys[0]],'other':original-outputs[target]}
+        assert_outputs(pair,keys,len(original));outputs={keys[0]:pair[keys[0]],keys[1]:combine(dest,len(original),lambda sl:outputs[target][sl]-pair[keys[0]][sl]),'other':combine(dest,len(original),lambda sl:original[sl]-outputs[target][sl])}
     elif mode=='basic':
         if not all(k in outputs for k in ['vocals','drums','bass']):raise ValueError('此模型无法生成基础四轨')
-        outputs={k:outputs[k] for k in ['vocals','drums','bass']};outputs['other']=original-sum(outputs.values())
+        outputs={k:outputs[k] for k in ['vocals','drums','bass']};parts=list(outputs.values());outputs['other']=combine(dest,len(original),lambda sl:original[sl]-sum(v[sl] for v in parts))
     elif mode in ['drummer','bassist','vocal']:
         target={'drummer':'drums','bassist':'bass','vocal':'vocals'}[mode]
         if target not in outputs:raise ValueError('模型不包含所选声部')
-        outputs={target:outputs[target],'other':original-outputs[target]}
+        outputs={target:outputs[target],'other':combine(dest,len(original),lambda sl:original[sl]-outputs[target][sl])}
     assert_outputs(outputs,list(outputs),len(original))
-    # A shared scale keeps relative gains; individual stem normalization breaks a mix.
-    peak=max(1.,max(float(np.max(np.abs(v))) for v in outputs.values()));tracks=[]
+    # Float WAV preserves model amplitudes, including inter-stem peaks above 1.
+    # The player/export limiter handles output headroom; no hidden per-song scale.
+    peak=1.;tracks=[]
     for name,data in outputs.items():
-        file=dest/(name+'.wav');sf.write(file,data/peak,sr,subtype='FLOAT');tracks.append({'id':name,'name':name,'file':file.relative_to(directory).as_posix(),'gain':1,'pan':0,'mute':False,'solo':False})
+        file=dest/(name+'.wav')
+        with sf.SoundFile(file,mode='w',samplerate=sr,channels=2,subtype='FLOAT',format='RF64' if len(data)*8>0xffffffff-100 else 'WAV') as writer:
+            for begin in range(0,len(data),BLOCK):writer.write(data[begin:begin+BLOCK])
+        tracks.append({'id':name,'name':name,'file':file.relative_to(directory).as_posix(),'gain':1,'pan':0,'mute':False,'solo':False})
     import torch
     return {'tracks':tracks,'separation':{'model':model['id'],'mode':mode,'scale':1/peak,'elapsedSeconds':round(time.perf_counter()-started,2),'peakCudaAllocatedMB':round(torch.cuda.max_memory_allocated()/1048576) if torch.cuda.is_available() else 0}}
 
@@ -167,4 +196,7 @@ def validate(request,emit):
     with tempfile.TemporaryDirectory() as tmp:
         file=Path(tmp)/'probe.wav';t=np.arange(sr*8)/sr;x=.025*np.sin(2*np.pi*220*t);sf.write(file,np.stack([x,x],axis=1),sr)
         outputs,_=run_model(model,file,Path(tmp),emit);assert_outputs(outputs,model['stems'],len(x))
+        for data in outputs.values():
+            if isinstance(data,np.memmap):data._mmap.close()
+        del outputs
     return {'validated':True,'stems':model['stems']}

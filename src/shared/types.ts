@@ -167,6 +167,7 @@ export interface Practice {
   snapCountIn?: boolean;
 }
 export interface Project {
+  broken?: string;
   kind?: 'practice' | 'creation';
   sessionSource?: { projectId: string; title: string; resultId: string | null };
   practiceMode?: 'instrument' | 'mixed';
@@ -251,6 +252,8 @@ declare global {
   }
 }
 export function asset(id: string, file: string) {
+  if (window.ImmerseNative)
+    return `/projects/${encodeURIComponent(id)}/${file.split(/[\\/]/).map(encodeURIComponent).join('/')}`;
   return `immerse://asset/${id}/${file.split(/[\\/]/).map(encodeURIComponent).join('/')}`;
 }
 export function time(t: number) {

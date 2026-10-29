@@ -65,17 +65,18 @@ function emit(data) {
   if (win && !win.isDestroyed()) win.webContents.send('jam:event', data);
 }
 function runtimeStatus() {
+  let state;
+  try {
+    state = JSON.parse(fs.readFileSync(path.join(runtimeBase, 'ready.json'), 'utf8'));
+  } catch {
+    state = null;
+  }
   return {
     libraryPath: base,
     runtimePath: runtimeBase,
-    ready:
-      fs.existsSync(path.join(runtimeBase, 'ready.json')) &&
-      fs.existsSync(python) &&
-      fs.existsSync(ffmpeg),
+    ready: !!state && fs.existsSync(python) && fs.existsSync(ffmpeg),
     installing,
-    mode: fs.existsSync(path.join(runtimeBase, 'ready.json'))
-      ? JSON.parse(fs.readFileSync(path.join(runtimeBase, 'ready.json'))).mode
-      : null,
+    mode: state?.mode || null,
   };
 }
 async function pick(filters, multiple = true) {
@@ -84,15 +85,63 @@ async function pick(filters, multiple = true) {
     filters,
   });
 }
+const archiveJobs = new Map();
 async function importFiles(files) {
-  const result = [];
+  const result = [],
+    failed = [];
   for (const file of files) {
-    if (/\.(aum|ijam)$/i.test(file)) result.push(await importArchive(store, file));
-    else if (/\.(mp3|wav|flac|m4a|aac|ogg|opus|mp4|mov|webm)$/i.test(file))
-      result.push(store.create(file));
-    else throw new Error('不支持此文件类型');
+    try {
+      if (/\.(aum|ijam)$/i.test(file)) {
+        const id = require('node:crypto').randomUUID(),
+          controller = new AbortController();
+        archiveJobs.set(id, controller);
+        try {
+          emit({
+            type: 'progress',
+            jobId: id,
+            operation: 'import',
+            message: '正在导入歌曲包…',
+            progress: 0,
+          });
+          result.push(
+            await importArchive(store, file, {
+              signal: controller.signal,
+              onProgress: (progress) =>
+                emit({
+                  type: 'progress',
+                  jobId: id,
+                  operation: 'import',
+                  progress: progress * 0.8,
+                  message: '正在解包歌曲…',
+                }),
+            }),
+          );
+          emit({ type: 'complete', jobId: id });
+        } catch (error) {
+          if (controller.signal.aborted) {
+            emit({ type: 'cancelled', jobId: id });
+            break;
+          }
+          throw error;
+        } finally {
+          archiveJobs.delete(id);
+        }
+      } else if (/\.(mp3|wav|flac|m4a|aac|ogg|opus|mp4|mov|webm)$/i.test(file))
+        result.push(store.create(file));
+      else throw new Error('不支持此文件类型');
+    } catch (error) {
+      failed.push({ name: path.basename(file), message: error.message });
+      emit({ type: 'error', message: error.message });
+    }
   }
   emit({ type: 'library-changed' });
+  if (failed.length)
+    emit({
+      type: 'import-report',
+      message:
+        `导入完成：${result.length} 成功，${failed.length} 失败。` +
+        failed.map((f) => `${f.name}: ${f.message}`).join('\n'),
+    });
   return result;
 }
 function handle(name, fn) {
@@ -106,6 +155,7 @@ ipcMain.on('jam:initial-ui', (event) => {
 });
 app.whenReady().then(async () => {
   store = new Store(base);
+  require('./temp-artifacts.cjs').cleanTransfers(base);
   takes = new (require('./takes.cjs').Takes)(store, ffmpeg);
   models = new Models(runtimeBase);
   jobs = new Jobs({ base: runtimeBase, backend, ffmpeg, onEvent: emit });
@@ -144,6 +194,21 @@ app.whenReady().then(async () => {
     },
   });
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  let closing = false,
+    allowClose = false;
+  win.on('close', (event) => {
+    if (allowClose || win.webContents.isCrashed()) return;
+    event.preventDefault();
+    if (closing) return;
+    closing = true;
+    emit({ type: 'closing' });
+    setTimeout(() => {
+      if (!win.isDestroyed()) {
+        allowClose = true;
+        win.close();
+      }
+    }, 2500).unref();
+  });
   win.setIcon(path.join(app.isPackaged ? process.resourcesPath : root, 'assets', 'app-icon.ico'));
   win.setAppDetails({
     appId: 'app.immersejam.desktop',
@@ -187,7 +252,6 @@ app.whenReady().then(async () => {
     if (jobs.active) throw new Error('请先等待处理任务完成或取消，再删除项目');
     if ([...takes.sessions.values()].some((session) => session.projectId === id))
       throw new Error('请先停止录音，再删除工程');
-    store.get(id);
     const folder = path.resolve(store.dir(id));
     if (
       path.dirname(folder) !== path.resolve(store.projects) ||
@@ -280,7 +344,13 @@ app.whenReady().then(async () => {
       throw new Error('乐谱附件超过 40 MB');
     return new Uint8Array(fs.readFileSync(store.asset(id, a.file)));
   });
-  handle('runtime-status', runtimeStatus);
+  handle('runtime-status', async () => {
+    const status = runtimeStatus();
+    return {
+      ...status,
+      ready: status.ready && (await require('./runtime-health.cjs').healthy(python)),
+    };
+  });
   handle('runtime-install', ({ mode }) => {
     if (installing) return runtimeStatus();
     installing = true;
@@ -408,7 +478,14 @@ app.whenReady().then(async () => {
       pending = false;
     }
   });
-  handle('cancel', ({ jobId }) => jobs.cancel(jobId));
+  handle('cancel', ({ jobId }) => {
+    archiveJobs.get(jobId)?.abort();
+    return jobs.cancel(jobId);
+  });
+  handle('project-recover', ({ id }) => store.recover(id));
+  handle('playback-budget', ({ id, files }) =>
+    require('./playback-budget.cjs').check(store, id, files, ffmpeg),
+  );
   handle('export', async ({ id, full }) => {
     const p = store.get(id);
     const s = await nativeDialogs.showSaveDialog(win, {
@@ -481,7 +558,9 @@ app.whenReady().then(async () => {
   handle('pair-start', ({ ids }) => transfer.start(ids));
   handle('pair-stop', () => transfer.stop());
   handle('peer-prepare', ({ ids }) => peerFiles.prepare(ids));
-  handle('peer-outgoing', () => [...peerFiles.outgoing.values()].map(({ file, ...item }) => item));
+  handle('peer-outgoing', () =>
+    [...peerFiles.outgoing.values()].map(({ file, fd, ...item }) => item),
+  );
   handle('peer-read', (data) => peerFiles.read(data));
   handle('peer-begin', (data) => peerFiles.begin(data));
   handle('peer-append', (data) => peerFiles.append(data));
@@ -514,6 +593,10 @@ app.whenReady().then(async () => {
   });
   handle('reveal', ({ id }) => shell.showItemInFolder(path.join(store.dir(id), 'project.json')));
   handle('window', ({ action }) => {
+    if (action === 'close-ready' && closing) {
+      allowClose = true;
+      setImmediate(() => win.close());
+    }
     if (action === 'minimize') win.minimize();
     else if (action === 'maximize') win.isMaximized() ? win.unmaximize() : win.maximize();
   });

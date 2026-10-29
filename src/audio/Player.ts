@@ -32,6 +32,7 @@ export class Player {
     if (this.capturing === active) return;
     this.capturing = active;
     if (this.project) this.apply(this.project);
+    if (!active) this.scheduleIdleSuspend();
   }
   metronomeGain: GainNode | null = null;
   countInGain: GainNode | null = null;
@@ -70,6 +71,99 @@ export class Player {
   activeSources = new Set<{ source: AudioBufferSourceNode; gate: GainNode }>();
   private initPromise: Promise<void> | null = null;
   private lifecycleSerial = 0;
+  private idleTimer: ReturnType<typeof setTimeout> | null = null;
+  private audioLeases = 0;
+  private resetSerial = 0;
+  private async resetTransport() {
+    const context = this.context!,
+      dsp = this.dsp!,
+      id = ++this.resetSerial;
+    const now = context.currentTime;
+    this.transportGain!.gain.cancelAndHoldAtTime(now);
+    this.transportGain!.gain.linearRampToValueAtTime(0, now + 0.005);
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        cleanup();
+        reject(new Error(tr('音频设备未响应，请重新选择输出设备')));
+      }, 2500);
+      const listener = (event: MessageEvent) => {
+        if (event.data.type === 'reset-done' && event.data.id === id) {
+          cleanup();
+          resolve();
+        }
+      };
+      const cleanup = () => {
+        clearTimeout(timer);
+        dsp.port.removeEventListener('message', listener);
+      };
+      dsp.port.addEventListener('message', listener);
+      dsp.port.start();
+      dsp.port.postMessage({ type: 'reset', id, at: now + 0.008, active: true });
+    });
+  }
+  private openTransport() {
+    const now = this.context!.currentTime;
+    this.transportGain!.gain.cancelScheduledValues(now);
+    this.transportGain!.gain.setValueAtTime(0, now);
+    this.transportGain!.gain.linearRampToValueAtTime(1, now + 0.01);
+  }
+  private scheduleIdleSuspend() {
+    if (this.idleTimer) clearTimeout(this.idleTimer);
+    if (
+      !this.context ||
+      this.playing ||
+      this.resumeRequested ||
+      this.captureActive ||
+      this.audioLeases
+    )
+      return;
+    const context = this.context;
+    this.idleTimer = setTimeout(() => {
+      this.idleTimer = null;
+      if (
+        this.context === context &&
+        !this.playing &&
+        !this.resumeRequested &&
+        !this.captureActive &&
+        !this.audioLeases &&
+        context.state === 'running'
+      )
+        void context.suspend().catch(() => {});
+    }, 80);
+  }
+  async acquireAudio() {
+    await this.init();
+    this.audioLeases++;
+    if (this.idleTimer) {
+      clearTimeout(this.idleTimer);
+      this.idleTimer = null;
+    }
+    let released = false;
+    const release = () => {
+      if (released) return;
+      released = true;
+      this.audioLeases = Math.max(0, this.audioLeases - 1);
+      this.scheduleIdleSuspend();
+    };
+    try {
+      await this.context!.resume();
+    } catch (error) {
+      release();
+      throw error;
+    }
+    return release;
+  }
+  async previewClicks() {
+    const release = await this.acquireAudio();
+    try {
+      await this.resetTransport();
+      this.openTransport();
+    } catch (error) {
+      release();
+      throw error;
+    }
+    return release;
+  }
   timer: ReturnType<typeof setInterval> | null = null;
   raf = 0;
   generation = 0;
@@ -131,12 +225,13 @@ export class Player {
     this.limiter.ratio.value = 20;
     this.transportGain = ctx.createGain();
     this.transportGain.gain.value = 0;
-    this.midiGain.connect(this.transportGain);
-    this.transportGain.connect(this.limiter);
-    this.limiter.connect(this.master);
+    this.midiGain.connect(this.limiter);
+    this.limiter.connect(this.transportGain);
+    this.transportGain.connect(this.master);
     this.master.connect(ctx.destination);
     this.initWaveWorker();
     this.rebuildDsp();
+    this.scheduleIdleSuspend();
   }
   rebuildDsp() {
     if (!this.context || !this.mix) return;
@@ -146,11 +241,25 @@ export class Player {
     this.dsp.playbackRate.value = this.tempo;
     this.dsp.pitchSemitones.value = this.pitch;
     this.mix.connect(this.dsp);
-    this.dsp.connect(this.transportGain!);
+    this.dsp.connect(this.limiter!);
   }
   async load(project: Project) {
     const generation = ++this.generation;
     this.pause();
+    if (window.ImmerseNative)
+      await window.jam.call('android-playback-budget', {
+        bytes:
+          sessionDuration(project, project.duration || 0) *
+          48000 *
+          2 *
+          4 *
+          sourceTracks(project).length,
+      });
+    else
+      await window.jam.call('playback-budget', {
+        id: project.id,
+        files: sourceTracks(project).map((track) => track.file),
+      });
     await this.init();
     if (generation !== this.generation || !this.context) return;
     const same = this.project?.id === project.id,
@@ -324,6 +433,10 @@ export class Player {
   async play(countIn = false) {
     if (!this.context || (!this.channels.length && !this.captureActive) || this.playing) return;
     this.resumeRequested = true;
+    if (this.idleTimer) {
+      clearTimeout(this.idleTimer);
+      this.idleTimer = null;
+    }
     const serial = ++this.playSerial,
       context = this.context;
     try {
@@ -340,10 +453,19 @@ export class Player {
       this.offset = nearestBeat(this.metroBeats, this.offset, this.loop);
     const loop = this.usableLoop();
     if (loop && this.offset >= loop.b) this.offset = loop.a;
-    this.dsp!.port.postMessage({ type: 'reset', at: context.currentTime + 0.006, active: true });
-    this.transportGain!.gain.cancelAndHoldAtTime(context.currentTime);
-    this.transportGain!.gain.linearRampToValueAtTime(0, context.currentTime + 0.005);
-    this.transportGain!.gain.setValueAtTime(1, context.currentTime + 0.012);
+    try {
+      await this.resetTransport();
+    } catch (error) {
+      if (serial === this.playSerial) {
+        this.resumeRequested = false;
+        this.scheduleIdleSuspend();
+        throw error;
+      }
+      return;
+    }
+    if (serial !== this.playSerial || this.context !== context) return;
+    this.resumeRequested = false;
+    this.openTransport();
     this.scheduledCycles.clear();
     this.metroScheduled.clear();
     const origin = this.context.currentTime;
@@ -422,6 +544,7 @@ export class Player {
     if (this.timer) clearInterval(this.timer);
     cancelAnimationFrame(this.raf);
     this.onUpdate(this.offset, false);
+    this.scheduleIdleSuspend();
   }
   seek(position: number) {
     const was = this.playing || this.resumeRequested;
@@ -666,48 +789,66 @@ export class Player {
     }
   }
   async calculateWaveform(buffer: AudioBuffer): Promise<number[]> {
-    if (this.waveWorker) {
-      const id = ++this.peakSerial;
-      try {
-        return await new Promise<number[]>((resolve, reject) => {
-          this.peakJobs.set(id, { resolve, reject });
-          const buffers = Array.from(
-            { length: buffer.numberOfChannels },
-            (_, index) => buffer.getChannelData(index).slice().buffer,
-          );
-          try {
-            this.waveWorker!.postMessage(
-              { id, buffers, length: buffer.length, sampleRate: buffer.sampleRate },
-              buffers,
-            );
-          } catch (error) {
-            this.peakJobs.delete(id);
-            reject(error);
-          }
-        });
-      } catch {
-        /* Keep audio usable if background workers are unavailable. */
-      }
-    }
-    const step = Math.max(
-        1,
-        Math.ceil(buffer.length / Math.max(1, Math.ceil(buffer.duration * 100))),
-      ),
-      data = Array.from({ length: buffer.numberOfChannels }, (_, i) => buffer.getChannelData(i)),
-      peaks: number[] = [];
+    const peaks: number[] = [],
+      step = Math.max(1, Math.round(buffer.sampleRate / 100));
+    // Never clone a whole decoded track merely to calculate its envelope.
+    const channels = Array.from({ length: buffer.numberOfChannels }, (_, i) =>
+      buffer.getChannelData(i),
+    );
     let last = performance.now();
     for (let start = 0; start < buffer.length; start += step) {
       let peak = 0;
-      for (const samples of data)
+      for (const samples of channels)
         for (let i = start; i < Math.min(buffer.length, start + step); i++)
           peak = Math.max(peak, Math.abs(samples[i]));
       peaks.push(peak);
       if (performance.now() - last > 6) {
-        await new Promise((resolve) => setTimeout(resolve, 0));
+        await new Promise((r) => setTimeout(r, 0));
         last = performance.now();
       }
     }
     return peaks;
+  }
+  private waveQueue: Promise<unknown> = Promise.resolve();
+  private async renderEnvelope(
+    tracks: Track[],
+    origin: number,
+    duration: number,
+    master: number,
+    valid: () => boolean,
+  ) {
+    const rate = this.context!.sampleRate,
+      values: number[] = [];
+    // One two-second PCM buffer at a time, with a global queue across mix keys.
+    // This retains real sample cancellation/panning without allocating a song-sized offline context.
+    for (let time = 0; time < duration; time += 2) {
+      if (!valid()) return [];
+      const length = Math.min(2, duration - time),
+        offline = new OfflineAudioContext(2, Math.max(1, Math.ceil(length * rate)), rate),
+        output = offline.createGain();
+      output.gain.value = master;
+      output.connect(offline.destination);
+      for (const track of tracks) {
+        if (track.mute || !track.gain) continue;
+        const channel = this.channels.find((c) => c.track.id === track.id);
+        if (!channel) continue;
+        const from = Math.max(origin + time, track.start || 0),
+          to = Math.min(origin + time + length, (track.start || 0) + channel.buffer.duration);
+        if (to <= from) continue;
+        const source = offline.createBufferSource(),
+          gain = offline.createGain(),
+          pan = offline.createStereoPanner();
+        source.buffer = channel.buffer;
+        gain.gain.value = track.gain;
+        pan.pan.value = track.pan;
+        source.connect(gain);
+        gain.connect(pan);
+        pan.connect(output);
+        source.start(from - origin - time, from - (track.start || 0), to - from);
+      }
+      values.push(...(await this.calculateWaveform(await offline.startRendering())));
+    }
+    return values;
   }
   waveKey() {
     return JSON.stringify([
@@ -743,90 +884,55 @@ export class Player {
     const cached = this.cachedWaveform(source);
     if (cached) return cached;
     const generation = this.generation;
-    if (source.startsWith('group:')) {
-      const group =
-        groupOverride ||
-        creationGroups(this.project!).find((group) => group.id === source.slice(6));
-      if (!group) return [];
-      const tracks = groupTracks(group),
-        key = source + '|' + this.generation + '|' + JSON.stringify(tracks),
-        found = this.mixWaves.get(key);
-      if (found) return found;
-      const rate = this.context.sampleRate,
-        region = this.waveformRegion(source, group),
-        offline = new OfflineAudioContext(2, Math.max(1, Math.ceil(region.duration * rate)), rate);
-      for (const track of tracks) {
-        if (track.mute) continue;
-        const channel = this.channels.find((channel) => channel.track.id === track.id);
-        if (!channel) continue;
-        const input = offline.createBufferSource(),
-          gain = offline.createGain(),
-          pan = offline.createStereoPanner();
-        input.buffer = channel.buffer;
-        gain.gain.value = track.gain;
-        pan.pan.value = track.pan;
-        input.connect(gain);
-        gain.connect(pan);
-        pan.connect(offline.destination);
-        const start = (track.start || 0) - region.origin,
-          offset = Math.max(0, -start);
-        if (offset < channel.buffer.duration) input.start(Math.max(0, start), offset);
-      }
-      const values = await this.calculateWaveform(await offline.startRendering());
-      if (generation === this.generation) {
-        if (this.mixWaves.size >= 8) this.mixWaves.delete(this.mixWaves.keys().next().value!);
-        this.mixWaves.set(key, values);
-      }
-      return values;
-    }
-    if (source !== 'mix') {
-      const channel = this.channels.find((channel) => channel.track.id === source);
+    if (source !== 'mix' && !source.startsWith('group:')) {
+      const channel = this.channels.find((c) => c.track.id === source);
       if (!channel) throw new Error(tr('所选波形的音轨不存在'));
-      const values = await this.calculateWaveform(channel.buffer);
+      const values = placeEnvelope(
+        await this.calculateWaveform(channel.buffer),
+        channel.buffer.duration,
+        channel.track.start || 0,
+        this.duration,
+      );
       if (generation === this.generation) this.trackWaves.set(source, values);
       return values;
     }
-    const key = this.waveKey(),
+    const group = source.startsWith('group:')
+      ? groupOverride || creationGroups(this.project!).find((g) => g.id === source.slice(6))
+      : undefined;
+    if (source !== 'mix' && !group) return [];
+    const key = group
+        ? source + '|' + generation + '|' + JSON.stringify(groupTracks(group))
+        : this.waveKey(),
+      found = this.mixWaves.get(key),
       existing = this.mixInFlight.get(key);
+    if (found) return found;
     if (existing) return existing;
-    const task = (async () => {
-      const solo = this.channels.some((channel) => channel.track.solo && !channel.track.mute),
-        audible = this.channels.filter(
-          (channel) =>
-            !channel.track.mute && (!solo || channel.track.solo) && channel.track.gain > 0,
+    const tracks = group ? groupTracks(group) : this.channels.map((c) => ({ ...c.track }));
+    const solo = tracks.some((t) => t.solo && !t.mute);
+    const audible = tracks.filter((t) => !t.mute && (!solo || t.solo));
+    const region = group
+        ? this.waveformRegion(source, group)
+        : { origin: 0, duration: this.duration },
+      master = group ? 1 : (this.project?.practice.master ?? 0.8);
+    const task = this.waveQueue
+      .catch(() => {})
+      .then(async () => {
+        const valid = () => generation === this.generation && (group || key === this.waveKey());
+        if (!valid()) return [];
+        const values = await this.renderEnvelope(
+          audible,
+          region.origin,
+          region.duration,
+          master,
+          () => !!valid(),
         );
-      let peaks: number[];
-      if (!audible.length || this.project?.practice.master === 0)
-        peaks = new Array(Math.ceil(this.duration * 100)).fill(0);
-      else {
-        const rate = this.context!.sampleRate,
-          offline = new OfflineAudioContext(2, Math.ceil(this.duration * rate), rate),
-          master = offline.createGain();
-        master.gain.value = this.project?.practice.master ?? 0.8;
-        master.connect(offline.destination);
-        for (const channel of audible) {
-          const input = offline.createBufferSource(),
-            gain = offline.createGain(),
-            pan = offline.createStereoPanner();
-          input.buffer = channel.buffer;
-          gain.gain.value = channel.track.gain;
-          pan.pan.value = channel.track.pan;
-          input.connect(gain);
-          gain.connect(pan);
-          pan.connect(master);
-          const start = channel.track.start || 0,
-            offset = Math.max(0, -start);
-          if (offset < channel.buffer.duration) input.start(Math.max(0, start), offset);
+        if (valid()) {
+          if (this.mixWaves.size >= 8) this.mixWaves.delete(this.mixWaves.keys().next().value!);
+          this.mixWaves.set(key, values);
         }
-        const buffer = await offline.startRendering();
-        peaks = await this.calculateWaveform(buffer);
-      }
-      if (generation === this.generation) {
-        if (this.mixWaves.size >= 4) this.mixWaves.delete(this.mixWaves.keys().next().value!);
-        this.mixWaves.set(key, peaks);
-      }
-      return peaks;
-    })();
+        return values;
+      });
+    this.waveQueue = task;
     this.mixInFlight.set(key, task);
     try {
       return await task;
@@ -837,6 +943,9 @@ export class Player {
   dispose() {
     this.lifecycleSerial++;
     this.pause();
+    if (this.idleTimer) clearTimeout(this.idleTimer);
+    this.idleTimer = null;
+    this.audioLeases = 0;
     this.generation++;
     if (this.mixWarmTimer) clearTimeout(this.mixWarmTimer);
     this.waveWorker?.terminate();

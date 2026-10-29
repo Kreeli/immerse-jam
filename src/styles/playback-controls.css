@@ -32,10 +32,10 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 100%;
-  font-size: 12px;
+  font-size: 14px;
 }
 .transport-project span {
-  font-size: 10px;
+  font-size: 14px;
   color: var(--muted);
   margin-top: 4px;
 }
@@ -58,7 +58,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  font-size: 12px;
+  font-size: 14px;
 }
 .session-create-fields input,
 .session-create-fields select {
@@ -71,11 +71,11 @@
   gap: 10px;
 }
 .session-card small {
-  font-size: 10px;
+  font-size: 14px;
   color: var(--muted);
 }
 .session-badge {
-  font-size: 11px;
+  font-size: 14px;
 }
 .session-list {
   margin: 0 48px 30px;
@@ -85,7 +85,7 @@
   width: 100%;
   border-collapse: collapse;
   text-align: left;
-  font-size: 12px;
+  font-size: 14px;
 }
 .session-table th {
   font-weight: 400;
@@ -121,11 +121,11 @@
   min-width: 0;
 }
 .session-title strong {
-  font-size: 13px;
+  font-size: 14px;
 }
 .session-title small {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 14px;
 }
 .session-row-actions {
   display: flex;
@@ -141,7 +141,7 @@
 .practice-mode-control .recording-mode-options button {
   padding: 10px 7px;
   flex: 1;
-  font-size: 11px;
+  font-size: 14px;
   white-space: nowrap;
   min-width: 0;
 }
@@ -152,7 +152,7 @@
   border-radius: 10px;
 }
 .practice-mode-control p {
-  font-size: 10px;
+  font-size: 14px;
   line-height: 1.6;
   margin: 10px 0 0;
 }
@@ -186,7 +186,7 @@
   transform-origin: left center;
 }
 .track-meter-wrap > small {
-  font-size: 8px;
+  font-size: 14px;
   color: var(--tone-8c7f96, #8c7f96);
   width: 35px;
   text-align: right;
@@ -196,7 +196,7 @@
   width: auto;
   min-width: 35px;
   padding: 5px 6px;
-  font-size: 9px;
+  font-size: 14px;
   white-space: nowrap;
 }
 .track-slider button.track-switch:last-child {
@@ -215,7 +215,7 @@
 }
 .practice-marks-tabs > button {
   padding: 5px 9px;
-  font-size: 10px;
+  font-size: 14px;
   border: 0;
   background: transparent;
   color: var(--tone-8c7d97, #8c7d97);
@@ -226,7 +226,7 @@
 }
 .practice-marks-tabs small {
   color: var(--tone-a37aaf, #a37aaf);
-  font-size: 9px;
+  font-size: 14px;
   margin-left: 3px;
 }
 .practice-marks-list {
@@ -238,7 +238,7 @@
   gap: 5px;
 }
 .practice-marks-list > p {
-  font-size: 10px;
+  font-size: 14px;
   color: var(--tone-74667f, #74667f);
   margin: 8px 0;
   line-height: 1.7;
@@ -263,7 +263,7 @@
   flex: 1;
   min-width: 0;
   padding: 8px 10px;
-  font-size: 11px;
+  font-size: 14px;
 }
 .mark-jump > strong {
   font-weight: 450;
@@ -273,14 +273,14 @@
   min-width: 0;
 }
 .mark-jump > small {
-  font-size: 9px;
+  font-size: 14px;
   color: var(--tone-927ba1, #927ba1);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   margin-left: auto;
 }
 .mark-jump > span {
-  font-size: 8px;
+  font-size: 14px;
   color: var(--tone-b3cfae, #b3cfae);
   white-space: nowrap;
 }
@@ -298,15 +298,15 @@
 .practice-mark-row > form > input {
   min-width: 80px;
   flex: 1;
-  font-size: 11px;
+  font-size: 14px;
   padding: 6px 9px;
 }
 .practice-mark-row > form > button {
-  font-size: 9px;
+  font-size: 14px;
   padding: 6px 9px;
 }
 .range-capture {
-  font-size: 10px;
+  font-size: 14px;
   padding: 7px 12px;
   background: var(--tone-39243b, #39243b);
   border-color: var(--tone-684363, #684363);
@@ -318,7 +318,7 @@
   color: var(--tone-f5c6d8, #f5c6d8);
 }
 .pending-range-time {
-  font-size: 9px;
+  font-size: 14px;
   color: var(--tone-b191ac, #b191ac);
   font-variant-numeric: tabular-nums;
 }
@@ -326,7 +326,7 @@
   color: var(--tone-a4bda6, #a4bda6);
 }
 .count-in-badge {
-  font-size: 11px;
+  font-size: 14px;
   padding: 6px 10px;
   border-radius: 7px;
   background: var(--tone-2c3a34, #2c3a34);
@@ -353,22 +353,22 @@
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  font-size: 10px;
+  font-size: 14px;
   gap: 8px;
   margin: 0 0 9px;
 }
 .count-in-options input {
   width: 74px;
-  font-size: 11px;
+  font-size: 14px;
   padding: 5px 7px;
 }
 .count-in-options select {
-  font-size: 10px;
+  font-size: 14px;
   padding: 5px 7px;
 }
 .count-in-options small {
   display: block;
-  font-size: 9px;
+  font-size: 14px;
   color: var(--tone-806b8e, #806b8e);
   line-height: 1.6;
 }
@@ -400,25 +400,25 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 10px;
+  font-size: 14px;
 }
 .analysis-editor input {
-  font-size: 12px;
+  font-size: 14px;
   width: 90px;
   padding: 6px 9px;
 }
 .analysis-editor button {
-  font-size: 10px;
+  font-size: 14px;
   padding: 6px 8px;
 }
 .analysis-editor small {
-  font-size: 9px;
+  font-size: 14px;
   color: var(--tone-b39abe, #b39abe);
 }
 .metronome-volume {
   display: flex !important;
   align-items: center;
-  font-size: 10px !important;
+  font-size: 14px !important;
   gap: 8px !important;
   margin: 9px 0 16px !important;
 }
@@ -442,7 +442,7 @@
   flex-wrap: wrap;
 }
 .practice-record-actions .small {
-  font-size: 10px;
+  font-size: 14px;
   padding: 7px 9px;
 }
 .recording-mode-options {
@@ -464,10 +464,10 @@
   border-color: var(--tone-ba7394, #ba7394);
 }
 .recording-mode-options strong {
-  font-size: 13px;
+  font-size: 14px;
 }
 .recording-mode-options small {
-  font-size: 10px;
+  font-size: 14px;
   color: var(--tone-b496b3, #b496b3);
 }
 .recording-device-grid {
@@ -480,21 +480,21 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  font-size: 11px;
+  font-size: 14px;
   color: var(--tone-b6a3be, #b6a3be);
 }
 .recording-device-grid select,
 .recording-device-grid input {
   width: 100%;
   min-width: 0;
-  font-size: 12px;
+  font-size: 14px;
   padding: 9px;
 }
 .recorder-dialog {
   z-index: 45;
 }
 .recorder-dialog .muted {
-  font-size: 11px;
+  font-size: 14px;
   line-height: 1.9;
 }
 .take-import-controls {
@@ -505,7 +505,7 @@
   margin: 20px 0;
 }
 .take-import-controls > label {
-  font-size: 10px;
+  font-size: 14px;
   display: flex;
   flex-direction: column;
   gap: 7px;
@@ -514,7 +514,7 @@
 .take-import-controls input {
   width: 125px;
   padding: 7px;
-  font-size: 12px;
+  font-size: 14px;
 }
 .take-library-list {
   max-height: 48vh;
@@ -543,18 +543,18 @@
   width: 100%;
   background: transparent;
   border-color: transparent;
-  font-size: 12px;
+  font-size: 14px;
   padding: 4px;
 }
 .take-library-row input:focus {
   border-color: var(--tone-9e618d, #9e618d);
 }
 .take-library-row small {
-  font-size: 9px;
+  font-size: 14px;
   color: var(--tone-9c7fa9, #9c7fa9);
 }
 .take-library-row > .small {
-  font-size: 10px;
+  font-size: 14px;
   white-space: nowrap;
 }
 .take-library-row button.selected {
@@ -569,11 +569,11 @@
   border-radius: 7px;
 }
 .take-timing > small {
-  font-size: 9px;
+  font-size: 14px;
   color: var(--tone-b490bb, #b490bb);
 }
 .take-timing summary {
-  font-size: 10px;
+  font-size: 14px;
   color: var(--tone-a38aad, #a38aad);
   margin: 8px 0;
   cursor: pointer;
@@ -581,14 +581,14 @@
 .take-timing label {
   display: flex;
   flex-direction: column;
-  font-size: 9px;
+  font-size: 14px;
   gap: 6px;
   margin: 10px 0;
   color: var(--tone-aa91b5, #aa91b5);
 }
 .take-timing input {
   width: 100%;
-  font-size: 11px;
+  font-size: 14px;
   padding: 6px 8px;
 }
 .take-timing details > div {
@@ -596,18 +596,18 @@
   gap: 5px;
 }
 .take-timing details .small {
-  font-size: 9px;
+  font-size: 14px;
   padding: 5px;
 }
 .take-timing details > small {
   display: block;
-  font-size: 9px;
+  font-size: 14px;
   color: var(--tone-8e739e, #8e739e);
   line-height: 1.7;
   margin-top: 9px;
 }
 .take-timing > .text-button {
-  font-size: 9px;
+  font-size: 14px;
   padding: 5px 0;
   margin-top: 5px;
 }
@@ -637,7 +637,7 @@
   transform-origin: left;
 }
 .recording-bar > small {
-  font-size: 9px;
+  font-size: 14px;
   color: var(--tone-b79bab, #b79bab);
   max-width: 160px;
   overflow: hidden;
@@ -665,17 +665,17 @@
   background: var(--tone-211a2a, #211a2a);
 }
 .latency-calibration > strong {
-  font-size: 12px;
+  font-size: 14px;
 }
 .latency-calibration p {
-  font-size: 11px;
+  font-size: 14px;
   color: var(--tone-b8a4c4, #b8a4c4);
   line-height: 1.8;
 }
 .latency-calibration > small {
   display: block;
   color: var(--tone-967da5, #967da5);
-  font-size: 10px;
+  font-size: 14px;
   line-height: 1.8;
   margin-bottom: 12px;
 }
@@ -685,7 +685,7 @@
   align-items: center;
   gap: 9px;
   flex-wrap: wrap;
-  font-size: 11px;
+  font-size: 14px;
   margin-top: 12px;
 }
 .calibration-running meter {
@@ -693,10 +693,10 @@
 }
 .calibration-result span {
   color: var(--tone-a78db5, #a78db5);
-  font-size: 10px;
+  font-size: 14px;
 }
 .project-name-editor {
-  font-size: 13px;
+  font-size: 14px;
   width: 220px;
   max-width: 100%;
 }

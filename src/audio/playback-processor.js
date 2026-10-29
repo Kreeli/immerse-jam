@@ -19,24 +19,34 @@ class PlaybackProcessor extends SoundTouchProcessorBase {
       interpolationStrategy: 'lanczos',
     });
     this.active = false;
-    this.pending = null;
+    this.pending = [];
     this.fade = -1;
     const inherited = this.port.onmessage;
     this.port.onmessage = (event) => {
-      if (event.data.type === 'reset') this.pending = event.data;
+      if (event.data.type === 'reset') this.pending.push(event.data);
       else inherited?.(event);
     };
   }
   process(inputs, outputs, parameters) {
-    if (this.pending && currentTime >= this.pending.at) {
+    let reset = false;
+    while (this.pending.length && currentTime >= this.pending[0].at) {
+      const command = this.pending.shift();
       this._pipe.clear();
+      // SoundTouch 2.1.1's circular stretch adapter owns a second input queue
+      // which Stretch.clear() does not drain. Clear that queue too, without
+      // recreating the worklet or its processing buffers on every seek.
+      const stretchInput = this._pipe.stretch.getInputBufferAdapter();
+      stretchInput.receive(stretchInput.frameCount);
       this._samples.fill(0);
       this._outputSamples.fill(0);
-      this.active = this.pending.active;
-      this.pending = null;
+      this.active = command.active;
+      if (command.id) this.port.postMessage({ type: 'reset-done', id: command.id });
       this.fade = -1;
+      reset = true;
     }
-    if (!this.active) {
+    // A render quantum can straddle the old source's stop time. Discard the
+    // entire reset quantum rather than feeding its old prefix into the new FIFO.
+    if (!this.active || reset) {
       for (const bus of outputs) for (const channel of bus) channel.fill(0);
       return true;
     }

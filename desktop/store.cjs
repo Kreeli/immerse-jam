@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const ID = /^[a-f0-9-]{36}$/;
+const { validateProject, repairLegacyAnalysis } = require('../shared/project-validation.cjs');
 function normalizePlayback(p) {
   let changed = false;
   if (!p.practice || typeof p.practice !== 'object' || Array.isArray(p.practice)) {
@@ -62,7 +63,11 @@ class Store {
   get(id) {
     const file = path.join(this.dir(id), 'project.json');
     const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
-    const normalized = normalizePlayback(raw);
+    const repaired = repairLegacyAnalysis(raw);
+    const normalized = normalizePlayback(raw) || repaired;
+    validateProject(raw);
+    const legacyBackup = path.join(this.dir(id), 'project.before-legacy-analysis.json');
+    if (repaired && !fs.existsSync(legacyBackup)) fs.copyFileSync(file, legacyBackup);
     if (Array.isArray(raw.results)) {
       if (normalized) atomicJson(file, raw);
       return raw;
@@ -74,6 +79,7 @@ class Store {
     return upgraded;
   }
   save(p) {
+    validateProject(p);
     normalizePlayback(p);
     require('./groups.cjs').validateGroups(p);
     if (p.takes) {
@@ -86,7 +92,16 @@ class Store {
       const active = p.results.find((result) => result.id === p.activeResultId);
       if (active) active.tracks = p.tracks;
     }
-    atomicJson(path.join(this.dir(p.id), 'project.json'), {
+    const file = path.join(this.dir(p.id), 'project.json');
+    if (fs.existsSync(file)) {
+      try {
+        validateProject(JSON.parse(fs.readFileSync(file, 'utf8')));
+        fs.copyFileSync(file, path.join(this.dir(p.id), 'project.previous.json'));
+      } catch {
+        /* Preserve the last usable backup. */
+      }
+    }
+    atomicJson(file, {
       ...p,
       updatedAt: new Date().toISOString(),
     });
@@ -99,11 +114,51 @@ class Store {
       .flatMap((id) => {
         try {
           return [this.get(id)];
-        } catch {
-          return [];
+        } catch (error) {
+          return [
+            {
+              schemaVersion: 1,
+              id,
+              title: '歌曲数据需要恢复',
+              artist: id,
+              original: 'missing',
+              tracks: [],
+              results: [],
+              attachments: [],
+              bookmarks: [],
+              duration: 0,
+              practice: { tempo: 1, pitch: 0, master: 0.8, eq: [0, 0, 0] },
+              createdAt: '',
+              updatedAt: '',
+              starred: false,
+              broken: String(error.message).slice(0, 500),
+            },
+          ];
         }
       })
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  }
+  recover(id) {
+    for (const name of ['project.previous.json', 'project.before-results.json']) {
+      const file = path.join(this.dir(id), name);
+      try {
+        const value = JSON.parse(fs.readFileSync(file, 'utf8'));
+        repairLegacyAnalysis(value);
+        normalizePlayback(value);
+        validateProject(value);
+        for (const media of require('../shared/project-validation.cjs').referencedFiles(value))
+          if (!fs.statSync(this.asset(id, media)).isFile()) throw new Error('备份缺少媒体');
+        fs.copyFileSync(
+          path.join(this.dir(id), 'project.json'),
+          path.join(this.dir(id), 'project.corrupt.' + Date.now() + '.json'),
+        );
+        atomicJson(path.join(this.dir(id), 'project.json'), { ...value, id });
+        return this.get(id);
+      } catch {
+        /* Try the next retained backup. */
+      }
+    }
+    throw new Error('没有可用的自动备份，请打开文件夹保留音频，或重新导入歌曲包');
   }
   create(source, title) {
     const id = crypto.randomUUID(),

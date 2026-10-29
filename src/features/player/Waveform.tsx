@@ -115,7 +115,7 @@ export default function Waveform({
     ctx.lineTo(width, center);
     ctx.stroke();
     const tick = windowSeconds <= 10 ? 1 : windowSeconds <= 30 ? 2 : 5;
-    ctx.font = '12px "Segoe UI",sans-serif';
+    ctx.font = '14px "Segoe UI",sans-serif';
     for (
       let seconds = Math.max(0, Math.ceil(start / tick) * tick);
       seconds <= Math.min(duration, end);

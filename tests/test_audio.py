@@ -27,6 +27,7 @@ class AudioTests(unittest.TestCase):
             outputs,_=run_model(spec,source,directory,lambda *args:None);assert_outputs(outputs,spec['stems'],len(x))
             np.testing.assert_allclose(outputs['vocals']+outputs['other'],x,atol=1e-5)
             with self.assertRaises(ValueError):run_model({**spec,'stems':['one']},source,directory,lambda *args:None)
+            for array in outputs.values():array._mmap.close()
 
     def test_reject_wrong_stems_lengths_and_nan(self):
         audio=np.zeros((5000,2),np.float32)

@@ -7,6 +7,8 @@ class Jobs {
     Object.assign(this, { base, backend, ffmpeg, onEvent });
     this.children = new Map();
     this.active = null;
+    require('./temp-artifacts.cjs').pruneJobs(base);
+    fs.mkdirSync(path.join(base, 'temp'), { recursive: true });
   }
   start(python, request, onComplete) {
     if (this.active) throw new Error('已有处理任务正在运行，请等待完成或先取消');
@@ -14,6 +16,8 @@ class Jobs {
     const jobDir = path.join(this.base, 'jobs', id);
     fs.mkdirSync(jobDir, { recursive: true });
     const file = path.join(jobDir, 'request.json');
+    const workRoot = request.directory && path.resolve(request.directory, '.work');
+    const oldWork = new Set(workRoot && fs.existsSync(workRoot) ? fs.readdirSync(workRoot) : []);
     fs.writeFileSync(file, JSON.stringify(request));
     const child = spawn(python, ['-u', path.join(this.backend, 'worker.py'), file], {
       cwd: this.backend,
@@ -66,13 +70,14 @@ class Jobs {
     child.on('error', (error) => emit({ type: 'error', message: error.message }));
     child.on('close', async (code) => {
       this.children.delete(id);
-      if (this.active === id) this.active = null;
       cancelled = child._immerseCancelled;
       try {
         if (cancelled) emit({ type: 'cancelled', message: '任务已取消，原有数据已保留' });
         else if (code === 0 && result) {
           const committed = await onComplete(result);
           emit({ type: 'complete', result: committed });
+          if (path.dirname(jobDir) === path.resolve(this.base, 'jobs'))
+            fs.rmSync(jobDir, { recursive: true, force: true });
         } else
           emit({
             type: 'error',
@@ -80,6 +85,23 @@ class Jobs {
           });
       } catch (e) {
         emit({ type: 'error', message: e.message });
+      } finally {
+        try {
+          if (workRoot && fs.existsSync(workRoot))
+            for (const name of fs.readdirSync(workRoot)) {
+              const folder = path.join(workRoot, name);
+              if (
+                !oldWork.has(name) &&
+                /^[a-f0-9-]{36}$/.test(name) &&
+                path.dirname(folder) === workRoot &&
+                !fs.lstatSync(folder).isSymbolicLink()
+              )
+                fs.rmSync(folder, { recursive: true, force: true });
+            }
+        } catch {
+          /* Keep diagnostics if a file is still held by the OS. */
+        }
+        if (this.active === id) this.active = null;
       }
     });
     emit({ type: 'progress', message: '准备本地处理…', progress: 0 });

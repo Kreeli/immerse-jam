@@ -3,9 +3,17 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { pipeline } = require('node:stream/promises');
 const { contained } = require('./store.cjs');
-async function sha(file) {
+const {
+  validateProject,
+  referencedFiles,
+  repairLegacyAnalysis,
+} = require('../shared/project-validation.cjs');
+async function sha(file, signal) {
   const hash = crypto.createHash('sha256');
-  for await (const chunk of fs.createReadStream(file)) hash.update(chunk);
+  for await (const chunk of fs.createReadStream(file)) {
+    signal?.throwIfAborted();
+    hash.update(chunk);
+  }
   return hash.digest('hex');
 }
 async function pack(store, id, dest, full = false) {
@@ -43,6 +51,7 @@ async function pack(store, id, dest, full = false) {
   delete manifest.playback;
   delete manifest.scoreMidi;
   if (full && project.scoreMidi) manifest.scoreMidi = project.scoreMidi;
+  for (const file of referencedFiles(manifest)) files.add(file);
   const virtual = {};
   for (const result of project.results || [])
     virtual[result.directory + '/result.json'] = JSON.stringify({
@@ -73,7 +82,35 @@ async function pack(store, id, dest, full = false) {
   await done;
   return dest;
 }
-function extract(file, dir) {
+function extract(file, dir, { signal, onProgress = () => {} } = {}) {
+  signal?.throwIfAborted();
+  return new Promise((resolve, reject) => {
+    const worker = new (require('node:worker_threads').Worker)(
+      path.join(__dirname, 'archive-worker.cjs'),
+      { workerData: { file, dir } },
+    );
+    let settled = false;
+    const finish = (error) => {
+      if (settled) return;
+      settled = true;
+      signal?.removeEventListener('abort', cancel);
+      if (error) reject(error);
+      else resolve(dir);
+    };
+    const cancel = () => void worker.terminate().then(() => finish(new Error('导入已取消')));
+    signal?.addEventListener('abort', cancel, { once: true });
+    worker.on('message', (data) => {
+      if (data.error) finish(new Error(data.error));
+      else if (data.done) finish();
+      else onProgress(data.progress);
+    });
+    worker.on('error', finish);
+    worker.on('exit', (code) => {
+      if (!settled) finish(new Error('解包已中断 (' + code + ')'));
+    });
+  });
+}
+function extractLocal(file, dir, onProgress = () => {}) {
   return new Promise((resolve, reject) => {
     const fd = fs.openSync(file, 'r');
     let closed = false;
@@ -111,6 +148,11 @@ function extract(file, dir) {
             entry.uncompressedSize > 2 * 1024 ** 3
           )
             throw new Error('压缩包内容超过允许大小');
+          if (
+            /^(project|manifest|checksums)\.json$/.test(entry.fileName) &&
+            entry.uncompressedSize > 16 * 1024 ** 2
+          )
+            throw new Error('歌曲清单过大');
           if (/^[A-Za-z]:|^[/\\]/.test(entry.fileName)) throw new Error('压缩包包含绝对路径');
           const target = contained(dir, entry.fileName);
           if (((entry.externalFileAttributes >>> 16) & 0xf000) === 0xa000)
@@ -161,6 +203,7 @@ function extract(file, dir) {
           } finally {
             fs.closeSync(output);
           }
+          onProgress(count / Math.max(count, zip.entryCount));
           setImmediate(() => zip.readEntry());
         } catch (error) {
           fail(error);
@@ -170,13 +213,14 @@ function extract(file, dir) {
     });
   });
 }
-async function importArchive(store, file) {
+async function importArchive(store, file, options = {}) {
   const parent = path.resolve(store.base, 'incoming'),
     staging = contained(parent, crypto.randomUUID());
   fs.mkdirSync(staging, { recursive: true });
+  let destination;
   try {
-    await extract(file, staging);
-    let project;
+    await extract(file, staging, options);
+    let project, hashes;
     if (fs.existsSync(path.join(staging, 'project.json'))) {
       project = JSON.parse(fs.readFileSync(path.join(staging, 'project.json')));
       if (
@@ -185,15 +229,27 @@ async function importArchive(store, file) {
         !Array.isArray(project.tracks)
       )
         throw new Error('不支持的歌曲项目格式');
-      const hashes = JSON.parse(fs.readFileSync(path.join(staging, 'checksums.json')));
+      hashes = JSON.parse(fs.readFileSync(path.join(staging, 'checksums.json')));
       for (const [name, expected] of Object.entries(hashes)) {
-        if ((await sha(contained(staging, name))) !== expected) throw new Error('歌曲文件校验失败');
+        options.signal?.throwIfAborted();
+        if (
+          !/^[a-f0-9]{64}$/.test(expected) ||
+          (await sha(contained(staging, name), options.signal)) !== expected
+        )
+          throw new Error('歌曲文件校验失败');
       }
     } else if (fs.existsSync(path.join(staging, 'manifest.json'))) {
       const m = JSON.parse(fs.readFileSync(path.join(staging, 'manifest.json'), 'utf8'));
       project = fromAudioJam(m, staging);
     } else throw new Error('未发现可识别的歌曲清单');
+    repairLegacyAnalysis(project);
+    validateProject(project);
     require('./groups.cjs').validateGroups(project);
+    if (project.takes) {
+      require('./takes.cjs').validateTakes(project.takes);
+      require('./takes.cjs').validateSelection(project);
+    }
+    if (project.chordCharts) require('./charts.cjs').validateCharts(project.chordCharts);
     const files = [
       project.original,
       ...project.tracks.map((t) => t.file),
@@ -206,7 +262,13 @@ async function importArchive(store, file) {
     for (const name of files) {
       if (!fs.statSync(contained(staging, name)).isFile()) throw new Error('项目缺少媒体文件');
     }
+    for (const name of referencedFiles(project)) {
+      if (hashes && !Object.hasOwn(hashes, name))
+        throw new Error('媒体文件未包含在校验清单中：' + name);
+      if (!fs.statSync(contained(staging, name)).isFile()) throw new Error('项目缺少媒体文件');
+    }
     const origin = project.originId || project.id;
+    options.signal?.throwIfAborted();
     const duplicate = store.list().find((p) => p.originId === origin);
     if (duplicate) return { ...duplicate, duplicate: true };
     project.id = crypto.randomUUID();
@@ -217,8 +279,13 @@ async function importArchive(store, file) {
       project.sourceGroups?.length || (project.kind === 'creation' && project.sessionSource)
         ? 2
         : 1;
-    fs.renameSync(staging, store.dir(project.id));
+    destination = store.dir(project.id);
+    fs.renameSync(staging, destination);
     return store.save(project);
+  } catch (error) {
+    if (destination && path.dirname(destination) === path.resolve(store.projects))
+      fs.rmSync(destination, { recursive: true, force: true });
+    throw error;
   } finally {
     if (path.dirname(staging) === parent && fs.existsSync(staging))
       fs.rmSync(staging, { recursive: true, force: true });
@@ -294,4 +361,4 @@ function fromAudioJam(m, root) {
     updatedAt: new Date().toISOString(),
   };
 }
-module.exports = { pack, extract, importArchive, fromAudioJam, sha };
+module.exports = { pack, extract, extractLocal, importArchive, fromAudioJam, sha };

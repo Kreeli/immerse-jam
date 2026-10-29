@@ -15,8 +15,10 @@ import {
   SlidersHorizontal,
   Sparkles,
   X,
+  Menu,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { isAndroid } from '../platform/environment';
 import donation from '../../assets/author-wechat.png';
 import type { LiveEnvelope } from '../audio/live-envelope';
 import { sourceTracks } from '../audio/performance';
@@ -25,6 +27,7 @@ import ChordSheet from '../features/chords/ChordSheet';
 import Attachments from '../features/library/Attachments';
 import DeleteProjectDialog from '../features/library/DeleteProjectDialog';
 import LibraryPage from '../features/library/LibraryPage';
+import RecoveryDialog from '../features/library/RecoveryDialog';
 import FolderPage, { FolderDialog } from '../features/library/Folders';
 import ProjectHeading from '../features/library/ProjectHeading';
 import Sidebar from '../features/library/Sidebar';
@@ -47,12 +50,14 @@ import SessionCreateDialog from '../features/recording/SessionCreateDialog';
 import Score from '../features/score/Score';
 import AppearanceSettings from '../features/settings/AppearanceSettings';
 import StorageLocations from '../features/settings/StorageLocations';
+import AnalysisNote from '../features/settings/AnalysisNote';
 import RemoteTransfer from '../features/transfer/RemoteTransfer';
 import { t as tr, message as translateMessage } from '../i18n';
 import { type Model, type Project, type Track } from '../shared/types';
 import { useWorkspace } from './useWorkspace';
 const colors = ['#ed7894', '#d9a86c', '#91bda9', '#a092cd', '#7fa8d3', '#8e949d'];
 const modes = () => [
+  ...(isAndroid ? [{ id: 'vocal', name: tr('人声与伴奏'), desc: tr('随包移动模型 · 两轨') }] : []),
   { id: 'basic', name: tr('基础模式'), desc: tr('人声 / 鼓 / 贝斯 / 其他') },
   { id: 'six', name: tr('完整六轨'), desc: tr('人声 / 鼓 / 贝斯 / 钢琴 / 吉他 / 其他') },
   { id: 'guitarist', name: tr('吉他手'), desc: tr('主奏吉他 / 节奏吉他 / 其他') },
@@ -65,6 +70,9 @@ export default function App() {
   const [live, setLive] = useState<LiveEnvelope | null>(null);
   const [creatingFolder, setCreatingFolder] = useState(false);
   const [sessionSource, setSessionSource] = useState<Project | null>(null);
+  const [mobileMenu, setMobileMenu] = useState(false);
+  const [mobileMixer, setMobileMixer] = useState(false);
+  const androidBack = useRef<() => boolean>(() => false);
   const folderProps = {
     folders: controller.folders,
     onFolders: controller.setFolders,
@@ -192,9 +200,83 @@ export default function App() {
     },
   };
   const isVideo = /\.(mp4|webm|mov)$/i.test(project?.original || '');
+  androidBack.current = () => {
+    if (recording) {
+      notify(tr('请先停止录音后再返回'));
+      return true;
+    }
+    if (mobileMixer) {
+      setMobileMixer(false);
+      return true;
+    }
+    if (mobileMenu) {
+      setMobileMenu(false);
+      return true;
+    }
+    const close = [...document.querySelectorAll<HTMLButtonElement>('.modal-backdrop button')]
+      .reverse()
+      .find(
+        (button) =>
+          !button.disabled &&
+          /关闭|取消|Close|Cancel/.test(
+            button.getAttribute('aria-label') || button.textContent || '',
+          ),
+      );
+    if (close) {
+      close.click();
+      return true;
+    }
+    if (deletingProject) {
+      setDeletingProject(null);
+      return true;
+    }
+    if (creatingFolder) {
+      setCreatingFolder(false);
+      return true;
+    }
+    if (creatingSession) {
+      setCreatingSession(null);
+      return true;
+    }
+    if (modal) {
+      setModal(null);
+      return true;
+    }
+    if (showPlayer && project) {
+      if (view !== 'wave') {
+        setView('wave');
+        return true;
+      }
+      setShowPlayer(false);
+      setPage(project.kind ? 'practice' : 'library');
+      return true;
+    }
+    if (page !== 'library') {
+      setPage('library');
+      return true;
+    }
+    return false;
+  };
+  useEffect(() => {
+    if (!isAndroid) return;
+    const back = () => {
+      void window.jam.call('android-back-result', { handled: androidBack.current() });
+    };
+    window.addEventListener('immerse-android-back', back);
+    return () => window.removeEventListener('immerse-android-back', back);
+  }, []);
+  useEffect(() => {
+    setMobileMenu(false);
+    setMobileMixer(false);
+  }, [page, modal, project?.id]);
   return (
     <div
-      className={'app ' + (recording ? 'is-recording' : '')}
+      className={
+        'app ' +
+        (recording ? 'is-recording ' : '') +
+        (mobileMenu ? 'mobile-menu-open ' : '') +
+        (mobileMixer ? 'mobile-mixer-open ' : '')
+      }
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => {
         e.preventDefault();
@@ -218,7 +300,38 @@ export default function App() {
       }}
     >
       <Sidebar {...controller} onCreateFolder={() => setCreatingFolder(true)} />
+      {(mobileMenu || mobileMixer) && (
+        <button
+          className="mobile-scrim"
+          aria-label={tr('关闭侧栏')}
+          onClick={() => {
+            setMobileMenu(false);
+            setMobileMixer(false);
+          }}
+        />
+      )}
       <main className={'workspace ' + (project ? 'has-player' : '')}>
+        {isAndroid && (
+          <div className="mobile-chrome">
+            <button
+              className="icon-button"
+              aria-label={tr('打开导航')}
+              onClick={() => setMobileMenu(true)}
+            >
+              <Menu size={22} />
+            </button>
+            <strong>Immerse Jam</strong>
+            {project && showPlayer && (
+              <button
+                className="icon-button"
+                aria-label={tr('打开控制台')}
+                onClick={() => setMobileMixer(!mobileMixer)}
+              >
+                <SlidersHorizontal size={22} />
+              </button>
+            )}
+          </div>
+        )}
         <div className="browse-content" hidden={!!project && showPlayer}>
           {page.startsWith('folder:') ? (
             <FolderPage
@@ -333,7 +446,13 @@ export default function App() {
               <div className="player-body">
                 <div className="practice-area">
                   {view === 'attachments' ? (
-                    <Attachments project={project} onProject={save} onError={notify} />
+                    <Attachments
+                      project={project}
+                      onProject={save}
+                      onNotes={controller.saveNotes}
+                      onNotesBlur={() => void controller.flushNotes()}
+                      onError={notify}
+                    />
                   ) : view === 'score' ? (
                     <Score
                       project={project}
@@ -526,6 +645,14 @@ export default function App() {
           </>
         )}
       </main>
+      {controller.recoveryProject && (
+        <RecoveryDialog
+          project={controller.recoveryProject}
+          onClose={() => controller.setRecoveryProject(null)}
+          onRecovered={controller.refresh}
+          onError={notify}
+        />
+      )}
       {deletingProject && (
         <DeleteProjectDialog
           project={deletingProject}
@@ -619,7 +746,12 @@ export default function App() {
             </div>
             {modal === 'separate' && (
               <>
-                <p className="muted">{tr('选择练习方式，所有计算都在这台电脑完成。')}</p>
+                <p className="muted">
+                  {isAndroid
+                    ? tr('所有计算都在本机完成。复杂分轨方式会随移动模型适配逐步加入。')
+                    : tr('选择练习方式，所有计算都在这台电脑完成。')}
+                </p>
+                <AnalysisNote />
                 <button
                   className="analysis-only"
                   disabled={!!job}
@@ -641,6 +773,11 @@ export default function App() {
                     <button
                       key={m.id}
                       className={mode === m.id ? 'selected' : ''}
+                      disabled={
+                        isAndroid &&
+                        (!['vocal', 'basic', 'drummer', 'bassist'].includes(m.id) ||
+                          !models.some((model) => compatible(model, m.id)))
+                      }
                       onClick={() => {
                         setMode(m.id);
                         const selectedModel = models.find((x) => x.id === modelId);
@@ -683,6 +820,10 @@ export default function App() {
                   <button onClick={() => setModal(null)}>{tr('取消')}</button>
                   <button
                     className="primary"
+                    disabled={
+                      isAndroid &&
+                      !models.some((model) => model.id === modelId && compatible(model, mode))
+                    }
                     onClick={() => {
                       setModal(null);
                       void run('separate');
@@ -697,58 +838,70 @@ export default function App() {
             {modal === 'settings' && (
               <>
                 <AppearanceSettings />
+                <AnalysisNote />
                 <StorageLocations />
-                <div className="setup-card">
-                  <div className="setup-icon">
-                    <AudioLines size={26} />
-                  </div>
-                  <div>
-                    <h3>
-                      {ready ? tr('本地运行环境已准备好') : tr('准备 Immerse Jam 的本地引擎')}
-                    </h3>
-                    <p>
-                      {tr('自动下载应用专用运行库，无需预装 Python 或开发工具。模型按需下载。')}
-                    </p>
-                  </div>
-                  <span className={'badge ' + (ready ? 'green' : '')}>
-                    {ready ? tr('就绪') : tr('待安装')}
-                  </span>
-                </div>
-                <div className="runtime-controls">
-                  <select
-                    value={runtimeMode}
-                    onChange={(e) => setRuntimeMode(e.target.value)}
-                    disabled={installing}
-                  >
-                    <option value="cuda">{tr('NVIDIA 显卡加速')}</option>
-                    <option value="cpu">{tr('CPU 通用兼容')}</option>
-                  </select>
-                  <button
-                    className="primary"
-                    disabled={installing}
-                    onClick={() =>
-                      void act(async () => {
-                        setInstalling(true);
-                        await window.jam.call('runtime-install', { mode: runtimeMode });
-                      })
-                    }
-                  >
-                    {installing ? (
-                      <LoaderCircle className="spin" size={16} />
-                    ) : (
-                      <Download size={16} />
-                    )}{' '}
-                    {installing
-                      ? tr('准备中…')
-                      : ready
-                        ? tr('重新检查 / 切换引擎')
-                        : tr('自动安装环境')}
-                  </button>
-                </div>
-                {runtimeMessage && (
-                  <pre className="install-status">
-                    {translateMessage(runtimeMessage.slice(-1400))}
-                  </pre>
+                {!isAndroid && (
+                  <>
+                    <div className="setup-card">
+                      <div className="setup-icon">
+                        <AudioLines size={26} />
+                      </div>
+                      <div>
+                        <h3>
+                          {ready ? tr('本地运行环境已准备好') : tr('准备 Immerse Jam 的本地引擎')}
+                        </h3>
+                        <p>
+                          {tr('自动下载应用专用运行库，无需预装 Python 或开发工具。模型按需下载。')}
+                        </p>
+                      </div>
+                      <span className={'badge ' + (ready ? 'green' : '')}>
+                        {ready ? tr('就绪') : tr('待安装')}
+                      </span>
+                    </div>
+                    <div className="runtime-controls">
+                      <select
+                        value={runtimeMode}
+                        onChange={(e) => setRuntimeMode(e.target.value)}
+                        disabled={installing}
+                      >
+                        <option value="cuda">{tr('NVIDIA 显卡加速')}</option>
+                        <option value="cpu">{tr('CPU 通用兼容')}</option>
+                      </select>
+                      <button
+                        className="primary"
+                        disabled={installing}
+                        onClick={() =>
+                          void act(async () => {
+                            setInstalling(true);
+                            await window.jam.call('runtime-install', { mode: runtimeMode });
+                          })
+                        }
+                      >
+                        {installing ? (
+                          <LoaderCircle className="spin" size={16} />
+                        ) : (
+                          <Download size={16} />
+                        )}{' '}
+                        {installing
+                          ? tr('准备中…')
+                          : ready
+                            ? tr('重新检查 / 切换引擎')
+                            : tr('自动安装环境')}
+                      </button>
+                    </div>
+                    {runtimeMessage && (
+                      <pre className="install-status">
+                        {translateMessage(runtimeMessage.slice(-1400))}
+                      </pre>
+                    )}
+                  </>
+                )}
+                {isAndroid && (
+                  <p className="notice">
+                    {tr(
+                      '移动引擎已随应用安装。随包模型可离线使用；运行前检查内存，分块处理，过热或内存不足时保留原有结果。',
+                    )}
+                  </p>
                 )}
                 <div className="section-heading">
                   <h3>{tr('模型管理')}</h3>

@@ -1,0 +1,207 @@
+html[data-platform='android'] {
+  -webkit-tap-highlight-color: transparent;
+}
+html[data-platform='android'] .app {
+  height: 100dvh;
+}
+.mobile-chrome,
+.mobile-scrim {
+  display: none;
+}
+@media (max-width: 1050px) {
+  html[data-platform='android'] .mobile-chrome {
+    display: flex;
+    height: 52px;
+    flex: none;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 12px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+  }
+  html[data-platform='android'] .mobile-chrome strong {
+    flex: 1;
+  }
+  html[data-platform='android'] .mobile-chrome button {
+    min-width: 40px;
+    min-height: 40px;
+    padding: 8px;
+  }
+  html[data-platform='android'] .sidebar {
+    position: fixed;
+    z-index: 80;
+    inset: 0 auto 0 0;
+    width: min(285px, 85vw);
+    transform: translateX(-100%);
+    transition: transform 0.18s;
+    overflow-y: auto;
+  }
+  html[data-platform='android'] .mobile-menu-open .sidebar {
+    transform: translateX(0);
+  }
+  html[data-platform='android'] .mobile-scrim {
+    display: block;
+    position: fixed;
+    z-index: 79;
+    inset: 0;
+    border: 0;
+    border-radius: 0;
+    background: #0009;
+  }
+  html[data-platform='android'] .workspace {
+    display: flex;
+    flex-direction: column;
+  }
+  html[data-platform='android'] .browse-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 16px;
+  }
+  html[data-platform='android'] .library-header {
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 0;
+  }
+  html[data-platform='android'] .library-header h1 {
+    font-size: 28px;
+  }
+  html[data-platform='android'] .library-header .eyebrow {
+    display: none;
+  }
+  html[data-platform='android'] .library-tools {
+    flex-wrap: wrap;
+    margin: 20px 0;
+  }
+  html[data-platform='android'] .library-tools > span {
+    width: 100%;
+  }
+  html[data-platform='android'] .songs {
+    grid-template-columns: repeat(auto-fit, minmax(285px, 1fr));
+  }
+  html[data-platform='android'] .player-screen {
+    flex: 1;
+    min-height: 0;
+  }
+  html[data-platform='android'] .player-header {
+    height: auto;
+    padding: 10px 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  html[data-platform='android'] .now-title {
+    min-width: 0;
+    flex: 1 1 calc(100% - 65px);
+  }
+  html[data-platform='android'] .now-title strong {
+    max-width: 100%;
+  }
+  html[data-platform='android'] .player-header > button[title='混音面板'],
+  html[data-platform='android'] .player-header > button[title='Mixer panel'] {
+    display: none;
+  }
+  html[data-platform='android'] .create-from-song {
+    margin-left: 40px;
+  }
+  html[data-platform='android'] .view-switch {
+    order: 9;
+    width: 100%;
+    justify-content: center;
+  }
+  html[data-platform='android'] .now-cover {
+    display: none;
+  }
+  html[data-platform='android'] .mixer-shell {
+    display: none;
+  }
+  html[data-platform='android'] .mobile-mixer-open .mixer-shell {
+    display: flex;
+    position: fixed;
+    z-index: 90;
+    right: 0;
+    top: 52px;
+    bottom: 0;
+    width: min(360px, 90vw);
+    box-shadow: -10px 0 50px #0008;
+  }
+  html[data-platform='android'] .mobile-mixer-open .mixer-shell .mixer {
+    flex: 1;
+    overflow-y: auto;
+  }
+  html[data-platform='android'] .practice-area {
+    width: 100%;
+  }
+  html[data-platform='android'] .wave-workspace {
+    padding: 12px;
+    min-height: 260px;
+  }
+  html[data-platform='android'] .practice-toolbar {
+    padding: 8px 12px;
+    flex-wrap: wrap;
+  }
+  html[data-platform='android'] .waveform {
+    flex: 1;
+    min-height: 240px;
+    touch-action: none;
+  }
+  html[data-platform='android'] .transport {
+    padding: 10px 12px 12px;
+  }
+  html[data-platform='android'] .transport-top {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  html[data-platform='android'] .transport-bottom {
+    gap: 8px;
+  }
+  html[data-platform='android'] .transport-bottom .time {
+    font-size: 14px;
+  }
+  html[data-platform='android'] .modal-backdrop {
+    padding: 12px;
+  }
+  html[data-platform='android'] .modal {
+    width: 100%;
+    max-height: 90dvh;
+    padding: 20px 16px;
+  }
+  html[data-platform='android'] .session-list {
+    overflow-x: auto;
+  }
+  html[data-platform='android'] .session-table {
+    min-width: 620px;
+  }
+  html[data-platform='android'] .chart-toolbar {
+    flex-wrap: wrap;
+  }
+  html[data-platform='android'] .chart-row {
+    overflow-x: auto;
+  }
+  html[data-platform='android'] .job-card {
+    bottom: 160px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+  }
+  html[data-platform='android'] .toast {
+    left: 12px;
+    right: 12px;
+    bottom: 150px;
+    width: auto;
+    transform: none;
+  }
+}
+@media (min-width: 700px) and (max-width: 1050px) {
+  html[data-platform='android'] .mobile-chrome {
+    height: 56px;
+  }
+  html[data-platform='android'] .player-header .view-switch {
+    width: auto;
+    order: 0;
+  }
+  html[data-platform='android'] .waveform {
+    min-height: 340px;
+  }
+  html[data-platform='android'] .songs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

@@ -1,0 +1,50 @@
+[
+  {
+    "id": "uvr-mobile",
+    "name": "UVR Inst HQ 3 · Mobile",
+    "adapter": "mdx-spectral",
+    "file": "UVR-MDX-NET-Inst_HQ_3.onnx",
+    "sha256": "317554b07fe1ea5279a77f2b1520a41ea4b93432560c4ffd08792c30fddf9adc",
+    "modelUrl": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/UVR-MDX-NET-Inst_HQ_3.onnx",
+    "stems": [
+      "vocals",
+      "other"
+    ],
+    "sampleRate": 44100,
+    "nFft": 6144,
+    "hop": 1024,
+    "dimF": 3072,
+    "dimT": 256,
+    "compensate": 1.022,
+    "sizeBytes": 66759214,
+    "minimumAvailableMb": 900,
+    "bundled": true,
+    "recommended": true,
+    "license": "MIT · UVR contributors (Anjok07, aufr33)",
+    "description": "Bundled 64 MiB vocal / accompaniment model. Processes fixed chunks locally; at least 900 MiB available memory is required."
+  },
+  {
+    "id": "scnet-mobile",
+    "name": "SCNet · Mobile four stems",
+    "adapter": "scnet-spectral",
+    "file": "scnet_cpu.onnx",
+    "sha256": "f2c050b7264d2b2401497beb712c26a50e6162dfb951041060f23f84929d600e",
+    "modelUrl": "https://github.com/demixr/scnet-executorch/releases/download/v0.1.2/scnet_cpu.onnx",
+    "sizeBytes": 52271228,
+    "stems": [
+      "drums",
+      "bass",
+      "other",
+      "vocals"
+    ],
+    "sampleRate": 44100,
+    "nFft": 4096,
+    "hop": 1024,
+    "dimF": 2049,
+    "dimT": 338,
+    "minimumAvailableMb": 1200,
+    "bundled": false,
+    "license": "MIT · SCNet authors / Demixr export",
+    "description": "Optional four-stem SCNet model (50 MiB). Requires at least 1.2 GiB available memory. Download only when needed; CPU processing runs locally."
+  }
+]

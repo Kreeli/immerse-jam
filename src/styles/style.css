@@ -12,6 +12,15 @@
 }
 * {
   box-sizing: border-box;
+  -webkit-user-select: none;
+  user-select: none;
+}
+input:not([type='range']):not([type='checkbox']):not([type='radio']),
+textarea,
+[contenteditable='true'],
+[contenteditable='true'] * {
+  -webkit-user-select: text;
+  user-select: text;
 }
 body {
   margin: 0;
@@ -98,7 +107,7 @@ p {
   line-height: 1.8;
 }
 small {
-  font-size: 11px;
+  font-size: 14px;
 }
 .app {
   height: 100vh;
@@ -129,7 +138,7 @@ small {
 }
 .brand small {
   display: block;
-  font-size: 10px;
+  font-size: 14px;
   color: var(--tone-777783, #777783);
   font-weight: 400;
   letter-spacing: 1px;
@@ -152,7 +161,7 @@ small {
   box-shadow: 0 5px 25px var(--tone-b33d5d20, #b33d5d20);
 }
 .nav-label {
-  font-size: 10px;
+  font-size: 14px;
   color: var(--tone-666673, #666673);
   padding: 0 12px;
   margin-bottom: 12px;
@@ -169,7 +178,7 @@ nav button {
   border: 0;
   padding: 13px 12px;
   color: var(--tone-a4a4af, #a4a4af);
-  font-size: 13px;
+  font-size: 14px;
   gap: 13px;
 }
 nav button:hover {
@@ -189,7 +198,7 @@ nav button.active svg {
   color: var(--tone-e3a0b1, #e3a0b1);
   padding: 1px 6px;
   border-radius: 4px;
-  font-size: 10px;
+  font-size: 14px;
 }
 .sidebar-divider {
   height: 1px;
@@ -204,13 +213,13 @@ nav button.active svg {
   gap: 9px;
   align-items: flex-start;
   padding: 15px 9px 20px;
-  font-size: 11px;
+  font-size: 14px;
   color: var(--tone-bebec7, #bebec7);
 }
 .local-note small {
   display: block;
   color: var(--tone-62626f, #62626f);
-  font-size: 10px;
+  font-size: 14px;
   margin-top: 6px;
 }
 .dot {
@@ -230,7 +239,7 @@ nav button.active svg {
   background: var(--tone-201e24, #201e24);
   border: 1px solid var(--tone-322a33, #322a33);
   color: var(--tone-c993a4, #c993a4);
-  font-size: 12px;
+  font-size: 14px;
   padding: 11px;
 }
 .donate span {
@@ -238,7 +247,7 @@ nav button.active svg {
   color: var(--tone-777, #777);
 }
 .version {
-  font-size: 8px;
+  font-size: 14px;
   letter-spacing: 1.8px;
   color: var(--tone-484853, #484853);
   display: block;
@@ -262,7 +271,7 @@ nav button.active svg {
   gap: 20px;
 }
 .eyebrow {
-  font-size: 9px;
+  font-size: 14px;
   letter-spacing: 2.4px;
   color: var(--tone-987c89, #987c89);
   display: block;
@@ -275,14 +284,14 @@ nav button.active svg {
   font-weight: 600;
 }
 .library-header h1 span {
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 400;
   color: var(--tone-737380, #737380);
   letter-spacing: 0;
   margin-left: 18px;
 }
 .library-header p {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--tone-7c7c89, #7c7c89);
   margin: 0;
 }
@@ -299,7 +308,7 @@ nav button.active svg {
 }
 .small {
   padding: 8px 11px;
-  font-size: 11px;
+  font-size: 14px;
   border-radius: 7px;
 }
 .text-button {
@@ -307,7 +316,7 @@ nav button.active svg {
   background: transparent;
   color: var(--tone-d18b9e, #d18b9e);
   padding: 8px;
-  font-size: 11px;
+  font-size: 14px;
 }
 .text-button:hover {
   background: var(--tone-2a222a, #2a222a);
@@ -320,7 +329,7 @@ nav button.active svg {
   gap: 16px;
 }
 .library-tools > span {
-  font-size: 10px;
+  font-size: 14px;
   color: var(--tone-5f5f6b, #5f5f6b);
 }
 .search {
@@ -337,7 +346,7 @@ nav button.active svg {
 .search input {
   background: none;
   border: 0;
-  font-size: 12px;
+  font-size: 14px;
   padding: 10px 0;
   width: 100%;
 }
@@ -410,7 +419,7 @@ nav button.active svg {
   overflow: hidden;
 }
 .song-info strong {
-  font-size: 13px;
+  font-size: 14px;
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -418,7 +427,7 @@ nav button.active svg {
   font-weight: 550;
 }
 .song-info > span {
-  font-size: 10px;
+  font-size: 14px;
   color: var(--tone-858591, #858591);
   display: flex;
   gap: 8px;
@@ -453,7 +462,7 @@ nav button.active svg {
 }
 .song-right > span {
   color: var(--tone-747481, #747481);
-  font-size: 10px;
+  font-size: 14px;
   font-variant-numeric: tabular-nums;
 }
 .icon-button {
@@ -483,7 +492,7 @@ nav button.active svg {
   align-items: center;
   justify-content: space-between;
   color: var(--tone-5f5f6c, #5f5f6c);
-  font-size: 10px;
+  font-size: 14px;
 }
 .library-footer span {
   display: flex;
@@ -494,7 +503,7 @@ nav button.active svg {
   border: 0;
   background: none;
   color: var(--tone-73737e, #73737e);
-  font-size: 10px;
+  font-size: 14px;
   padding: 4px;
 }
 .empty {
@@ -514,7 +523,7 @@ nav button.active svg {
   margin: 9px 0 0;
 }
 .empty p {
-  font-size: 12px;
+  font-size: 14px;
   margin-bottom: 10px;
   max-width: 420px;
 }
@@ -571,7 +580,7 @@ nav button.active svg {
 }
 .now-title > strong {
   font-weight: 550;
-  font-size: 13px;
+  font-size: 14px;
   display: block;
   text-overflow: ellipsis;
   overflow: hidden;
@@ -584,7 +593,7 @@ nav button.active svg {
   gap: 6px;
   margin-top: 9px;
   white-space: nowrap;
-  font-size: 10px;
+  font-size: 14px;
 }
 .now-title small span {
   margin-left: 8px;
@@ -598,7 +607,7 @@ nav button.active svg {
   margin: 0 12px;
 }
 .view-switch button {
-  font-size: 11px;
+  font-size: 14px;
   padding: 8px 13px;
   border: 0;
   border-radius: 17px;
@@ -632,7 +641,7 @@ nav button.active svg {
   padding: 16px 27px;
   border-bottom: 1px solid var(--tone-25252d, #25252d);
   color: var(--tone-85838e, #85838e);
-  font-size: 11px;
+  font-size: 14px;
   background: var(--tone-19171c, #19171c);
 }
 .analysis-hint svg {
@@ -645,7 +654,7 @@ nav button.active svg {
   color: var(--tone-d59aad, #d59aad);
   margin-left: auto;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: 14px;
   padding: 7px;
   gap: 5px;
 }
@@ -673,7 +682,7 @@ nav button.active svg {
   font-weight: 500;
 }
 .chord-ribbon small {
-  font-size: 9px;
+  font-size: 14px;
   color: var(--tone-737380, #737380);
 }
 .chord-ribbon button.current {
@@ -693,7 +702,7 @@ nav button.active svg {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  font-size: 10px;
+  font-size: 14px;
   color: var(--tone-686876, #686876);
   margin-bottom: 23px;
 }
@@ -712,7 +721,7 @@ nav button.active svg {
   justify-content: space-between;
   color: var(--tone-62626e, #62626e);
   font-variant-numeric: tabular-nums;
-  font-size: 10px;
+  font-size: 14px;
   margin-top: 14px;
 }
 .current-chord {
@@ -735,12 +744,12 @@ nav button.active svg {
   color: var(--tone-8a6c80, #8a6c80);
 }
 .practice-tip strong {
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--tone-a395a5, #a395a5);
 }
 .practice-tip p {
-  font-size: 10px;
+  font-size: 14px;
   margin: 6px 0 0;
   color: var(--tone-686472, #686472);
 }
@@ -762,7 +771,7 @@ nav button.active svg {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: 14px;
   margin: 0;
   color: var(--tone-c5c5ce, #c5c5ce);
 }
@@ -775,11 +784,11 @@ nav button.active svg {
   align-items: center;
   gap: 7px;
   color: var(--tone-a1a1ae, #a1a1ae);
-  font-size: 11px;
+  font-size: 14px;
   margin-bottom: 14px;
 }
 .master-control b {
-  font-size: 10px;
+  font-size: 14px;
   margin-left: auto;
   color: var(--tone-e6c1ce, #e6c1ce);
   font-weight: 400;
@@ -789,7 +798,7 @@ nav button.active svg {
 }
 .mixer-subheading {
   color: var(--tone-777784, #777784);
-  font-size: 10px;
+  font-size: 14px;
   margin-bottom: 17px;
   display: flex;
   justify-content: space-between;
@@ -798,7 +807,7 @@ nav button.active svg {
 }
 .mixer-subheading span {
   color: var(--tone-9e8e9b, #9e8e9b);
-  font-size: 9px;
+  font-size: 14px;
 }
 .track-control {
   margin-bottom: 18px;
@@ -807,7 +816,7 @@ nav button.active svg {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 11px;
+  font-size: 14px;
   color: var(--tone-b1b1be, #b1b1be);
   margin-bottom: 8px;
 }
@@ -823,7 +832,7 @@ nav button.active svg {
 }
 .track-top small {
   color: var(--tone-727280, #727280);
-  font-size: 9px;
+  font-size: 14px;
 }
 .track-slider {
   display: flex;
@@ -837,7 +846,7 @@ nav button.active svg {
   accent-color: var(--tone-dba0b3, #dba0b3);
 }
 .track-slider button {
-  font-size: 8px;
+  font-size: 14px;
   padding: 4px 0;
   width: 22px;
   height: 22px;
@@ -866,7 +875,7 @@ nav button.active svg {
   justify-content: flex-start;
   gap: 6px;
   color: var(--tone-50505d, #50505d);
-  font-size: 8px;
+  font-size: 14px;
   margin-top: 9px;
 }
 .pan-control input {
@@ -910,7 +919,7 @@ nav button.active svg {
   gap: 8px;
 }
 .eq-controls label > span {
-  font-size: 9px;
+  font-size: 14px;
   width: 25px;
   color: var(--tone-858591, #858591);
 }
@@ -923,7 +932,7 @@ nav button.active svg {
   width: 33px;
   text-align: right;
   color: var(--tone-6c6878, #6c6878);
-  font-size: 8px;
+  font-size: 14px;
 }
 .toggles {
   display: flex;
@@ -934,7 +943,7 @@ nav button.active svg {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 10px;
+  font-size: 14px;
   color: var(--tone-a09daa, #a09daa);
 }
 .toggles input[type='checkbox'] {
@@ -943,7 +952,7 @@ nav button.active svg {
   height: 14px;
 }
 .toggles > small {
-  font-size: 8px;
+  font-size: 14px;
   color: var(--tone-66616f, #66616f);
   line-height: 1.7;
 }
@@ -959,7 +968,7 @@ nav button.active svg {
   align-items: center;
   gap: 6px;
   color: var(--tone-9d95a2, #9d95a2);
-  font-size: 10px;
+  font-size: 14px;
   margin-bottom: 13px;
 }
 .bookmark-title button {
@@ -974,7 +983,7 @@ nav button.active svg {
   gap: 8px;
   overflow-x: auto;
   align-items: center;
-  font-size: 10px;
+  font-size: 14px;
 }
 .bookmark-chip {
   padding: 8px 10px;
@@ -984,10 +993,10 @@ nav button.active svg {
   white-space: nowrap;
   gap: 8px;
   color: var(--tone-cda5bc, #cda5bc);
-  font-size: 10px;
+  font-size: 14px;
 }
 .bookmark-chip small {
-  font-size: 8px;
+  font-size: 14px;
   color: var(--tone-897289, #897289);
 }
 .bookmark-chip > span:last-child {
@@ -997,7 +1006,7 @@ nav button.active svg {
   color: var(--muted);
 }
 .bookmarks > .muted {
-  font-size: 10px;
+  font-size: 14px;
   color: var(--tone-66616e, #66616e);
 }
 .transport {
@@ -1013,7 +1022,7 @@ nav button.active svg {
   margin-bottom: 13px;
 }
 .loop-button {
-  font-size: 10px;
+  font-size: 14px;
   background: var(--tone-24202a, #24202a);
   border-color: var(--tone-3b303e, #3b303e);
   padding: 7px 10px;
@@ -1030,12 +1039,12 @@ nav button.active svg {
   background: transparent;
   font-weight: 650;
   color: var(--tone-c99bb0, #c99bb0);
-  font-size: 12px;
+  font-size: 14px;
   gap: 5px;
 }
 .ab-point small {
   color: var(--tone-706270, #706270);
-  font-size: 9px;
+  font-size: 14px;
   font-weight: 400;
 }
 .transport-spacer {
@@ -1056,7 +1065,7 @@ nav button.active svg {
   border: 0;
   padding: 4px 0;
   color: var(--tone-d4b4c6, #d4b4c6);
-  font-size: 11px;
+  font-size: 14px;
   min-width: 40px;
 }
 .transport-bottom {
@@ -1079,7 +1088,7 @@ nav button.active svg {
 }
 .time-now,
 .time-total {
-  font-size: 10px;
+  font-size: 14px;
   font-variant-numeric: tabular-nums;
   color: var(--tone-b1a2b5, #b1a2b5);
 }
@@ -1115,7 +1124,7 @@ nav button.active svg {
 .chord-grid > button small,
 .chord-grid > button span {
   color: var(--tone-625a6e, #625a6e);
-  font-size: 9px;
+  font-size: 14px;
 }
 .chord-grid > button.current {
   background: var(--tone-412c3c, #412c3c);
@@ -1157,14 +1166,14 @@ nav button.active svg {
 }
 .modal-heading .eyebrow {
   margin: 0 0 8px;
-  font-size: 8px;
+  font-size: 14px;
 }
 .modal-heading h2 {
   margin: 0;
   font-size: 24px;
 }
 .modal > p.muted {
-  font-size: 12px;
+  font-size: 14px;
 }
 .mode-grid {
   display: grid;
@@ -1185,10 +1194,10 @@ nav button.active svg {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 13px;
+  font-size: 14px;
 }
 .mode-grid small {
-  font-size: 10px;
+  font-size: 14px;
   color: var(--tone-77717e, #77717e);
 }
 .mode-grid .selected {
@@ -1203,7 +1212,7 @@ nav button.active svg {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  font-size: 11px;
+  font-size: 14px;
   color: var(--tone-a59aae, #a59aae);
   margin: 24px 0 13px;
 }
@@ -1211,7 +1220,7 @@ nav button.active svg {
   width: 100%;
 }
 .notice {
-  font-size: 10px !important;
+  font-size: 14px !important;
   color: var(--tone-ac92a4, #ac92a4);
   background: var(--tone-2a232e, #2a232e);
   border: 1px solid var(--tone-413143, #413143);
@@ -1239,18 +1248,18 @@ nav button.active svg {
   color: var(--tone-ce8cae, #ce8cae);
 }
 .setup-card h3 {
-  font-size: 13px;
+  font-size: 14px;
   margin: 0 0 7px;
   color: var(--tone-dfbcd0, #dfbcd0);
 }
 .setup-card p {
-  font-size: 10px;
+  font-size: 14px;
   color: var(--tone-9f879c, #9f879c);
   line-height: 1.8;
   margin: 0;
 }
 .badge {
-  font-size: 9px;
+  font-size: 14px;
   white-space: nowrap;
   border: 1px solid var(--tone-44404a, #44404a);
   background: var(--tone-2c2832, #2c2832);
@@ -1272,11 +1281,11 @@ nav button.active svg {
   margin: 18px 0 24px;
 }
 .runtime-controls select {
-  font-size: 11px;
+  font-size: 14px;
   flex: 1;
 }
 .runtime-controls button {
-  font-size: 11px;
+  font-size: 14px;
 }
 .install-status {
   background: var(--tone-111116, #111116);
@@ -1287,7 +1296,7 @@ nav button.active svg {
   white-space: pre-wrap;
   word-break: break-all;
   overflow: auto;
-  font-size: 10px;
+  font-size: 14px;
   color: var(--tone-b5a7b9, #b5a7b9);
   line-height: 1.7;
 }
@@ -1315,29 +1324,29 @@ nav button.active svg {
   border-bottom: 1px solid var(--tone-2d2833, #2d2833);
 }
 .model-list strong {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--tone-cec0d5, #cec0d5);
 }
 .model-list p {
-  font-size: 10px;
+  font-size: 14px;
   color: var(--tone-85798e, #85798e);
   margin: 7px 0 5px;
 }
 .model-list small {
-  font-size: 8px;
+  font-size: 14px;
   color: var(--tone-655c6d, #655c6d);
 }
 .recommend {
   margin-left: 8px;
-  font-size: 8px;
+  font-size: 14px;
   padding: 2px 4px;
   background: var(--tone-483244, #483244);
   color: var(--tone-e5a8c4, #e5a8c4);
   border-radius: 3px;
 }
 .fine-print {
-  font-size: 9px !important;
+  font-size: 14px !important;
   line-height: 1.8;
   margin: 20px 0 0;
 }
@@ -1345,7 +1354,7 @@ nav button.active svg {
   text-align: center;
 }
 .donation > p {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--tone-c1b3c5, #c1b3c5);
 }
 .donation img {
@@ -1367,7 +1376,7 @@ nav button.active svg {
   gap: 12px;
   padding: 12px;
   border-bottom: 1px solid var(--tone-302a36, #302a36);
-  font-size: 12px;
+  font-size: 14px;
 }
 .selection-list label:last-child {
   border: 0;
@@ -1379,7 +1388,7 @@ nav button.active svg {
   white-space: nowrap;
 }
 .selection-list small {
-  font-size: 9px;
+  font-size: 14px;
   color: var(--tone-796d85, #796d85);
 }
 .pair-box {
@@ -1396,15 +1405,15 @@ nav button.active svg {
   border-radius: 6px;
 }
 .pair-box strong {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--tone-d6b3cf, #d6b3cf);
 }
 .pair-box p {
-  font-size: 10px;
+  font-size: 14px;
   color: var(--tone-a386a3, #a386a3);
 }
 .pair-box input {
-  font-size: 9px;
+  font-size: 14px;
   width: 100%;
   padding: 8px;
   margin-bottom: 12px;
@@ -1417,7 +1426,7 @@ nav button.active svg {
 }
 .migration-folder small {
   color: var(--tone-8e7e99, #8e7e99);
-  font-size: 9px;
+  font-size: 14px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -1441,7 +1450,7 @@ nav button.active svg {
   color: var(--tone-eab6d5, #eab6d5);
 }
 .job-card strong {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
 }
 .job-card button {
@@ -1452,7 +1461,7 @@ nav button.active svg {
   color: var(--tone-ad8ba9, #ad8ba9);
 }
 .job-card p {
-  font-size: 10px;
+  font-size: 14px;
   word-break: break-all;
   color: var(--tone-ac94b1, #ac94b1);
   line-height: 1.7;
@@ -1480,7 +1489,7 @@ nav button.active svg {
   padding: 14px 18px;
   box-shadow: 0 5px 35px var(--tone-0007, #0007);
   color: var(--tone-f0d9ed, #f0d9ed);
-  font-size: 12px;
+  font-size: 14px;
 }
 .toast button {
   padding: 0;
@@ -1508,7 +1517,7 @@ nav button.active svg {
   flex-wrap: wrap;
 }
 .score-toolbar select {
-  font-size: 10px;
+  font-size: 14px;
   max-width: 200px;
   padding: 8px;
 }
@@ -1519,7 +1528,7 @@ nav button.active svg {
   gap: 10px;
   padding: 13px 22px;
   color: var(--tone-8f839b, #8f839b);
-  font-size: 10px;
+  font-size: 14px;
 }
 .amber {
   color: var(--tone-dbb07d, #dbb07d);
@@ -1547,12 +1556,12 @@ nav button.active svg {
   color: var(--tone-9c89a7, #9c89a7);
 }
 .sync-editor h3 {
-  font-size: 12px;
+  font-size: 14px;
   margin-bottom: 8px;
   color: var(--tone-c4abc9, #c4abc9);
 }
 .sync-editor p {
-  font-size: 9px;
+  font-size: 14px;
   color: var(--tone-82708e, #82708e);
 }
 .sync-points {
@@ -1569,12 +1578,12 @@ nav button.active svg {
   background: var(--tone-25202c, #25202c);
   border: 1px solid var(--tone-3e3046, #3e3046);
   border-radius: 6px;
-  font-size: 9px;
+  font-size: 14px;
 }
 .sync-points input {
   width: 65px;
   padding: 5px;
-  font-size: 10px;
+  font-size: 14px;
 }
 .sync-points label.uncertain {
   border-color: var(--tone-9d7448, #9d7448);
@@ -1584,7 +1593,7 @@ nav button.active svg {
 }
 .piano-title {
   color: var(--tone-95839f, #95839f);
-  font-size: 11px;
+  font-size: 14px;
   margin-bottom: 15px;
 }
 .piano-roll svg {
@@ -1622,7 +1631,7 @@ nav button.active svg {
     gap: 8px;
   }
   .brand small {
-    font-size: 8px;
+    font-size: 14px;
   }
   .brand-mark {
     width: 32px;
@@ -1695,7 +1704,7 @@ nav button.active svg {
   animation: spin 2s ease infinite;
 }
 .recording-bar strong {
-  font-size: 12px;
+  font-size: 14px;
 }
 .export-options {
   display: flex;
@@ -1715,12 +1724,12 @@ nav button.active svg {
   color: var(--tone-d79fb9, #d79fb9);
 }
 .export-options strong {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
 }
 .export-options small {
   color: var(--tone-97839d, #97839d);
-  font-size: 10px;
+  font-size: 14px;
 }
 .attachment-panel {
   flex: 1;
@@ -1743,20 +1752,20 @@ nav button.active svg {
   flex-direction: column;
   padding: 30px;
   color: var(--tone-89738e, #89738e);
-  font-size: 11px;
+  font-size: 14px;
 }
 .notes-area {
   padding: 25px;
 }
 .notes-area h3 {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--tone-bba2c2, #bba2c2);
 }
 .notes-area textarea {
   min-height: 160px;
   width: 100%;
   resize: vertical;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.9;
 }
 
@@ -1778,7 +1787,7 @@ nav button.active svg {
   resize: vertical;
   margin: 12px 0;
   word-break: break-all;
-  font-size: 11px;
+  font-size: 14px;
 }
 .remote-actions {
   display: flex;
@@ -1793,11 +1802,11 @@ nav button.active svg {
 .preset-controls select {
   min-width: 0;
   flex: 1;
-  font-size: 10px;
+  font-size: 14px;
   padding: 7px;
 }
 .track-eq {
-  font-size: 9px;
+  font-size: 14px;
   color: var(--tone-8d8196, #8d8196);
   margin-top: 10px;
 }
@@ -1816,7 +1825,7 @@ nav button.active svg {
 }
 .track-eq small {
   width: 32px;
-  font-size: 8px;
+  font-size: 14px;
 }
 
 .at-cursor-bar {
@@ -1840,7 +1849,7 @@ nav button.active svg {
   border: 0;
   background: none;
   color: var(--tone-9990a0, #9990a0);
-  font-size: 10px;
+  font-size: 14px;
 }
 .analysis-meta button:hover {
   color: var(--tone-f0acc0, #f0acc0);
@@ -1850,7 +1859,7 @@ nav button.active svg {
   overflow: auto;
 }
 .playlist-nav button {
-  font-size: 11px;
+  font-size: 14px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -1868,12 +1877,12 @@ nav button.active svg {
   gap: 20px;
   flex: none;
   margin: 0 0 14px;
-  font-size: 11px;
+  font-size: 14px;
   color: var(--tone-aaa1b2, #aaa1b2);
 }
 .wave-caption span:last-child {
   color: var(--tone-6b6374, #6b6374);
-  font-size: 10px;
+  font-size: 14px;
 }
 .wave-canvas-host {
   position: relative;
@@ -1921,11 +1930,11 @@ nav button.active svg {
 }
 .analysis-only strong {
   font-weight: 500;
-  font-size: 13px;
+  font-size: 14px;
 }
 .analysis-only small {
   color: var(--tone-9b879e, #9b879e);
-  font-size: 11px;
+  font-size: 14px;
 }
 .chord-sheet {
   padding: 26px;
@@ -1947,7 +1956,7 @@ nav button.active svg {
 }
 .chord-sheet-toolbar p {
   color: var(--tone-8e8198, #8e8198);
-  font-size: 11px;
+  font-size: 14px;
   margin: 0;
 }
 .chord-sheet-toolbar label {
@@ -1955,15 +1964,15 @@ nav button.active svg {
   align-items: center;
   gap: 8px;
   color: var(--tone-9c8fa5, #9c8fa5);
-  font-size: 11px;
+  font-size: 14px;
 }
 .chord-sheet-toolbar select {
   padding: 7px 9px;
-  font-size: 11px;
+  font-size: 14px;
 }
 .chord-sheet-note {
   color: var(--tone-766b7f, #766b7f);
-  font-size: 10px;
+  font-size: 14px;
   line-height: 1.7;
   margin-bottom: 25px;
 }
@@ -1986,7 +1995,7 @@ nav button.active svg {
 }
 .chord-row-heading > span {
   color: var(--tone-675d70, #675d70);
-  font-size: 10px;
+  font-size: 14px;
   font-variant-numeric: tabular-nums;
 }
 .chord-row-heading input {
@@ -1995,13 +2004,13 @@ nav button.active svg {
   padding: 4px 5px;
   width: 330px;
   max-width: 85%;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--tone-d0baca, #d0baca);
   border-radius: 4px;
 }
 .chord-row-heading input::placeholder {
   color: var(--tone-5b5164, #5b5164);
-  font-size: 10px;
+  font-size: 14px;
 }
 .chord-row-heading input:focus {
   background: var(--tone-27202d, #27202d);
@@ -2034,7 +2043,7 @@ nav button.active svg {
   justify-content: space-between;
   align-items: center;
   padding: 10px 10px 8px;
-  font-size: 9px;
+  font-size: 14px;
   color: var(--tone-81748c, #81748c);
 }
 .measure-heading > span {
@@ -2043,7 +2052,7 @@ nav button.active svg {
   gap: 4px;
 }
 .measure-heading > small {
-  font-size: 9px;
+  font-size: 14px;
   font-variant-numeric: tabular-nums;
   color: var(--tone-6a5f75, #6a5f75);
 }
@@ -2086,7 +2095,7 @@ nav button.active svg {
 .measure-beats span {
   flex: 1;
   text-align: center;
-  font-size: 8px;
+  font-size: 14px;
   color: var(--tone-66596f, #66596f);
 }
 .empty-chord-row {
@@ -2096,7 +2105,7 @@ nav button.active svg {
   place-items: center;
   border: 1px dashed var(--tone-49384f, #49384f);
   border-radius: 9px;
-  font-size: 11px;
+  font-size: 14px;
   color: var(--tone-88708f, #88708f);
 }
 .chord-layout-actions {
@@ -2121,7 +2130,7 @@ nav button.active svg {
 }
 .model-actions button {
   white-space: nowrap;
-  font-size: 10px;
+  font-size: 14px;
 }
 .model-description progress {
   display: block;
@@ -2132,14 +2141,14 @@ nav button.active svg {
 }
 .model-download-message {
   display: block;
-  font-size: 10px;
+  font-size: 14px;
   color: var(--tone-bc9ac8, #bc9ac8);
   max-width: 390px;
   overflow-wrap: anywhere;
 }
 .model-download-error {
   display: block;
-  font-size: 10px;
+  font-size: 14px;
   color: var(--tone-df9d8b, #df9d8b);
   margin-top: 10px;
   line-height: 1.7;
@@ -2153,7 +2162,7 @@ nav button.active svg {
   background: var(--tone-2d202e, #2d202e);
   border-radius: 9px;
   margin: 18px 0;
-  font-size: 12px;
+  font-size: 14px;
 }
 .chord-editor label {
   display: flex;
@@ -2176,7 +2185,7 @@ nav button.active svg {
   min-width: 0;
 }
 .wave-caption .wave-source-name {
-  font-size: 10px;
+  font-size: 14px;
   color: var(--tone-9f88ae, #9f88ae);
 }
 .wave-caption label {
@@ -2184,12 +2193,12 @@ nav button.active svg {
   align-items: center;
   gap: 8px;
   white-space: nowrap;
-  font-size: 10px;
+  font-size: 14px;
   color: var(--tone-8b7b98, #8b7b98);
 }
 .wave-caption select {
   padding: 6px 9px;
-  font-size: 10px;
+  font-size: 14px;
 }
 .wave-source-active {
   border-color: var(--tone-99536f, #99536f);
@@ -2198,7 +2207,7 @@ nav button.active svg {
 }
 .wave-window-hint {
   color: var(--tone-73627f, #73627f);
-  font-size: 10px;
+  font-size: 14px;
   text-align: center;
   flex: none;
   padding-top: 9px;
@@ -2214,7 +2223,7 @@ nav button.active svg {
   border: 0 !important;
   background: none !important;
   justify-content: flex-start;
-  font-size: 11px !important;
+  font-size: 14px !important;
   gap: 7px;
   color: inherit;
 }
@@ -2235,11 +2244,11 @@ nav button.active svg {
 }
 .track-rename input {
   width: 100%;
-  font-size: 11px;
+  font-size: 14px;
   padding: 7px;
 }
 .track-rename button {
-  font-size: 9px;
+  font-size: 14px;
   padding: 5px 8px;
 }
 .result-picker {
@@ -2251,14 +2260,14 @@ nav button.active svg {
 }
 .result-picker > label {
   display: block;
-  font-size: 10px;
+  font-size: 14px;
   color: var(--tone-b49abc, #b49abc);
 }
 .result-picker select {
   display: block;
   width: 100%;
   max-width: 100%;
-  font-size: 10px;
+  font-size: 14px;
   margin-top: 10px;
   padding: 8px 7px;
 }
@@ -2268,14 +2277,14 @@ nav button.active svg {
   margin-top: 10px;
 }
 .result-actions button {
-  font-size: 9px;
+  font-size: 14px;
   padding: 6px 8px;
   flex: 1;
 }
 .result-origin {
   display: block;
   color: var(--tone-786384, #786384);
-  font-size: 9px;
+  font-size: 14px;
   line-height: 1.7;
   margin-top: 9px;
   overflow-wrap: anywhere;
@@ -2285,7 +2294,7 @@ nav button.active svg {
 }
 .result-picker form input {
   width: 100%;
-  font-size: 11px;
+  font-size: 14px;
   padding: 7px;
   margin-bottom: 7px;
 }
@@ -2312,11 +2321,11 @@ nav button.active svg {
   margin-right: auto;
   max-width: 270px;
   min-width: 140px;
-  font-size: 12px;
+  font-size: 14px;
   padding: 8px 10px;
 }
 .chart-toolbar button {
-  font-size: 10px;
+  font-size: 14px;
   padding: 7px 9px;
 }
 .follow-active {
@@ -2344,15 +2353,15 @@ nav button.active svg {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 10px;
+  font-size: 14px;
   color: var(--tone-9d86ac, #9d86ac);
 }
 .chart-name-line select {
-  font-size: 10px;
+  font-size: 14px;
   padding: 5px 7px;
 }
 .chart-timing {
-  font-size: 10px;
+  font-size: 14px;
   color: var(--tone-ab8bb9, #ab8bb9);
   position: relative;
 }
@@ -2382,20 +2391,20 @@ nav button.active svg {
   display: flex;
   flex-direction: column;
   gap: 7px;
-  font-size: 10px;
+  font-size: 14px;
 }
 .timing-fields input {
   width: 100px;
-  font-size: 11px;
+  font-size: 14px;
   padding: 7px;
 }
 .timing-fields select {
-  font-size: 11px;
+  font-size: 14px;
   padding: 7px;
 }
 .timing-fields > button:last-child {
   width: 100%;
-  font-size: 10px;
+  font-size: 14px;
 }
 .chord-bank {
   display: flex;
@@ -2403,7 +2412,7 @@ nav button.active svg {
   align-items: center;
 }
 .chord-bank > span {
-  font-size: 9px;
+  font-size: 14px;
   color: var(--tone-82698f, #82698f);
   white-space: nowrap;
 }
@@ -2417,7 +2426,7 @@ nav button.active svg {
 }
 .bank-chords button {
   padding: 5px 9px;
-  font-size: 12px;
+  font-size: 14px;
   border-radius: 6px;
   background: var(--tone-292030, #292030);
   border-color: var(--tone-3f2d49, #3f2d49);
@@ -2430,21 +2439,21 @@ nav button.active svg {
 }
 .chord-bank input {
   width: 100px;
-  font-size: 10px;
+  font-size: 14px;
   padding: 6px 8px;
 }
 .chord-bank form button {
   padding: 5px 7px;
 }
 .chart-help {
-  font-size: 9px;
+  font-size: 14px;
   color: var(--tone-776182, #776182);
   line-height: 1.8;
   margin: 10px 0 0;
 }
 .chart-message {
   color: var(--tone-e2b27c, #e2b27c);
-  font-size: 11px;
+  font-size: 14px;
   margin: 10px 0 0;
 }
 .chart-workspace .chord-editor {
@@ -2452,7 +2461,7 @@ nav button.active svg {
   padding: 10px;
 }
 .chart-workspace .chord-editor input {
-  font-size: 13px;
+  font-size: 14px;
   padding: 6px 9px;
 }
 .chart-row-section {
@@ -2492,7 +2501,7 @@ nav button.active svg {
 .measure-number {
   background: none !important;
   border: 0 !important;
-  font-size: 9px;
+  font-size: 14px;
   padding: 3px;
   color: var(--tone-ad90bd, #ad90bd);
 }
@@ -2586,7 +2595,7 @@ nav button.active svg {
   min-height: 54px;
   border: 1px dashed var(--tone-4b3459, #4b3459);
   background: none;
-  font-size: 9px;
+  font-size: 14px;
   color: var(--tone-896c98, #896c98);
   white-space: normal;
   padding: 8px;

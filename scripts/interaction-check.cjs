@@ -98,7 +98,7 @@ async function waitReady() {
   const scrubbed = Number(
     await page.getByRole('slider', { name: '播放进度', exact: true }).inputValue(),
   );
-  assert.ok(scrubbed > at + 4.7 && scrubbed < at + 5.5);
+  assert.ok(scrubbed > at + 4.7 && scrubbed < at + 5.5, JSON.stringify({ at, scrubbed }));
   await page.getByRole('button', { name: '暂停', exact: true }).click();
   await page.screenshot({ path: 'test-output/v012-wave.png' });
   await page.getByRole('button', { name: '和弦', exact: true }).click();

@@ -8,7 +8,28 @@ class Folders {
     this.file = path.join(store.base, 'folders.json');
   }
   read() {
-    if (fs.existsSync(this.file)) return JSON.parse(fs.readFileSync(this.file, 'utf8'));
+    if (fs.existsSync(this.file)) {
+      try {
+        const data = JSON.parse(fs.readFileSync(this.file, 'utf8'));
+        if (
+          data.schemaVersion !== 1 ||
+          !Array.isArray(data.folders) ||
+          data.folders.length > 200 ||
+          data.folders.some(
+            (f) =>
+              !f ||
+              typeof f.id !== 'string' ||
+              typeof f.name !== 'string' ||
+              !Array.isArray(f.projectIds) ||
+              f.projectIds.some((id) => typeof id !== 'string'),
+          )
+        )
+          throw new Error('分类数据无效');
+        return data;
+      } catch {
+        fs.copyFileSync(this.file, this.file + '.corrupt.' + Date.now());
+      }
+    }
     const folders = [];
     for (const project of this.store.list()) {
       const name = project.playlist?.trim();

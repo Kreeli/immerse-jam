@@ -69,12 +69,15 @@ export class AudioCapture {
     onChunk: (sequence: number, time: number, bytes: Uint8Array) => Promise<unknown>,
     onProgress: (seconds: number, level: number) => void,
     onLost: () => void,
+    signal?: AbortSignal,
   ) {
+    signal?.throwIfAborted();
     if (!installed.has(context)) {
       await context.audioWorklet.addModule(captureUrl);
       installed.add(context);
     }
-    const stream = await navigator.mediaDevices.getUserMedia({
+    signal?.throwIfAborted();
+    const pending = navigator.mediaDevices.getUserMedia({
       video: false,
       audio: {
         deviceId: settings.inputDeviceId ? { exact: settings.inputDeviceId } : undefined,
@@ -84,6 +87,25 @@ export class AudioCapture {
         channelCount: { ideal: 2 },
         sampleRate: { ideal: context.sampleRate },
       },
+    });
+    // getUserMedia itself cannot be aborted. Stop any late stream after the
+    // user cancels the permission prompt, without keeping the dialog busy.
+    const stream = await new Promise<MediaStream>((resolve, reject) => {
+      const abort = () => reject(signal?.reason || new DOMException('Cancelled', 'AbortError'));
+      signal?.addEventListener('abort', abort, { once: true });
+      pending.then(
+        (value) => {
+          signal?.removeEventListener('abort', abort);
+          if (signal?.aborted) {
+            value.getTracks().forEach((track) => track.stop());
+            abort();
+          } else resolve(value);
+        },
+        (error) => {
+          signal?.removeEventListener('abort', abort);
+          reject(error);
+        },
+      );
     });
     try {
       if (

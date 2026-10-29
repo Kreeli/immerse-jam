@@ -1,17 +1,6 @@
-import { compressSync, decompressSync, strFromU8, strToU8 } from 'fflate';
+import { encode, decode } from './connection-code';
 import { useEffect, useRef, useState } from 'react';
 import { message, t as tr } from '../../i18n';
-const encode = (description: RTCSessionDescriptionInit) =>
-  'IJ1.' + btoa(String.fromCharCode(...compressSync(strToU8(JSON.stringify(description)))));
-const decode = (code: string) => {
-  if (!code.startsWith('IJ1.') || code.length > 50000) throw new Error(tr('连接码无效'));
-  const data = JSON.parse(
-    strFromU8(decompressSync(Uint8Array.from(atob(code.slice(4).trim()), (c) => c.charCodeAt(0)))),
-  );
-  if (!['offer', 'answer'].includes(data.type) || typeof data.sdp !== 'string')
-    throw new Error(tr('连接码无效'));
-  return data as RTCSessionDescriptionInit;
-};
 export default function RemoteTransfer({
   ids,
   onError,
@@ -40,6 +29,12 @@ export default function RemoteTransfer({
       onError((e as Error).message);
     }
   };
+  const disconnect = () => {
+    receiving.current = null;
+    setConnected(false);
+    setBusy(false);
+    void window.jam.call('peer-close').catch(() => {});
+  };
   const bind = (c: RTCDataChannel) => {
     channel.current = c;
     c.binaryType = 'arraybuffer';
@@ -50,7 +45,9 @@ export default function RemoteTransfer({
     c.onclose = () => {
       setConnected(false);
       setStatus(tr('连接已关闭'));
+      disconnect();
     };
+    c.onerror = disconnect;
     c.onmessage = (e) => {
       queue.current = queue.current
         .then(async () => {
@@ -58,6 +55,7 @@ export default function RemoteTransfer({
             const message = JSON.parse(e.data);
             if (message.type === 'offer-files') setOffers(message.files);
             if (message.type === 'file-start') {
+              if (receiving.current) throw new Error(tr('已有文件正在接收'));
               const id = await window.jam.call<string>('peer-begin', message.file);
               receiving.current = { id, offset: 0 };
             }
@@ -81,16 +79,24 @@ export default function RemoteTransfer({
             setStatus(tr('已接收 {0} MB', [(item.offset / 1048576).toFixed(1)]));
           }
         })
-        .catch((error) => onError(error.message));
+        .catch((error) => {
+          c.close();
+          disconnect();
+          onError(error.message);
+        });
     };
   };
   const create = () => {
+    disconnect();
     peer.current?.close();
     setConnected(false);
     const p = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
     peer.current = p;
     p.ondatachannel = (e) => bind(e.channel);
     p.onconnectionstatechange = () => {
+      if (['failed', 'closed', 'disconnected'].includes(p.connectionState)) {
+        disconnect();
+      }
       if (p.connectionState === 'failed')
         setStatus(tr('网络不支持当前直连，请尝试同一网络或热点互传'));
     };

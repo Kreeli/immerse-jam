@@ -29,6 +29,7 @@ function options(argv) {
     models.unshift('roformer-sw');
   return {
     dataRoot: get('data-root'),
+    legacyRoot: get('legacy-root'),
     installRoot: get('install-root') || path.dirname(process.execPath),
     mode,
     models: [...new Set(models)],
@@ -45,6 +46,13 @@ async function prepare(input, services = {}) {
   const installRoot = path.resolve(input.installRoot),
     dataRoot = validateRoot(input.dataRoot, installRoot, input.allowSystemDrive),
     runtime = path.join(dataRoot, 'runtime');
+  // An upgrade may move an existing custom data folder to another drive.
+  const previousFile = path.join(installRoot, 'installation.json');
+  if (!input.legacyRoot && fs.existsSync(previousFile)) {
+    const previous = JSON.parse(fs.readFileSync(previousFile, 'utf8'));
+    if (typeof previous.dataRoot === 'string' && path.isAbsolute(previous.dataRoot))
+      input = { ...input, legacyRoot: previous.dataRoot };
+  }
   fs.mkdirSync(dataRoot, { recursive: true });
   const probe = path.join(dataRoot, '.write-test-' + require('node:crypto').randomUUID());
   fs.writeFileSync(probe, '');
@@ -74,14 +82,24 @@ async function prepare(input, services = {}) {
         errorOnExist: false,
       });
       for (const name of ['Local Storage', 'IndexedDB', 'Preferences']) {
-        if (fs.existsSync(path.join(source, name)))
-          await fs.promises.cp(path.join(source, name), path.join(dataRoot, 'profile', name), {
+        const profile = fs.existsSync(path.join(source, 'profile'))
+          ? path.join(source, 'profile')
+          : source;
+        if (fs.existsSync(path.join(profile, name)))
+          await fs.promises.cp(path.join(profile, name), path.join(dataRoot, 'profile', name), {
             recursive: true,
             force: false,
             errorOnExist: false,
           });
       }
       // Environments contain absolute interpreter paths; rebuild them at the destination.
+      for (const id of fs.readdirSync(path.join(source, 'library', 'projects'))) {
+        if (
+          /^[a-f0-9-]{36}$/.test(id) &&
+          !fs.existsSync(path.join(dataRoot, 'library', 'projects', id, 'project.json'))
+        )
+          throw new Error('旧曲库复制不完整，安装位置配置保持原样');
+      }
       const oldModels = path.join(source, 'runtime', 'models');
       if (fs.existsSync(oldModels))
         await fs.promises.cp(oldModels, path.join(runtime, 'models'), {

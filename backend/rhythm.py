@@ -35,7 +35,15 @@ def detect(y,sr,model=None,emit=lambda *args:None):
             device='cuda' if torch.cuda.is_available() and not model.get('cpuOnly') else 'cpu'
             emit(.4,'在本机识别节拍与小节首拍')
             tracker=Audio2Beats(checkpoint_path=str(checkpoint),device=device,dbn=False,float16=False)
-            beats,downbeats=tracker(y,sr)
+            beats=[];downbeats=[]
+            # Keep spectrogram/model activations bounded independently of song length.
+            core=60*sr;padding=5*sr
+            for start in range(0,len(y),core):
+                left=max(0,start-padding);end=min(len(y),start+core)
+                b,d=tracker(np.asarray(y[left:min(len(y),end+padding)]).copy(),sr)
+                beats.extend(float(t+left/sr) for t in b if start/sr<=t+left/sr<end/sr)
+                downbeats.extend(float(t+left/sr) for t in d if start/sr<=t+left/sr<end/sr)
+                emit(.4+.2*end/len(y),'在本机识别节拍与小节首拍')
             result=summarize(beats,downbeats)
             del tracker;gc.collect()
             if torch.cuda.is_available():torch.cuda.empty_cache()
@@ -45,7 +53,8 @@ def detect(y,sr,model=None,emit=lambda *args:None):
     import librosa
     emit(.42,'使用基础方法估计节拍')
     hop=256
-    onset=librosa.onset.onset_strength(y=y,sr=sr,hop_length=hop,aggregate=np.median)
+    from audio_io import onset_blocks
+    onset=onset_blocks(y,sr,hop)
     if not np.any(onset>1e-5):return {**summarize([]),'tempoMethod':'basic'}
     _,frames=librosa.beat.beat_track(onset_envelope=onset,sr=sr,hop_length=hop,trim=False)
     return {**summarize(librosa.frames_to_time(frames,sr=sr,hop_length=hop)),'tempoMethod':'basic'}

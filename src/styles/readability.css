@@ -1,8 +1,25 @@
 :root {
-  font-size: 15px;
+  font-size: 16px;
 }
 small {
-  font-size: 12px;
+  font-size: 14px;
+  line-height: 1.65;
+}
+.sidebar {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.brand small,
+.local-note p,
+.donate-label {
+  text-wrap: balance;
+}
+.chart-help,
+.count-in-options > small,
+.mixer > small,
+.wave-window-hint {
+  color: var(--muted);
+  line-height: 1.65;
 }
 .song-info strong {
   font-size: 16px;
@@ -10,7 +27,7 @@ small {
   font-weight: 600;
 }
 .song-info > span {
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.6;
   flex-wrap: wrap;
   gap: 5px;
@@ -31,7 +48,7 @@ small {
 .nav-label,
 .local-note,
 .brand small {
-  font-size: 12px;
+  font-size: 14px;
 }
 .song {
   flex-wrap: wrap;
@@ -83,7 +100,7 @@ small {
 .practice-toolbar button,
 .practice-toolbar small,
 .practice-toolbar > label {
-  font-size: 13px;
+  font-size: 14px;
 }
 .mixer .small,
 .track-switch,
@@ -92,7 +109,7 @@ small {
 .transport .small,
 .count-in-control,
 .count-in-control button {
-  font-size: 12px;
+  font-size: 14px;
 }
 .time-now,
 .time-total,
@@ -105,7 +122,7 @@ small {
 .take-timing,
 .creation-tracks .take-timing,
 .comparison-lane h4 {
-  font-size: 12px;
+  font-size: 14px;
 }
 .creation-list-heading small,
 .object-expand small,
@@ -113,7 +130,7 @@ small {
 .source-stem-row,
 .group-volume,
 .creation-list-heading button {
-  font-size: 12px;
+  font-size: 14px;
 }
 .object-expand strong,
 .creation-tracks .track-name,
@@ -131,15 +148,15 @@ small {
 .session-table td,
 .session-table th,
 .session-badge {
-  font-size: 13px;
+  font-size: 14px;
 }
 .side-panel-selector select,
 .mixer-shell .practice-marks button,
 .mixer-shell .practice-marks strong {
-  font-size: 13px;
+  font-size: 14px;
 }
 .mixer-shell .practice-marks small {
-  font-size: 12px;
+  font-size: 14px;
 }
 .folder-nav-heading {
   display: flex;
@@ -165,7 +182,7 @@ small {
   white-space: nowrap;
 }
 .folder-picker {
-  font-size: 12px;
+  font-size: 14px;
   padding: 6px 9px;
   min-width: 80px;
   max-width: 170px;
@@ -177,7 +194,7 @@ small {
 }
 .folder-dialog p {
   margin: 16px 0;
-  font-size: 13px;
+  font-size: 14px;
 }
 .folder-project-list {
   padding: 0 48px 35px;
@@ -212,7 +229,7 @@ small {
 }
 .folder-project-open small {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
 }
 .library-header h1 {
   display: flex;
@@ -225,7 +242,7 @@ small {
   justify-content: flex-start;
   color: var(--muted);
   padding: 10px 12px;
-  font-size: 13px;
+  font-size: 14px;
   margin-bottom: 9px;
 }
 .donate {
@@ -283,7 +300,7 @@ small {
 }
 .storage-locations p,
 .storage-locations dl {
-  font-size: 13px;
+  font-size: 14px;
 }
 .storage-locations dt {
   color: var(--muted);
@@ -292,7 +309,6 @@ small {
 .storage-locations dd {
   margin: 0;
   overflow-wrap: anywhere;
-  user-select: text;
 }
 .feedback-options button {
   flex-direction: column;
@@ -300,7 +316,7 @@ small {
 }
 .feedback-options button span,
 .feedback-options small {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted);
 }
 .donation-qr {
@@ -346,7 +362,7 @@ small {
     padding-bottom: 14px;
   }
   .brand {
-    margin-bottom: 30px;
+    margin-bottom: 20px;
   }
   .sidebar-divider {
     margin: 16px 10px;
@@ -356,7 +372,7 @@ small {
     padding-bottom: 12px;
   }
   .version {
-    font-size: 10px;
+    font-size: 14px;
     margin-top: 12px;
   }
   .playlist-nav {
@@ -382,4 +398,12 @@ small {
   .nav-label {
     margin-bottom: 7px;
   }
+}
+.analysis-note {
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--muted);
+  border-left: 2px solid var(--pink);
+  padding: 4px 12px;
+  margin: 12px 0 18px;
 }

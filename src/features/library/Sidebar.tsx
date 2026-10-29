@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import appIcon from '../../../assets/app-icon.png';
 import { version } from '../../../package.json';
+import { platformVersion } from '../../platform/environment';
 import type { WorkspaceController } from '../../app/useWorkspace';
 import { t as tr } from '../../i18n';
 type Props = Pick<
@@ -171,7 +172,7 @@ export default function Sidebar({
           <span className="donate-arrow">↗</span>
         </button>
 
-        <small className="version">IMMERSE JAM · {version}</small>
+        <small className="version">IMMERSE JAM · {platformVersion || version}</small>
       </div>
     </aside>
   );

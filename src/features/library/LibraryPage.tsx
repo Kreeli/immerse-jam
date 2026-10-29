@@ -147,7 +147,7 @@ export default function LibraryPage({
               </button>
 
               <button className="song-info" onClick={() => openProject(p)}>
-                <strong>{p.title}</strong>
+                <strong>{p.broken ? tr('歌曲数据需要恢复') : p.title}</strong>
 
                 <span>
                   {p.artist || tr('本地音乐')}

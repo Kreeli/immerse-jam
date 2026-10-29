@@ -1,0 +1,10 @@
+# CPU-only checks; no separation weights or audio-separator package downloads.
+numpy>=2.0,<2.4
+scipy>=1.13,<1.17
+librosa==0.11.0
+pretty-midi==0.2.10
+soundfile==0.13.1
+PyYAML==6.0.3
+onnx>=1.17,<1.20
+onnxruntime>=1.22,<1.25
+setuptools==80.9.0

@@ -49,6 +49,8 @@ function validateSelection(p) {
 function wavHeader(frames, rate, channels = 2) {
   const out = Buffer.alloc(44),
     bytes = frames * channels * 4;
+  if (!Number.isSafeInteger(bytes) || bytes < 0 || bytes > 0xffffffff - 36)
+    throw new Error('录音超过 WAV 大小限制，请分段录制');
   out.write('RIFF');
   out.writeUInt32LE(36 + bytes, 4);
   out.write('WAVEfmt ', 8);
@@ -68,11 +70,15 @@ function wavDuration(file) {
   try {
     const head = Buffer.alloc(12);
     fs.readSync(fd, head, 0, 12, 0);
-    if (head.toString('ascii', 0, 4) !== 'RIFF' || head.toString('ascii', 8, 12) !== 'WAVE')
+    if (
+      !['RIFF', 'RF64'].includes(head.toString('ascii', 0, 4)) ||
+      head.toString('ascii', 8, 12) !== 'WAVE'
+    )
       throw new Error('无效的录音 WAV');
     let offset = 12,
       rate = 0,
       align = 0;
+    let data64 = null;
     const size = fs.fstatSync(fd).size;
     while (offset + 8 <= size) {
       const chunk = Buffer.alloc(8);
@@ -85,8 +91,18 @@ function wavDuration(file) {
         rate = fmt.readUInt32LE(4);
         align = fmt.readUInt16LE(12);
       }
+      if (name === 'ds64' && length >= 24) {
+        const data = Buffer.alloc(24);
+        fs.readSync(fd, data, 0, 24, offset + 8);
+        data64 = Number(data.readBigUInt64LE(8));
+        if (!Number.isSafeInteger(data64)) throw new Error('RF64 文件过大');
+      }
       if (name === 'data' && rate && align)
-        return Math.min(length, size - offset - 8) / align / rate;
+        return (
+          Math.min(length === 0xffffffff && data64 != null ? data64 : length, size - offset - 8) /
+          align /
+          rate
+        );
       offset += 8 + length + (length % 2);
     }
     throw new Error('录音 WAV 缺少音频数据');
@@ -116,6 +132,10 @@ function convert(ffmpeg, source, dest, tempo = 1, pitch = 0) {
         filters,
         '-c:a',
         'pcm_f32le',
+        '-rf64',
+        'auto',
+        '-t',
+        '14401',
         dest,
       ],
       { windowsHide: true },
@@ -123,9 +143,16 @@ function convert(ffmpeg, source, dest, tempo = 1, pitch = 0) {
     let error = '';
     child.stderr.on('data', (b) => (error = (error + b).slice(-1500)));
     child.on('error', reject);
-    child.on('close', (code) =>
-      code === 0 ? resolve(dest) : reject(new Error(error || '录音转换未完成')),
-    );
+    child.on('close', (code) => {
+      if (code !== 0) return reject(new Error(error || '录音转换未完成'));
+      try {
+        if (wavDuration(dest) > 14400) throw new Error('导入录音最长四小时，请分段导入');
+        resolve(dest);
+      } catch (e) {
+        fs.rmSync(dest, { force: true });
+        reject(e);
+      }
+    });
   });
 }
 class Takes {
@@ -264,32 +291,43 @@ class Takes {
       !['instrument', 'mixed'].includes(mode)
     )
       throw new Error('导入位置无效');
-    for (const source of files) {
-      const id = crypto.randomUUID(),
-        relative = `recordings/${id}`,
-        folder = this.store.asset(projectId, relative);
-      fs.mkdirSync(folder, { recursive: true });
-      const raw = path.join(folder, 'source' + path.extname(source).toLowerCase());
-      fs.copyFileSync(source, raw);
-      await this.commit(
-        {
-          id,
-          projectId,
-          relative,
-          start: position,
-          tempo: 1,
-          pitch: 0,
-          mode,
-          latencyMs: 0,
-          createdAt: new Date().toISOString(),
-          inputLabel: t('导入文件'),
-        },
-        raw,
-      );
-      const p = this.store.get(projectId),
-        take = p.takes.find((item) => item.id === id);
-      take.name = path.basename(source, path.extname(source)).slice(0, 120);
-      this.store.save(p);
+    const before = this.store.get(projectId),
+      created = [];
+    try {
+      for (const source of files) {
+        const id = crypto.randomUUID(),
+          relative = `recordings/${id}`,
+          folder = this.store.asset(projectId, relative);
+        created.push(folder);
+        fs.mkdirSync(folder, { recursive: true });
+        const raw = path.join(folder, 'source' + path.extname(source).toLowerCase());
+        fs.copyFileSync(source, raw);
+        await this.commit(
+          {
+            id,
+            projectId,
+            relative,
+            start: position,
+            tempo: 1,
+            pitch: 0,
+            mode,
+            latencyMs: 0,
+            createdAt: new Date().toISOString(),
+            inputLabel: t('导入文件'),
+          },
+          raw,
+        );
+        const p = this.store.get(projectId),
+          take = p.takes.find((item) => item.id === id);
+        take.name = path.basename(source, path.extname(source)).slice(0, 120);
+        this.store.save(p);
+      }
+    } catch (error) {
+      this.store.save(before);
+      for (const folder of created)
+        if (path.dirname(folder) === this.store.asset(projectId, 'recordings'))
+          fs.rmSync(folder, { recursive: true, force: true });
+      throw error;
     }
     return this.store.get(projectId);
   }

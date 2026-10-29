@@ -5,10 +5,14 @@ import { asset, type Project } from '../../shared/types';
 export default function Attachments({
   project,
   onProject,
+  onNotes,
+  onNotesBlur,
   onError,
 }: {
   project: Project;
   onProject: (p: Project) => void;
+  onNotes: (p: Project) => void;
+  onNotesBlur: () => void;
   onError: (s: string) => void;
 }) {
   const [active, setActive] = useState(project.attachments[0]?.id || '');
@@ -64,7 +68,8 @@ export default function Attachments({
         <textarea
           placeholder={tr('记录指法、难点，或下次想练的内容…')}
           value={project.notes || ''}
-          onChange={(e) => onProject({ ...project, notes: e.target.value })}
+          onChange={(e) => onNotes({ ...project, notes: e.target.value })}
+          onBlur={onNotesBlur}
         />
       </div>
     </div>

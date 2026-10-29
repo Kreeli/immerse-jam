@@ -12,6 +12,9 @@ class Transfer {
     this.store = store;
     this.onIncoming = onIncoming;
     this.server = null;
+    this.generation = 0;
+    this.pending = new Map();
+    this.requests = new Set();
   }
   async start(ids) {
     if (this.server) this.stop();
@@ -21,9 +24,20 @@ class Transfer {
     this.token = crypto.randomBytes(24).toString('hex');
     this.expires = Date.now() + 30 * 60 * 1000;
     this.pending = new Map();
-    const hostAddresses = Object.values(os.networkInterfaces())
-      .flat()
+    const hostAddresses = Object.entries(os.networkInterfaces())
+      .flatMap(([name, values]) =>
+        (values || []).map((value) => ({
+          ...value,
+          virtual: /vpn|hyper-v|vmware|virtual|tailscale|wsl|vethernet|docker/i.test(name),
+        })),
+      )
       .filter((x) => x.family === 'IPv4' && !x.internal && !x.address.startsWith('169.254.'))
+      .sort(
+        (a, b) =>
+          Number(a.virtual) - Number(b.virtual) ||
+          Number(!/^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(a.address)) -
+            Number(!/^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(b.address)),
+      )
       .map((x) => x.address);
     this.server = http.createServer((req, res) =>
       this.handle(req, res).catch((e) => {
@@ -47,6 +61,7 @@ class Transfer {
     };
   }
   async handle(req, res) {
+    const generation = this.generation;
     const url = new URL(req.url, 'http://localhost');
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -73,6 +88,7 @@ class Transfer {
       const dest = path.join(dir, crypto.randomUUID() + '.ijam');
       try {
         await pack(this.store, id, dest);
+        if (generation !== this.generation) throw new Error('连接已关闭');
         res.setHeader('Content-Type', 'application/zip');
         res.setHeader('Content-Disposition', `attachment; filename="${id}.ijam"`);
         await pipeline(fs.createReadStream(dest), res);
@@ -96,15 +112,28 @@ class Transfer {
         received += chunk.length;
         if (received > limit) req.destroy(new Error('文件过大'));
       });
-      await pipeline(req, fs.createWriteStream(dest, { flags: 'wx' }));
-      this.pending.set(id, { id, file: dest, name });
-      this.onIncoming({ type: 'incoming', id, name, size: received });
-      return res.end('OK');
+      this.requests.add(req);
+      let accepted = false;
+      try {
+        await pipeline(req, fs.createWriteStream(dest, { flags: 'wx' }));
+        if (generation !== this.generation) throw new Error('连接已关闭');
+        this.pending.set(id, { id, file: dest, name });
+        accepted = true;
+        this.onIncoming({ type: 'incoming', id, name, size: received });
+        return res.end('OK');
+      } finally {
+        this.requests.delete(req);
+        if (!accepted) fs.rmSync(dest, { force: true });
+      }
     }
     res.writeHead(404);
     res.end();
   }
   stop() {
+    this.generation++;
+    for (const req of this.requests) req.destroy();
+    for (const item of this.pending.values()) fs.rmSync(item.file, { force: true });
+    this.pending.clear();
     this.server?.closeAllConnections();
     this.server?.close();
     this.server = null;

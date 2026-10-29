@@ -3376,12 +3376,12 @@
   display: flex;
   flex-direction: column;
   gap: 9px;
-  font-size: 11px;
+  font-size: 14px;
   color: var(--tone-b1a2b5);
 }
 .appearance-settings select {
   width: 100%;
-  font-size: 12px;
+  font-size: 14px;
   padding: 9px;
 }
 
@@ -3455,7 +3455,7 @@ textarea {
   margin-top: 16px;
 }
 .license-links small {
-  font-size: 10px;
+  font-size: 14px;
   color: var(--ui-muted);
   line-height: 1.7;
 }
@@ -3493,7 +3493,7 @@ textarea {
   width: 100%;
   min-width: 0;
   padding: 7px;
-  font-size: 11px;
+  font-size: 14px;
 }
 .playlist-editor {
   position: absolute;
@@ -3512,7 +3512,7 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  font-size: 11px;
+  font-size: 14px;
   width: 100%;
   color: var(--ui-muted);
 }

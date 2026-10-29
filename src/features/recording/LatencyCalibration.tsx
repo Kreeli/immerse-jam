@@ -22,10 +22,12 @@ export default function LatencyCalibration({
     [result, setResult] = useState<ReturnType<typeof analyzeLatency> | null>(null),
     [level, setLevel] = useState(0);
   const cancel = useRef(false),
+    controller = useRef<AbortController | null>(null),
     capture = useRef<AudioCapture | null>(null);
   const stop = () => {
-    if (!capture.current) return;
+    if (!controller.current) return;
     cancel.current = true;
+    controller.current?.abort();
     player.pause();
     void capture.current?.stop();
   };
@@ -40,17 +42,22 @@ export default function LatencyCalibration({
     setResult(null);
     setBeat(0);
     cancel.current = false;
+    const abort = new AbortController();
+    controller.current = abort;
     onBusy(true);
     const chunks: CalibrationChunk[] = [];
     let timer: ReturnType<typeof setInterval> | undefined;
+    let releaseAudio: (() => void) | undefined;
     const position = player.position(),
       loop = player.loop;
     try {
       player.pause();
       await player.init();
+      abort.signal.throwIfAborted();
       await player.setOutputDevice(settings.outputDeviceId);
-      await player.context!.resume();
-      player.rebuildDsp();
+      abort.signal.throwIfAborted();
+      releaseAudio = await player.previewClicks();
+      abort.signal.throwIfAborted();
       player.countInGain!.gain.value = player.project?.practice.metronomeVolume ?? 0.5;
       capture.current = await AudioCapture.open(
         player.context!,
@@ -67,7 +74,9 @@ export default function LatencyCalibration({
         () => {
           cancel.current = true;
         },
+        abort.signal,
       );
+      abort.signal.throwIfAborted();
       const start = player.context!.currentTime + 0.35,
         interval = 2 / 3,
         targets = Array.from({ length: 8 }, (_, i) => start + (i + 4) * interval);
@@ -90,9 +99,11 @@ export default function LatencyCalibration({
       if (timer) clearInterval(timer);
       await capture.current?.stop();
       capture.current = null;
+      controller.current = null;
       player.pause();
       player.loop = loop;
       player.seek(position);
+      releaseAudio?.();
       setRunning(false);
       setLevel(0);
       onBusy(false);

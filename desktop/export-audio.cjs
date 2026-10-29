@@ -73,7 +73,7 @@ function exportMix(store, id, ffmpeg, dest, region) {
       String((region.b - region.a) / p.practice.tempo),
     );
   if (path.extname(dest).toLowerCase() === '.mp3') args.push('-c:a', 'libmp3lame', '-b:a', '320k');
-  else args.push('-c:a', 'pcm_s24le');
+  else args.push('-c:a', 'pcm_s24le', '-rf64', 'auto');
   args.push(dest);
   return new Promise((resolve, reject) => {
     const child = spawn(ffmpeg, args, { windowsHide: true });
