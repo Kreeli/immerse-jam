@@ -32,5 +32,6 @@
 - Java 计算与对照 9 项测试通过。对照测试使用开发机 CPU 推理环境，没有以此冒充 Android 真机运行结果。
 - 50 项 Node 测试通过，新增离线 DSP 的变速／音高／双声道／损坏输入与二进制互传检查。手机／平板共享界面检查覆盖节拍保留、明确替换、取消任务和分享入口，不依赖 SDK 或模型，纳入 CI。
 - `.ijam` 节拍、小节首拍及已校准标记往返断言已加入 Android 设备测试源码；本轮只编译，不生成 APK 执行。
+- 源码提交 `f703b2a` 的 [GitHub Windows 与 Linux 后台检查](https://github.com/Kreeli/immerse-jam/actions/runs/40930735914)均通过，包含新增 Android 共享界面回归。
 
 复杂真实曲目、手机上的速度／温度、系统分享接收和原生 WebRTC／混音导出仍需后续设备验收。未完成能力继续见 [Android 功能表](ANDROID.md)。
