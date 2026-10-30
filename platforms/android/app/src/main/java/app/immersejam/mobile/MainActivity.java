@@ -16,6 +16,8 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.webkit.*;
+import com.journeyapps.barcodescanner.ScanContract;
+import com.journeyapps.barcodescanner.ScanOptions;
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -30,6 +32,16 @@ public class MainActivity extends ComponentActivity {
   private long lastBack;
   private boolean pageReady;
   private Intent sharedIntent;
+  private CompletableFuture<String> scanTask;
+  private final ActivityResultLauncher<ScanOptions> scanner =
+      registerForActivityResult(
+          new ScanContract(),
+          result -> {
+            CompletableFuture<String> task = scanTask;
+            scanTask = null;
+            if (task != null)
+              task.complete(result.getContents() == null ? "" : result.getContents());
+          });
   final ExecutorService io = Executors.newSingleThreadExecutor();
   private final ActivityResultLauncher<String[]> files =
       registerForActivityResult(
@@ -207,6 +219,28 @@ public class MainActivity extends ComponentActivity {
     return current.get();
   }
 
+  String scan() throws Exception {
+    if (scanTask != null) throw new IOException("已有扫码窗口");
+    scanTask = new CompletableFuture<>();
+    CompletableFuture<String> current = scanTask;
+    runOnUiThread(
+        () -> {
+          ScanOptions options =
+              new ScanOptions()
+                  .setDesiredBarcodeFormats(ScanOptions.QR_CODE)
+                  .setOrientationLocked(false)
+                  .setBeepEnabled(false)
+                  .setPrompt(
+                      getSharedPreferences("ui", MODE_PRIVATE)
+                              .getString("language", Locale.getDefault().getLanguage())
+                              .startsWith("zh")
+                          ? "扫描 Immerse Jam 配对二维码"
+                          : "Scan an Immerse Jam pairing code");
+          scanner.launch(options);
+        });
+    return current.get();
+  }
+
   @Override
   protected void onNewIntent(Intent intent) {
     super.onNewIntent(intent);
@@ -281,6 +315,7 @@ public class MainActivity extends ComponentActivity {
   @Override
   protected void onDestroy() {
     if (selection != null) selection.complete(List.of());
+    if (scanTask != null) scanTask.complete("");
     if (microphone != null) microphone.deny();
     io.shutdownNow();
     bridge.close();

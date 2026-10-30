@@ -2,9 +2,9 @@
 
 [简体中文](README.md) · [Architecture](docs/ARCHITECTURE.md) · [Project format](docs/DATA_FORMAT.md)
 
-**0.1.9 development source — pending user review, unreleased**, Windows 10/11 x64. The published desktop version remains 0.1.8. Local stem separation, music practice and multitrack recording. Analysis runs on your computer, with no subscription or separation quota.
+**0.1.9**, Windows 10/11 x64. Download from the [Release](https://github.com/Kreeli/immerse-jam/releases/tag/v0.1.9). Local stem separation, music practice and multitrack recording. Analysis runs on your computer, with no subscription or separation quota.
 
-An initial Android preview has a native host, phone/tablet layouts and local mobile inference. This revision updates source only; installers and Releases wait for explicit user approval. Android input is limited to 44 minutes, with additional playback/inference memory checks. It does not yet match every Windows feature; see [Android coverage](docs/ANDROID.md) and [build instructions](platforms/android/README.md). Android system code is separate from the Windows main process and Python runtime.
+The same Release includes **Android 0.1.0-preview.1 debug-signed preview APKs**, with phone/tablet layouts and local mobile inference. Choose `arm64-v8a.apk` for supported phones; `x86_64.apk` is for emulators. It does not yet match every Windows feature: background playback, physical audio interfaces and camera decoding still need implementation or device validation. Input is limited to 44 minutes, with additional memory checks. See [Android coverage](docs/ANDROID.md) and [build instructions](platforms/android/README.md). Android system code is separate from the Windows main process and Python runtime.
 
 ## Install
 
@@ -34,7 +34,7 @@ Chord charts follow playback, with blank slots, moves/swaps, sections, bar calib
 
 Full `.ijam` projects retain independent model results, creation groups, takes, scores and practice state. Grouped creation archives require 0.1.6 or newer. Export mixes as WAV/MP3 or copy ordinary stems. Read-only Audio Jam migration copies local media; cloud-only files cannot be recovered. See [project format](docs/DATA_FORMAT.md).
 
-LAN/hotspot QR transfer works with phone browsers. Remote WebRTC uses exchanged connection codes and public STUN, without a configured TURN relay; some networks cannot connect. Cross-carrier and physical mobile-device testing remains limited. Native Android, Bluetooth, remote resume and conflict merging are future work.
+LAN/hotspot QR transfer works with phone browsers, and the native Android preview includes a scanner and LAN client. Remote WebRTC uses exchanged connection codes and public STUN, without a configured TURN relay; some networks cannot connect. Cross-carrier and physical mobile-device testing remains limited. Bluetooth, remote resume and conflict merging are future work.
 
 Switch Chinese/English, dark/light/system and rose/blue/green/purple accents. User text is preserved.
 

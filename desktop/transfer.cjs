@@ -87,7 +87,7 @@ class Transfer {
       fs.mkdirSync(dir, { recursive: true });
       const dest = path.join(dir, crypto.randomUUID() + '.ijam');
       try {
-        await pack(this.store, id, dest);
+        await pack(this.store, id, dest, true);
         if (generation !== this.generation) throw new Error('连接已关闭');
         res.setHeader('Content-Type', 'application/zip');
         res.setHeader('Content-Disposition', `attachment; filename="${id}.ijam"`);

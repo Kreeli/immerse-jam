@@ -2,6 +2,8 @@
 
 2026-10-30。Windows 已由用户验收；本轮继续更新 Android 源码，未生成 APK／安装包或发布 Release。
 
+本文记录 `f703b2a` 阶段。随后用户批准了仅用于模拟器的本地调试 APK，新增原生验收和当前状态见 [设备验收记录](ANDROID-DEVICE-VALIDATION-2026-10-30.md)。下文的待验收描述保留为当时记录。
+
 ## 节拍优先
 
 - 移植电脑同一份 Beat This! final0 权重，转换为约 78 MiB 的 ONNX，计划随 Android 安装包提供。没有重新训练或量化；权重与 Slaney mel 矩阵均固定 SHA-256。

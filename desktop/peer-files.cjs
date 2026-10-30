@@ -21,7 +21,7 @@ class PeerFiles {
       const file = path.join(this.store.base, 'transfers', key + '.ijam');
       fs.mkdirSync(path.dirname(file), { recursive: true });
       try {
-        await pack(this.store, id, file);
+        await pack(this.store, id, file, true);
         if (generation !== this.generation) throw new Error('连接已关闭');
       } catch (error) {
         fs.rmSync(file, { force: true });

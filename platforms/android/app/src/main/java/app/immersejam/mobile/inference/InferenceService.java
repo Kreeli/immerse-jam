@@ -5,7 +5,9 @@ import android.app.*;
 import android.content.Intent;
 import android.os.*;
 import app.immersejam.mobile.*;
+import app.immersejam.mobile.processing.MidiScore;
 import app.immersejam.mobile.processing.MusicAnalysis;
+import app.immersejam.mobile.processing.ScoreAlignment;
 import java.io.*;
 import java.nio.*;
 import java.nio.file.*;
@@ -129,6 +131,59 @@ public class InferenceService extends Service {
         throw new IOException("剩余存储空间不足");
       progress(job, .03, "正在解码音频");
       AudioFiles.decode(input, decoded, () -> cancelled);
+      if (request.optString("operation").equals("align")) {
+        final String task = job;
+        MusicAnalysis.Progress observer =
+            value -> {
+              check();
+              progress(task, .05 + .9 * value, "在本机匹配乐谱与原曲位置");
+            };
+        MidiScore score = MidiScore.read(ProjectStore.contained(project, p.getString("scoreMidi")));
+        MusicAnalysis.Features features =
+            MusicAnalysis.extract(
+                decoded,
+                value -> {
+                  check();
+                  progress(task, .05 + .3 * value, "提取原曲音高特征");
+                });
+        ScoreAlignment.Result result = ScoreAlignment.align(score, features, observer);
+        JSONArray points = new JSONArray(), notes = new JSONArray(), uncertain = new JSONArray();
+        for (ScoreAlignment.Point point : result.points) {
+          JSONObject anchor =
+              new JSONObject()
+                  .put("scoreTime", point.scoreTime)
+                  .put("audioTime", point.audioTime)
+                  .put("confidence", point.confidence);
+          points.put(anchor);
+          if (point.confidence < .55)
+            uncertain.put(
+                new JSONObject()
+                    .put("scoreTime", point.scoreTime)
+                    .put("audioTime", point.audioTime));
+        }
+        for (MidiScore.Note note : score.notes)
+          notes.put(
+              new JSONObject()
+                  .put("start", note.start)
+                  .put("end", note.end)
+                  .put("pitch", note.pitch)
+                  .put("velocity", note.velocity)
+                  .put("drum", note.drum)
+                  .put("program", note.program));
+        JSONObject alignment =
+            new JSONObject()
+                .put("schemaVersion", 1)
+                .put("method", "android-chroma-dtw-v1")
+                .put("points", points)
+                .put("notes", notes)
+                .put("duration", score.duration)
+                .put("transpose", result.transpose)
+                .put("confidence", result.confidence)
+                .put("needsReview", result.confidence < .72)
+                .put("uncertain", uncertain);
+        publishPatch(root, id, job, new JSONObject().put("alignment", alignment));
+        return;
+      }
       if (request.optString("operation").equals("analyze")) {
         final String task = job;
         MusicAnalysis.Progress observer =
@@ -183,16 +238,7 @@ public class InferenceService extends Service {
                 "tempoMethod",
                 "tempoReviewed")) if (rhythm.has(field)) analysis.put(field, rhythm.get(field));
         JSONObject patch = new JSONObject().put("analysis", analysis);
-        check();
-        ProjectStore.write(
-            new File(root, "pending-results/" + id + "-" + job + ".json"),
-            new JSONObject().put("patch", patch));
-        emit(
-            new JSONObject()
-                .put("type", "complete")
-                .put("jobId", job)
-                .put("projectId", id)
-                .put("processingPatch", true));
+        publishPatch(root, id, job, patch);
         return;
       }
       File modelFile = new File(model.getString("path"));
@@ -368,5 +414,18 @@ public class InferenceService extends Service {
     cancelled = true;
     worker.shutdownNow();
     super.onDestroy();
+  }
+
+  void publishPatch(File root, String id, String job, JSONObject patch) throws Exception {
+    check();
+    ProjectStore.write(
+        new File(root, "pending-results/" + id + "-" + job + ".json"),
+        new JSONObject().put("patch", patch));
+    emit(
+        new JSONObject()
+            .put("type", "complete")
+            .put("jobId", job)
+            .put("projectId", id)
+            .put("processingPatch", true));
   }
 }

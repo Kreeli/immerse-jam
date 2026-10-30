@@ -21,6 +21,7 @@ dependencies {
     implementation("androidx.activity:activity:1.11.0")
     implementation("androidx.webkit:webkit:1.14.0")
     implementation("com.microsoft.onnxruntime:onnxruntime-android:1.23.2")
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")

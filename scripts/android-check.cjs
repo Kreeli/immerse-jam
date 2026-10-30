@@ -62,7 +62,10 @@ const command = (...args) =>
     fs.mkdirSync('test-output', { recursive: true });
     fs.writeFileSync(
       'test-output/android-library.png',
-      cp.execFileSync(adb, ['exec-out', 'screencap', '-p'], { windowsHide: true }),
+      cp.execFileSync(adb, ['exec-out', 'screencap', '-p'], {
+        windowsHide: true,
+        maxBuffer: 16 * 1024 * 1024,
+      }),
     );
     const song = page.locator('.song-info').filter({ hasText: 'Android 验收' }).first();
     if (await song.count()) {
@@ -80,7 +83,10 @@ const command = (...args) =>
       await page.locator('.mixer-shell').waitFor({ state: 'hidden' });
       fs.writeFileSync(
         'test-output/android-player.png',
-        cp.execFileSync(adb, ['exec-out', 'screencap', '-p'], { windowsHide: true }),
+        cp.execFileSync(adb, ['exec-out', 'screencap', '-p'], {
+          windowsHide: true,
+          maxBuffer: 16 * 1024 * 1024,
+        }),
       );
       command('shell', 'input', 'keyevent', '4');
       await page.locator('.browse-content').waitFor({ state: 'visible' });

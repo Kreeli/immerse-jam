@@ -256,7 +256,10 @@ public class ProjectStore {
     try (InputStream in = new FileInputStream(file)) {
       byte[] b = new byte[65536];
       int n;
-      while ((n = in.read(b)) >= 0) digest.update(b, 0, n);
+      while ((n = in.read(b)) >= 0) {
+        if (Thread.currentThread().isInterrupted()) throw new IOException("已取消");
+        digest.update(b, 0, n);
+      }
     }
     StringBuilder result = new StringBuilder();
     for (byte b : digest.digest())
@@ -365,21 +368,33 @@ public class ProjectStore {
     long total = 0;
     int count = 0;
     Set<String> names = new HashSet<>();
-    try (ZipInputStream in = new ZipInputStream(new FileInputStream(archive))) {
-      ZipEntry entry;
+    // Desktop archiver uses streamed STORED entries with data descriptors.
+    // ZipFile uses central-directory sizes instead of guessing their boundaries.
+    try (ZipFile zip = new ZipFile(archive)) {
+      Enumeration<? extends ZipEntry> entries = zip.entries();
       byte[] bytes = new byte[65536];
-      while ((entry = in.getNextEntry()) != null) {
+      while (entries.hasMoreElements()) {
+        ZipEntry entry = entries.nextElement();
         if (++count > 6000 || !names.add(entry.getName())) throw new IOException("压缩包条目无效");
+        if (entry.getSize() > 8L * 1024 * 1024 * 1024
+            || entry.getName().toLowerCase(Locale.ROOT).endsWith(".json")
+                && entry.getSize() > 16L * 1048576) throw new IOException("压缩包条目过大");
         File dest = contained(folder, entry.getName());
         if (entry.isDirectory()) {
           dest.mkdirs();
           continue;
         }
         dest.getParentFile().mkdirs();
-        try (OutputStream out = new FileOutputStream(dest)) {
+        try (InputStream in = zip.getInputStream(entry);
+            OutputStream out = new FileOutputStream(dest)) {
           int n;
+          long written = 0;
           while ((n = in.read(bytes)) >= 0) {
+            if (Thread.currentThread().isInterrupted()) throw new IOException("已取消");
             total += n;
+            written += n;
+            if (entry.getName().toLowerCase(Locale.ROOT).endsWith(".json")
+                && written > 16L * 1048576) throw new IOException("压缩包清单过大");
             if (total > 8L * 1024 * 1024 * 1024) throw new IOException("压缩包过大");
             out.write(bytes, 0, n);
           }
@@ -396,7 +411,7 @@ public class ProjectStore {
       while (keys.hasNext()) {
         String file = keys.next();
         if (!sha(contained(folder, file)).equalsIgnoreCase(hashes.getString(file)))
-          throw new IOException("压缩包校验失败");
+          throw new IOException("压缩包校验失败：" + file);
       }
       ProjectValidation.repairLegacyAnalysis(p);
       ProjectValidation.validate(p);
@@ -428,7 +443,8 @@ public class ProjectStore {
           AudioFiles.checkDuration(seconds);
           measured = Math.max(measured, seconds);
         }
-      p.put("duration", Math.max(p.optDouble("duration"), measured));
+      p.put("duration", Math.max(p.optDouble("duration", 0), measured));
+      if (Thread.currentThread().isInterrupted()) throw new IOException("已取消");
       return save(p);
     } catch (Exception error) {
       remove(folder);
@@ -452,6 +468,8 @@ public class ProjectStore {
       }
       out.putNextEntry(new ZipEntry("project.json"));
       p.remove("recordingSettings");
+      if (!p.optString("kind").equals("creation") && p.getJSONArray("sourceGroups").length() == 0)
+        p.remove("sourceGroups");
       out.write(p.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
       out.closeEntry();
       out.putNextEntry(new ZipEntry("checksums.json"));

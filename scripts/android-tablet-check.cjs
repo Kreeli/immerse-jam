@@ -40,7 +40,10 @@ let browser;
     assert.ok(bounds.wave.right <= bounds.mixer.x + 5, JSON.stringify(bounds));
     fs.writeFileSync(
       'test-output/android-tablet.png',
-      cp.execFileSync(adb, ['exec-out', 'screencap', '-p'], { windowsHide: true }),
+      cp.execFileSync(adb, ['exec-out', 'screencap', '-p'], {
+        windowsHide: true,
+        maxBuffer: 16 * 1024 * 1024,
+      }),
     );
     cmd('shell', 'input', 'keyevent', '4');
     await p.locator('.browse-content').waitFor({ state: 'visible' });

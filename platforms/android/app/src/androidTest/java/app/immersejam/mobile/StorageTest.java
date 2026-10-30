@@ -14,6 +14,90 @@ import org.junit.runner.RunWith;
 @RunWith(AndroidJUnit4.class)
 public class StorageTest {
   @Test
+  public void desktopBeatFixtureImportsAndExportsNativeMix() throws Exception {
+    Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+    File fixture = new File(context.getCacheDir(), "device-fixtures/source.ijam");
+    Assume.assumeTrue(fixture.isFile());
+    ProjectStore store = new ProjectStore(context);
+    File isolated = File.createTempFile("parity-", ".ijam", context.getCacheDir());
+    JSONObject p;
+    // Each run has its own origin, avoiding the app's intentional same-origin deduplication.
+    try {
+      try (java.util.zip.ZipFile source = new java.util.zip.ZipFile(fixture);
+          java.util.zip.ZipOutputStream out =
+              new java.util.zip.ZipOutputStream(new FileOutputStream(isolated))) {
+        Enumeration<? extends java.util.zip.ZipEntry> entries = source.entries();
+        while (entries.hasMoreElements()) {
+          java.util.zip.ZipEntry entry = entries.nextElement();
+          out.putNextEntry(new java.util.zip.ZipEntry(entry.getName()));
+          try (InputStream in = source.getInputStream(entry)) {
+            if (entry.getName().equals("project.json")) {
+              JSONObject manifest =
+                  new JSONObject(
+                      new String(ProjectStore.bytes(in), java.nio.charset.StandardCharsets.UTF_8));
+              manifest.put("originId", UUID.randomUUID().toString());
+              out.write(manifest.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            } else {
+              byte[] buffer = new byte[65536];
+              int n;
+              while ((n = in.read(buffer)) != -1) out.write(buffer, 0, n);
+            }
+          }
+          out.closeEntry();
+        }
+      }
+      p = store.importArchive(isolated, UUID.randomUUID().toString());
+    } finally {
+      isolated.delete();
+    }
+    assertEquals(72, p.getJSONObject("analysis").getJSONArray("beats").length());
+    assertEquals(18, p.getJSONObject("analysis").getJSONArray("downbeats").length());
+    assertEquals(120.123, p.getJSONObject("analysis").getDouble("bpm"), 1e-9);
+    assertTrue(p.getJSONObject("analysis").getBoolean("tempoReviewed"));
+    NativeTakes takes = new NativeTakes(store);
+    NativeAudio audio = new NativeAudio(store, takes);
+    try {
+      JSONObject render =
+          audio.start(
+              new JSONObject()
+                  .put("id", p.getString("id"))
+                  .put("region", new JSONObject().put("a", .4).put("b", 1.4)));
+      for (long cursor = 0; cursor < render.getLong("frames"); ) {
+        String chunk = audio.read(render.getString("id"));
+        cursor += android.util.Base64.decode(chunk, android.util.Base64.NO_WRAP).length / 8;
+        audio.append(new JSONObject().put("id", render.getString("id")).put("chunk", chunk));
+      }
+      File mixed = (File) audio.finish(render.getString("id"));
+      try (app.immersejam.mobile.processing.WaveReader reader =
+          new app.immersejam.mobile.processing.WaveReader(mixed)) {
+        assertEquals(1, reader.duration(), 1e-9);
+        assertTrue(Math.abs(reader.sample(.05, 0)) > .001);
+      }
+      mixed.delete();
+      JSONArray badPoints =
+          new JSONArray()
+              .put(new JSONObject().put("scoreTime", 1).put("audioTime", 2).put("confidence", 1))
+              .put(new JSONObject().put("scoreTime", 0).put("audioTime", 1).put("confidence", 1));
+      JSONObject invalid =
+          new JSONObject(p.toString())
+              .put(
+                  "alignment",
+                  new JSONObject()
+                      .put("duration", 36)
+                      .put("confidence", .8)
+                      .put("points", badPoints));
+      try {
+        ProjectValidation.validate(invalid);
+        fail("Invalid alignment accepted");
+      } catch (Exception expected) {
+      }
+    } finally {
+      audio.close();
+      takes.close();
+    }
+  }
+
+  @Test
   public void interruptedRecordingRecoversWithTimeline() throws Exception {
     Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
     ProjectStore store = new ProjectStore(context);

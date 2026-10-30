@@ -100,6 +100,8 @@ public final class ProjectValidation {
       number(mark, "end", mark.getDouble("start"), 2640, true);
     }
     JSONObject analysis = p.optJSONObject("analysis");
+    if (p.has("analysis") && !p.isNull("analysis") && analysis == null)
+      throw new IOException("分析数据格式无效");
     if (analysis != null) {
       number(analysis, "bpm", 0, 350, false);
       for (String key : List.of("beats", "downbeats")) {
@@ -120,6 +122,35 @@ public final class ProjectValidation {
         number(c, "end", c.getDouble("start"), 2640, false);
         number(c, "confidence", 0, 1, false);
         if (!(c.opt("label") instanceof String)) throw new IOException("和弦名称无效");
+      }
+    }
+    JSONObject alignment = p.optJSONObject("alignment");
+    if (p.has("alignment") && !p.isNull("alignment") && alignment == null)
+      throw new IOException("乐谱同步数据格式无效");
+    if (alignment != null) {
+      number(alignment, "duration", 0, 2640, false);
+      number(alignment, "confidence", 0, 1, false);
+      number(alignment, "transpose", -12, 12, true);
+      JSONArray points = array(alignment, "points", 100000);
+      double lastScore = 0, lastAudio = 0;
+      for (int i = 0; i < points.length(); i++) {
+        JSONObject point = points.getJSONObject(i);
+        number(point, "scoreTime", lastScore, 2640, false);
+        number(point, "audioTime", lastAudio, 2640, false);
+        number(point, "confidence", 0, 1, false);
+        lastScore = point.getDouble("scoreTime");
+        lastAudio = point.getDouble("audioTime");
+      }
+      JSONArray notes = array(alignment, "notes", 100000);
+      for (int i = 0; i < notes.length(); i++) {
+        JSONObject note = notes.getJSONObject(i);
+        number(note, "start", 0, 2640, false);
+        number(note, "end", note.getDouble("start"), 2640, false);
+        number(note, "pitch", 0, 127, false);
+        number(note, "velocity", 0, 127, false);
+        number(note, "program", 0, 127, true);
+        if (note.has("drum") && !(note.opt("drum") instanceof Boolean))
+          throw new IOException("乐谱打击乐标记无效");
       }
     }
   }

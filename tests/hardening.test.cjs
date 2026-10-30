@@ -270,10 +270,24 @@ test('binary peer chunks avoid base64 on desktop while preserving integrity', as
     }
     receiver.finish({ id });
     assert.equal(receiver.pending.size, 1);
+    const zip = new (require('adm-zip'))(receiver.pending.get(id).file);
+    const shared = JSON.parse(zip.readAsText('project.json'));
+    assert.deepEqual(shared.analysis, p.analysis);
   } finally {
     sender.close();
     receiver.close();
   }
+});
+test('mobile empty group arrays round-trip without permitting groups on music entries', async () => {
+  const { store, p, data } = createInteractionFixture(1);
+  p.sourceGroups = [];
+  store.save(p);
+  const file = path.join(data, 'mobile-shape.ijam');
+  await pack(store, p.id, file, true);
+  const target = new Store(path.join(data, 'receiver')),
+    copy = await importArchive(target, file);
+  assert.deepEqual(copy.sourceGroups, []);
+  assert.throws(() => store.save({ ...p, sourceGroups: [{ tracks: [] }] }), /分轨分组/);
 });
 
 test('reset drains SoundTouch circular adapter history while preserving the worklet instance', async () => {

@@ -69,11 +69,18 @@ let browser;
           else if (method === 'runtime-status') result = { ready: true };
           else if (method === 'update') result = Object.assign(project, data.patch);
           else if (method === 'run') result = { jobId: 'mobile-job' };
+          else if (method === 'android-scan-pair')
+            result = 'http://192.168.1.2/?token=' + 'a'.repeat(48);
+          else if (method === 'android-lan-list')
+            result = [{ id: project.id, title: project.title }];
+          else if (method === 'android-lan-download') result = [project];
           else if (
             method === 'android-playback-budget' ||
             method === 'ui-language' ||
             method === 'android-share-projects' ||
-            method === 'peer-close'
+            method === 'peer-close' ||
+            method === 'android-lan-cancel' ||
+            method === 'android-lan-upload'
           )
             result = true;
           else if (method === 'cancel') {
@@ -135,12 +142,26 @@ let browser;
     1,
   );
   assert.equal(await page.getByRole('button', { name: '生成配对二维码', exact: true }).count(), 0);
+  await page.getByRole('button', { name: '扫描配对二维码', exact: true }).click();
+  await page.getByText('已连接，可选择接收或发送歌曲', { exact: true }).waitFor();
+  await page.getByRole('button', { name: '接收选中的歌曲', exact: true }).click();
+  await page.getByText('已接收 1 首歌曲', { exact: true }).waitFor();
+  await page.getByRole('button', { name: '发送上方选中的歌曲', exact: true }).click();
+  await page.getByText('已发送，请在电脑确认导入', { exact: true }).waitFor();
+  assert.deepEqual(
+    await page.evaluate(() =>
+      window.__nativeCalls
+        .filter((c) => ['android-lan-download', 'android-lan-upload'].includes(c.method))
+        .map((c) => c.data.ids),
+    ),
+    [[p.id], [p.id]],
+  );
   assert.ok(await page.evaluate(() => document.body.scrollWidth <= innerWidth + 1));
   await page.setViewportSize({ width: 1280, height: 800 });
   assert.ok(await page.evaluate(() => document.body.scrollWidth <= innerWidth + 1));
   assert.deepEqual(errors, []);
   console.log(
-    'ANDROID_SHARED_UI_PASSED preserveImportedBeats=true explicitReplace=true cancellation=true share=true phoneAndTablet=true',
+    'ANDROID_SHARED_UI_PASSED preserveImportedBeats=true explicitReplace=true cancellation=true share=true lanControls=true phoneAndTablet=true',
   );
 })()
   .catch((e) => {

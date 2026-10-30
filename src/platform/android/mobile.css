@@ -1,6 +1,12 @@
 html[data-platform='android'] {
   -webkit-tap-highlight-color: transparent;
 }
+html[data-platform='android'] .android-lan-transfer input:not([type='checkbox']) {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  margin: 8px 0;
+}
 html[data-platform='android'] .app {
   height: 100dvh;
 }

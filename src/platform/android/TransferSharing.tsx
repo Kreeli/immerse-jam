@@ -1,17 +1,21 @@
 import { Share2 } from 'lucide-react';
 import { t as tr } from '../../i18n';
+import LanTransfer from './LanTransfer';
 export default function TransferSharing({
   ids,
   onError,
+  onChanged,
 }: {
   ids: string[];
   onError: (message: string) => void;
+  onChanged: () => void;
 }) {
   return (
     <div className="notice">
+      <LanTransfer ids={ids} onChanged={onChanged} onError={onError} />
       <p>
         {tr(
-          '完整歌曲文件包含原曲、分轨、节拍、小节首拍和和弦谱。可从电脑导出 .ijam，再在手机导入；也可通过系统分享发给朋友。',
+          '完整歌曲文件包含原曲、分轨、节拍、和弦谱，以及附件和录音（如有）。可从电脑导出 .ijam 导入手机，也可通过系统分享发给朋友。',
         )}
       </p>
       <button

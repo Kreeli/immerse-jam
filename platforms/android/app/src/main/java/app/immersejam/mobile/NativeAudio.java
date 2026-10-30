@@ -14,6 +14,7 @@ import org.json.*;
  */
 final class NativeAudio implements AutoCloseable {
   final ProjectStore store;
+  final NativeTakes takes;
   final Map<String, Session> sessions = new java.util.concurrent.ConcurrentHashMap<>();
   volatile boolean closed;
 
@@ -23,10 +24,13 @@ final class NativeAudio implements AutoCloseable {
     RandomAccessFile input, out;
     long frames, read, written;
     double tempo, pitch, master;
+    int sampleRate = 44100;
+    NativeTakes.Session recording;
   }
 
-  NativeAudio(ProjectStore store) {
+  NativeAudio(ProjectStore store, NativeTakes takes) {
     this.store = store;
+    this.takes = takes;
   }
 
   JSONArray tracks(JSONObject p) throws Exception {
@@ -85,7 +89,7 @@ final class NativeAudio implements AutoCloseable {
           JSONObject t = new JSONObject(tracks.getJSONObject(j).toString());
           if (t.optBoolean("mute") || (innerSolo && !t.optBoolean("solo"))) continue;
           t.put("gain", t.getDouble("gain") * g.optDouble("gain", 1))
-              .put("start", t.optDouble("start") + g.optDouble("start"))
+              .put("start", t.optDouble("start", 0) + g.optDouble("start", 0))
               .put("solo", false);
           all.put(t);
         }
@@ -95,7 +99,7 @@ final class NativeAudio implements AutoCloseable {
       JSONObject t = new JSONObject(takes.getJSONObject(i).toString());
       if (!creation && !selected.contains(t.getString("id"))) continue;
       if (creation && outerSolo && !t.optBoolean("solo")) continue;
-      t.put("start", t.optDouble("start") + t.optDouble("offsetMs") / 1000);
+      t.put("start", t.optDouble("start", 0) + t.optDouble("offsetMs", 0) / 1000);
       if (creation) t.put("solo", false);
       all.put(t);
     }
@@ -141,7 +145,7 @@ final class NativeAudio implements AutoCloseable {
         readers.add(reader);
         AudioFiles.checkDuration(reader.duration());
         duration =
-            Math.max(duration, reader.duration() + tracks.getJSONObject(i).optDouble("start"));
+            Math.max(duration, reader.duration() + tracks.getJSONObject(i).optDouble("start", 0));
       }
       AudioFiles.checkDuration(duration);
       double a = 0, b = duration;
@@ -169,7 +173,7 @@ final class NativeAudio implements AutoCloseable {
             JSONObject track = tracks.getJSONObject(j);
             double gain = track.getDouble("gain"),
                 pan = track.getDouble("pan"),
-                offset = track.optDouble("start");
+                offset = track.optDouble("start", 0);
             WaveReader reader = readers.get(j);
             for (int i = 0; i < count; i++) {
               double t = a + (start + i) / 44100.0 - offset;
@@ -232,6 +236,51 @@ final class NativeAudio implements AutoCloseable {
     return s;
   }
 
+  JSONObject startTake(String id) throws Exception {
+    if (closed || !sessions.isEmpty()) throw new IOException("已有音频处理正在进行，请稍后恢复录音");
+    NativeTakes.Session recording = takes.seal(id);
+    if (recording.frames == 0)
+      return new JSONObject()
+          .put("project", takes.commit(recording, recording.relative + "/raw.wav"));
+    Session s = new Session();
+    s.id = UUID.randomUUID().toString();
+    s.recording = recording;
+    s.frames = recording.frames;
+    s.sampleRate = recording.options.getInt("sampleRate");
+    s.tempo = 1 / recording.options.optDouble("tempo", 1);
+    s.pitch = -recording.options.optDouble("pitch", 0);
+    s.master = 1;
+    s.folder = new File(store.context.getCacheDir(), "render-" + s.id);
+    s.folder.mkdirs();
+    try {
+      if (s.folder.getUsableSpace() < s.frames / s.tempo * 8 + 100L * 1048576)
+        throw new IOException("剩余存储空间不足；原始录音已保留，可稍后恢复");
+      s.input =
+          new RandomAccessFile(
+              store.asset(recording.projectId, recording.relative + "/raw.wav"), "r");
+      s.input.seek(44);
+      s.output = new File(s.folder, "normalized.wav");
+      s.out = new RandomAccessFile(s.output, "rw");
+      AudioFiles.header(s.out, 0, s.sampleRate, 32, 3);
+      s.out.seek(44);
+      sessions.put(s.id, s);
+      if (closed) {
+        abort(s.id);
+        throw new IOException("已取消");
+      }
+      return new JSONObject()
+          .put("id", s.id)
+          .put("frames", s.frames)
+          .put("sampleRate", s.sampleRate)
+          .put("tempo", s.tempo)
+          .put("pitch", s.pitch);
+    } catch (Exception error) {
+      sessions.put(s.id, s);
+      abort(s.id);
+      throw error;
+    }
+  }
+
   String read(String id) throws Exception {
     Session s = session(id);
     int count = (int) Math.min(8192, s.frames - s.read);
@@ -249,24 +298,42 @@ final class NativeAudio implements AutoCloseable {
     if (data.length % 8 != 0 || s.written + data.length / 8 > Math.ceil(s.frames / s.tempo) + 2)
       throw new IOException("导出长度无效");
     ByteBuffer input = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN),
-        output = ByteBuffer.allocate(data.length / 2).order(ByteOrder.LITTLE_ENDIAN);
+        output =
+            ByteBuffer.allocate(s.recording == null ? data.length / 2 : data.length)
+                .order(ByteOrder.LITTLE_ENDIAN);
     while (input.hasRemaining()) {
       float value = input.getFloat();
       if (!Float.isFinite(value)) throw new IOException("导出采样无效");
-      output.putShort((short) Math.round(Math.max(-.98, Math.min(.98, value * s.master)) * 32767));
+      if (s.recording != null) output.putFloat(value);
+      else
+        output.putShort(
+            (short) Math.round(Math.max(-.98, Math.min(.98, value * s.master)) * 32767));
     }
     s.out.write(output.array());
     s.written += data.length / 8;
     return true;
   }
 
-  File finish(String id) throws Exception {
+  Object finish(String id) throws Exception {
     Session s = session(id);
     try {
       if (Math.abs(s.written - Math.round(s.frames / s.tempo)) > 2) throw new IOException("导出尚未完成");
-      AudioFiles.header(s.out, s.written, 44100, 16, 1);
+      AudioFiles.header(
+          s.out,
+          s.written,
+          s.sampleRate,
+          s.recording == null ? 16 : 32,
+          s.recording == null ? 1 : 3);
       s.out.close();
       s.input.close();
+      if (s.recording != null) {
+        String relative = s.recording.relative + "/track.wav";
+        java.nio.file.Files.move(
+            s.output.toPath(),
+            store.asset(s.recording.projectId, relative).toPath(),
+            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        return takes.commit(s.recording, relative);
+      }
       File folder = new File(store.context.getExternalFilesDir(null), "exports");
       folder.mkdirs();
       File file = new File(folder, s.id + ".wav");

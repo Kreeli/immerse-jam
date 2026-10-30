@@ -26,7 +26,11 @@ function validateGroups(p) {
       throw new Error('分轨分组设置无效');
   }
   if (!p.sourceGroups) return;
-  if (p.kind !== 'creation' || !Array.isArray(p.sourceGroups) || p.sourceGroups.length > 100)
+  if (
+    !Array.isArray(p.sourceGroups) ||
+    p.sourceGroups.length > 100 ||
+    (p.kind !== 'creation' && p.sourceGroups.length)
+  )
     throw new Error('分轨分组数据无效');
   const ids = new Set(),
     tracks = new Set([

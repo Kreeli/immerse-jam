@@ -79,6 +79,11 @@ if (action !== 'wrapper') {
     path.join(root, 'platforms/android/THIRD_PARTY_NOTICES.md'),
     path.join(android, 'app/src/main/assets/legal/ANDROID_NOTICES.md'),
   );
+  for (const notice of ['Apache-2.0.txt', 'ZXing-NOTICE.txt'])
+    fs.copyFileSync(
+      path.join(android, notice),
+      path.join(android, 'app/src/main/assets/legal', notice),
+    );
   fs.copyFileSync(
     path.join(root, 'backend/vendor/beat_this/LICENSE'),
     path.join(android, 'app/src/main/assets/legal/BeatThis-LICENSE.txt'),

@@ -1122,7 +1122,7 @@ export default function App() {
                 {!isAndroid && (
                   <p className="muted">
                     {tr(
-                      '选择歌曲，用手机扫描二维码。双方连接同一 Wi‑Fi 或手机热点，原曲和分轨直接互传。',
+                      '选择歌曲，用手机扫描二维码。双方连接同一 Wi‑Fi 或热点，原曲、分轨、节拍、乐谱及录音（如有）直接互传。',
                     )}
                   </p>
                 )}
@@ -1149,7 +1149,11 @@ export default function App() {
                   ))}
                 </div>
                 {isAndroid ? (
-                  <AndroidTransferSharing ids={selected} onError={notify} />
+                  <AndroidTransferSharing
+                    ids={selected}
+                    onError={notify}
+                    onChanged={() => void refresh()}
+                  />
                 ) : (
                   <>
                     <button
