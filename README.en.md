@@ -1,6 +1,6 @@
 # Immerse Jam
 
-[简体中文](README.md) · [Architecture](docs/ARCHITECTURE.md) · [Project format](docs/DATA_FORMAT.md)
+[简体中文](README.md) · [Development handoff (Chinese)](DEVELOPMENT_HANDOFF.md) · [Architecture](docs/ARCHITECTURE.md) · [Project format](docs/DATA_FORMAT.md)
 
 **0.1.9**, Windows 10/11 x64. Download from the [Release](https://github.com/Kreeli/immerse-jam/releases/tag/v0.1.9). Local stem separation, music practice and multitrack recording. Analysis runs on your computer, with no subscription or separation quota.
 
