@@ -1,3 +1,5 @@
+import Select from '../../shared/Select';
+import { jamCall } from '../../platform/project-call';
 import { File, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { t as tr } from '../../i18n';
@@ -20,19 +22,18 @@ export default function Attachments({
   return (
     <div className="attachment-panel">
       <div className="score-toolbar">
-        <select value={active} onChange={(e) => setActive(e.target.value)}>
+        <Select value={active} onChange={(e) => setActive(e.target.value)}>
           <option value="">{tr('选择附件')}</option>
           {project.attachments.map((a) => (
             <option key={a.id} value={a.id}>
               {a.name}
             </option>
           ))}
-        </select>
+        </Select>
         <button
           className="small"
           onClick={() =>
-            void window.jam
-              .call<Project>('attach', { id: project.id })
+            void jamCall<Project>('attach', { id: project.id })
               .then(onProject)
               .catch((e) => onError(e.message))
           }

@@ -1,5 +1,6 @@
 import { Gauge, LoaderCircle, Pause, Play, Radio } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { isAndroid } from '../../platform/environment';
 import type { Player } from '../../audio/Player';
 import { t as tr } from '../../i18n';
 import { time, type Practice, type Project } from '../../shared/types';
@@ -31,6 +32,120 @@ export default function Transport({
   onReturn,
   recorder,
 }: Props) {
+  const [speedOpen, setSpeedOpen] = useState(false);
+  const scrub = useRef<boolean>(false);
+  const [scrubPosition, setScrubPosition] = useState<number | null>(null);
+  const [visualPosition, setVisualPosition] = useState(position);
+  const [starting, setStarting] = useState(false);
+  useEffect(() => {
+    let frame = 0;
+    const draw = () => {
+      setStarting(player.starting);
+      if (player.playing || player.scrubbing || player.starting)
+        setVisualPosition(player.displayPosition());
+      frame = requestAnimationFrame(draw);
+    };
+    draw();
+    return () => cancelAnimationFrame(frame);
+  }, [player]);
+  useEffect(() => {
+    if (!player.playing && !player.scrubbing) setVisualPosition(position);
+  }, [position, player]);
+  const finishSeek = () => {
+    if (!scrub.current) return;
+    scrub.current = false;
+    player.endScrub();
+    setScrubPosition(null);
+  };
+  const startSeek = (e: React.PointerEvent<HTMLInputElement>) => {
+    scrub.current = true;
+    player.beginScrub();
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const changeSeek = (value: number) => {
+    setScrubPosition(value);
+    player.seek(value);
+  };
+  if (isAndroid)
+    return (
+      <footer className="mobile-transport">
+        <div className="mobile-seek-row">
+          <span>{time(scrubPosition ?? visualPosition)}</span>
+          <input
+            className="seek"
+            aria-label={tr('播放进度')}
+            type="range"
+            min="0"
+            max={Math.max(project.duration, position, 0.01)}
+            step=".01"
+            value={scrubPosition ?? visualPosition}
+            disabled={recording}
+            onPointerDown={startSeek}
+            onChange={(e) => changeSeek(+e.target.value)}
+            onPointerUp={finishSeek}
+            onPointerCancel={finishSeek}
+            onLostPointerCapture={finishSeek}
+            onKeyUp={() => setScrubPosition(null)}
+            onBlur={() => {
+              finishSeek();
+              setScrubPosition(null);
+            }}
+          />
+          <span>{time(Math.max(project.duration, position))}</span>
+        </div>
+        <div className="mobile-transport-controls">
+          <div className="mobile-primary-controls">
+            <button
+              className="play-main"
+              aria-label={playing || starting ? tr('暂停') : tr('播放')}
+              disabled={loading || recording || !project.duration}
+              onClick={onTogglePlay}
+            >
+              {loading || starting ? (
+                <LoaderCircle size={22} className="spin" />
+              ) : playing ? (
+                <Pause size={22} fill="currentColor" />
+              ) : (
+                <Play size={22} fill="currentColor" />
+              )}
+            </button>
+            {recorder}
+          </div>
+          <div className="mobile-speed-control">
+            <button
+              className="mobile-speed-button"
+              aria-label={tr('调整倍速')}
+              aria-expanded={speedOpen}
+              disabled={recording}
+              onClick={() => setSpeedOpen(!speedOpen)}
+            >
+              {project.practice.tempo.toFixed(2)}×
+            </button>
+            {speedOpen && (
+              <div className="mobile-speed-popover">
+                <div className="mobile-speed-slider">
+                  <output className="mobile-speed-value" aria-live="off">
+                    {project.practice.tempo.toFixed(2)}×
+                  </output>
+                  <input
+                    aria-label={tr('播放速度')}
+                    type="range"
+                    min=".25"
+                    max="2"
+                    step=".01"
+                    value={project.practice.tempo}
+                    onChange={(e) => onPractice({ tempo: +e.target.value })}
+                  />
+                </div>
+                <button className="small" onClick={() => onPractice({ tempo: 1 })}>
+                  {tr('重置')}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </footer>
+    );
   return (
     <footer className="transport">
       <div className="transport-top">
@@ -82,7 +197,7 @@ export default function Transport({
           )}
         </button>
         {recorder}
-        <span className="time-now">{time(position)}</span>
+        <span className="time-now">{time(scrubPosition ?? visualPosition)}</span>
         {countInRemaining > 0 && (
           <span className="count-in-badge">
             {tr('预备拍')}
@@ -96,9 +211,18 @@ export default function Transport({
           min="0"
           max={Math.max(project.duration, position, 0.01)}
           step=".01"
-          value={position}
+          value={scrubPosition ?? visualPosition}
           disabled={recording}
-          onChange={(event) => player.seek(+event.target.value)}
+          onPointerDown={startSeek}
+          onChange={(e) => changeSeek(+e.target.value)}
+          onPointerUp={finishSeek}
+          onPointerCancel={finishSeek}
+          onLostPointerCapture={finishSeek}
+          onKeyUp={() => setScrubPosition(null)}
+          onBlur={() => {
+            finishSeek();
+            setScrubPosition(null);
+          }}
         />
         <span className="time-total">{time(project.duration)}</span>
         <button

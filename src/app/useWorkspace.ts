@@ -1,3 +1,6 @@
+import { jamCall } from '../platform/project-call';
+import { prepareProjectActions } from '../platform/project-call';
+import { difference, merge } from '../../shared/project-patch.cjs';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Player } from '../audio/Player';
 import { sourceTracks } from '../audio/performance';
@@ -21,7 +24,7 @@ export function useWorkspace() {
     [showPlayer, setShowPlayer] = useState(false),
     [creatingSession, setCreatingSession] = useState<'practice' | 'creation' | null>(null),
     [deletingProject, setDeletingProject] = useState<Project | null>(null),
-    [page, setPage] = useState('library'),
+    [page, setPage] = useState(isAndroid ? 'practice' : 'library'),
     [view, setView] = useState('wave'),
     [modal, setModal] = useState<string | null>(null),
     [query, setQuery] = useState(''),
@@ -29,6 +32,7 @@ export function useWorkspace() {
     [playing, setPlaying] = useState(false),
     [ready, setReady] = useState(false),
     [loading, setLoading] = useState(false),
+    [loadProgress, setLoadProgress] = useState(''),
     [peaks, setPeaks] = useState<number[]>([]),
     [models, setModels] = useState<Model[]>([]),
     [modelId, setModelId] = useState('roformer-sw'),
@@ -58,7 +62,6 @@ export function useWorkspace() {
     [waveWindow, setWaveWindow] = useState(20),
     [waveLoading, setWaveLoading] = useState(false);
   const [modelDownloads, setModelDownloads] = useState<Record<string, ModelDownload>>({});
-  const scrubResume = useRef(false);
   const [engine] = useState(() => new Player());
   const player = useRef(engine),
     pendingNotes = useRef(new Map<string, string>()),
@@ -75,13 +78,14 @@ export function useWorkspace() {
   }, []);
   const refresh = useCallback(async () => {
     const [projects, groups] = await Promise.all([
-      window.jam.call<Project[]>('library'),
-      window.jam.call<ProjectFolder[]>('folders-list').catch(() => []),
+      jamCall<Project[]>('library'),
+      jamCall<ProjectFolder[]>('folders-list').catch(() => []),
     ]);
     setLibrary(projects);
     setFolders(groups);
   }, []);
   const adopt = useCallback((p: Project) => {
+    current.current = p;
     setProject(p);
 
     setLibrary((list) => [p, ...list.filter((s) => s.id !== p.id)]);
@@ -92,7 +96,7 @@ export function useWorkspace() {
     pendingNotes.current.clear();
     await Promise.all(
       entries.map(([id, notes]) =>
-        window.jam.call('update', { id, patch: { notes } }).catch((e) => notify(e.message)),
+        jamCall('update', { id, patch: { notes } }).catch((e) => notify(e.message)),
       ),
     );
   }, [notify]);
@@ -122,7 +126,7 @@ export function useWorkspace() {
     if (!deletingProject) return;
     const target = deletingProject;
     if (current.current?.id === target.id) player.current.pause();
-    await window.jam.call('project-delete', { id: target.id });
+    await jamCall('project-delete', { id: target.id });
     if (current.current?.id === target.id) {
       setProject(null);
       setShowPlayer(false);
@@ -132,15 +136,82 @@ export function useWorkspace() {
     setDeletingProject(null);
     notify(tr('已移至回收站'));
   };
+  const edits = useRef(new Map<string, { base: Project; next: Project; task?: Promise<void> }>());
+  const editTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const firstEdit = useRef(0);
+  const [saveState, setSaveState] = useState<'saved' | 'saving' | 'error'>('saved');
+  const flushEdits = useCallback(async () => {
+    if (editTimer.current) clearTimeout(editTimer.current);
+    firstEdit.current = 0;
+    await Promise.all(
+      [...edits.current].map(async ([id, edit]) => {
+        if (edit.task) return edit.task;
+        edit.task = (async () => {
+          try {
+            while (true) {
+              const patch = difference(edit.base, edit.next);
+              if (!Object.keys(patch).length) break;
+              const sent = edit.next;
+              const saved = await jamCall<Project>('update', { id, patch });
+              edit.next = merge(saved, difference(sent, edit.next));
+              edit.base = saved;
+              if (current.current?.id === id) adopt(edit.next);
+              else setLibrary((list) => list.map((p) => (p.id === id ? edit.next : p)));
+            }
+            edits.current.delete(id);
+            if (!edits.current.size) setSaveState('saved');
+          } catch (error) {
+            setSaveState('error');
+            notify((error as Error).message);
+            throw error;
+          } finally {
+            edit.task = undefined;
+          }
+        })();
+        return edit.task;
+      }),
+    );
+  }, [adopt, notify]);
+  useEffect(() => prepareProjectActions(flushEdits), [flushEdits]);
   const save = useCallback(
     (p: Project) => {
-      adopt(p);
-
-      void window.jam.call('update', { id: p.id, patch: p }).catch((e) => notify(e.message));
+      const base = project?.id === p.id ? project : library.find((item) => item.id === p.id);
+      if (!base) return;
+      const patch = difference(base, p);
+      if (!Object.keys(patch).length) return;
+      const edit = edits.current.get(p.id) || { base, next: base };
+      edit.next = merge(edit.next, patch);
+      edits.current.set(p.id, edit);
+      const latest = current.current?.id === p.id ? current.current : base;
+      adopt(merge(latest, patch));
+      // Sound changes immediately; writes are coalesced during a gesture.
+      if (player.current.project?.id === p.id) player.current.apply(merge(latest, patch));
+      setSaveState('saving');
+      if (editTimer.current) clearTimeout(editTimer.current);
+      if (!firstEdit.current) firstEdit.current = Date.now();
+      editTimer.current = setTimeout(
+        () => void flushEdits().catch(() => {}),
+        Math.max(0, Math.min(250, 1000 - (Date.now() - firstEdit.current))),
+      );
     },
-
-    [adopt, notify],
+    [project, library, adopt, flushEdits],
   );
+  useEffect(() => {
+    const flush = () => {
+      void flushEdits().catch(() => {});
+    };
+    window.addEventListener('pointerup', flush);
+    window.addEventListener('keyup', flush);
+    window.addEventListener('blur', flush);
+    window.addEventListener('pagehide', flush);
+    return () => {
+      window.removeEventListener('pointerup', flush);
+      window.removeEventListener('keyup', flush);
+      window.removeEventListener('blur', flush);
+      window.removeEventListener('pagehide', flush);
+      flush();
+    };
+  }, [flushEdits]);
   const act = useCallback(
     async (fn: () => Promise<any>) => {
       try {
@@ -157,7 +228,7 @@ export function useWorkspace() {
   useEffect(() => {
     void refresh();
 
-    void window.jam.call('runtime-status').then((s) => {
+    void jamCall('runtime-status').then((s) => {
       setReady(s.ready);
 
       setInstalling(s.installing);
@@ -167,7 +238,7 @@ export function useWorkspace() {
       if (!s.ready) setModal('settings');
     });
 
-    void window.jam.call<Model[]>('models').then((items) => {
+    void jamCall<Model[]>('models').then((items) => {
       setModels(items);
       const installed =
         items.find((model) => model.installed && model.id === 'roformer-sw') ||
@@ -184,7 +255,9 @@ export function useWorkspace() {
 
     const off = window.jam.onEvent((e) => {
       if (e.type === 'closing') {
-        void flushNotes().then(() => window.jam.call('window', { action: 'close-ready' }));
+        void Promise.all([flushNotes(), flushEdits()])
+          .then(() => jamCall('window', { action: 'close-ready' }))
+          .catch(() => {});
         return;
       }
       if (e.type === 'import-report') {
@@ -215,7 +288,7 @@ export function useWorkspace() {
           },
         }));
 
-        if (e.type === 'complete') void window.jam.call<Model[]>('models').then(setModels);
+        if (e.type === 'complete') void jamCall<Model[]>('models').then(setModels);
 
         return;
       }
@@ -268,7 +341,7 @@ export function useWorkspace() {
           if (current.current?.id === e.result.id) setProject(e.result);
         }
 
-        void window.jam.call<Model[]>('models').then(setModels);
+        void jamCall<Model[]>('models').then(setModels);
 
         notify(tr('本地处理完成'));
       } else if (e.type === 'error') {
@@ -284,6 +357,8 @@ export function useWorkspace() {
       }
     });
 
+    player.current.onError = notify;
+    player.current.onLoadProgress = setLoadProgress;
     player.current.onUpdate = (t, p) => {
       setPosition(t);
 
@@ -452,7 +527,7 @@ export function useWorkspace() {
   const importSongs = async (paths?: string[]) => {
     setLoading(true);
 
-    const imported = await act(() => window.jam.call<Project[]>('import', paths ? { paths } : {}));
+    const imported = await act(() => jamCall<Project[]>('import', paths ? { paths } : {}));
 
     setLoading(false);
 
@@ -469,6 +544,11 @@ export function useWorkspace() {
   const patchPractice = (patch: any) =>
     project && save({ ...project, practice: { ...project.practice, ...patch } });
   const run = async (operation: string, refreshRhythm = false) => {
+    if (isAndroid) {
+      notify(tr('手机端仅支持外部导入的音轨与分析'));
+      return;
+    }
+    await flushEdits();
     if (!project) return;
 
     if (!ready) {
@@ -482,7 +562,7 @@ export function useWorkspace() {
     setJob({ type: 'progress', message: tr('准备本地任务…'), operation, projectId: project.id });
 
     const id = await act(() =>
-      window.jam.call('run', { id: project.id, operation, modelId, mode, refreshRhythm }),
+      jamCall('run', { id: project.id, operation, modelId, mode, refreshRhythm }),
     );
 
     if (id)
@@ -625,7 +705,7 @@ export function useWorkspace() {
         practice: { ...current.current.practice, lastPlayedAt: new Date().toISOString() },
       });
 
-    if (player.current.playing) player.current.pause();
+    if (player.current.playing || player.current.starting) player.current.pause();
     else
       void player.current.play(!!current.current?.practice.countIn).catch((e) => notify(e.message));
   }, [loading, notify, save]);
@@ -668,6 +748,8 @@ export function useWorkspace() {
       (p.title + ' ' + p.artist).toLowerCase().includes(query.toLowerCase()),
   );
   return {
+    flushEdits,
+    saveState,
     saveNotes,
     flushNotes,
     recoveryProject,
@@ -703,6 +785,7 @@ export function useWorkspace() {
     ready,
     setReady,
     loading,
+    loadProgress,
     setLoading,
     peaks,
     setPeaks,
@@ -758,7 +841,6 @@ export function useWorkspace() {
     setWaveLoading,
     modelDownloads,
     setModelDownloads,
-    scrubResume,
     player,
     notify,
     refresh,

@@ -1,3 +1,4 @@
+import { jamCall } from '../project-call';
 import { Share2 } from 'lucide-react';
 import { t as tr } from '../../i18n';
 import LanTransfer from './LanTransfer';
@@ -5,14 +6,16 @@ export default function TransferSharing({
   ids,
   onError,
   onChanged,
+  beforeSend,
 }: {
   ids: string[];
+  beforeSend: () => Promise<void>;
   onError: (message: string) => void;
   onChanged: () => void;
 }) {
   return (
     <div className="notice">
-      <LanTransfer ids={ids} onChanged={onChanged} onError={onError} />
+      <LanTransfer beforeSend={beforeSend} ids={ids} onChanged={onChanged} onError={onError} />
       <p>
         {tr(
           '完整歌曲文件包含原曲、分轨、节拍、和弦谱，以及附件和录音（如有）。可从电脑导出 .ijam 导入手机，也可通过系统分享发给朋友。',
@@ -21,7 +24,9 @@ export default function TransferSharing({
       <button
         disabled={!ids.length}
         onClick={() =>
-          void window.jam.call('android-share-projects', { ids }).catch((e) => onError(e.message))
+          void beforeSend()
+            .then(() => jamCall('android-share-projects', { ids }))
+            .catch((e) => onError(e.message))
         }
       >
         <Share2 size={16} />

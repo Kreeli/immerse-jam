@@ -1,3 +1,4 @@
+import Select from '../../shared/Select';
 import { Clock } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { t as tr } from '../../i18n';
@@ -77,7 +78,7 @@ export default function CountInControl({
           </label>
           <label>
             {tr('拍数')}
-            <select
+            <Select
               aria-label={tr('预备拍拍数')}
               value={practice.countInBeats || 4}
               onChange={(event) => onChange({ countInBeats: +event.target.value })}
@@ -88,7 +89,7 @@ export default function CountInControl({
                   {tr('拍')}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
           <label>
             {tr('从最近的正拍开始')}

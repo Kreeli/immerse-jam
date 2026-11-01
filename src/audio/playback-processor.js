@@ -50,6 +50,29 @@ class PlaybackProcessor extends SoundTouchProcessorBase {
       for (const bus of outputs) for (const channel of bus) channel.fill(0);
       return true;
     }
+    // At normal speed/pitch there is no reason to run a time stretcher.
+    // This removes its latency and CPU cost from the common mobile practice path.
+    if (
+      parameters.playbackRate[0] === 1 &&
+      parameters.pitchSemitones[0] === 0 &&
+      parameters.pitch[0] === 1
+    ) {
+      const input = inputs[0] || [];
+      for (const bus of outputs)
+        for (let c = 0; c < bus.length; c++) {
+          const source = input[c] || input[0];
+          if (source) bus[c].set(source);
+          else bus[c].fill(0);
+        }
+      const bus = outputs[0];
+      if (bus?.length)
+        this.onProcessComplete({
+          frameCount: bus[0].length,
+          leftOutput: bus[0],
+          rightOutput: bus[1] || bus[0],
+        });
+      return true;
+    }
     return super.process(inputs, outputs, parameters);
   }
   onProcessComplete(result) {
@@ -66,7 +89,7 @@ class PlaybackProcessor extends SoundTouchProcessorBase {
         result.rightOutput[i] *= gain;
       }
     }
-    if (this._blockCount % 100 === 0)
+    if (Number.isFinite(result.available) && this._blockCount % 100 === 0)
       this.port.postMessage({
         type: 'metrics',
         framesBuffered: result.available,

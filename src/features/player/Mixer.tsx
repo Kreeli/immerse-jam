@@ -1,3 +1,5 @@
+import { jamCall } from '../../platform/project-call';
+import { isAndroid } from '../../platform/environment';
 import { FileMusic, RefreshCw, SlidersHorizontal, Volume2 } from 'lucide-react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { Player } from '../../audio/Player';
@@ -100,14 +102,16 @@ export default function Mixer({
           <RefreshCw size={14} />
         </button>
       </div>
-      {project.kind !== 'creation' && (
+      {!isAndroid && project.kind !== 'creation' && (
         <ResultPicker project={project} onProject={onAdopt} onError={onError} loading={loading} />
       )}
-      <PracticeModeControl
-        project={project}
-        onProject={onProject}
-        disabled={recording || loading}
-      />
+      {!isAndroid && (
+        <PracticeModeControl
+          project={project}
+          onProject={onProject}
+          disabled={recording || loading}
+        />
+      )}
       <label className="master-control">
         <span>
           <Volume2 size={15} />
@@ -124,7 +128,7 @@ export default function Mixer({
           onChange={(e) => onPractice({ master: +e.target.value })}
         />
       </label>
-      <PresetControls project={project} onProject={onProject} onError={onError} />
+      {!isAndroid && <PresetControls project={project} onProject={onProject} onError={onError} />}
       {project.kind !== 'creation' && (
         <>
           <div className="mixer-subheading">
@@ -150,7 +154,7 @@ export default function Mixer({
                   onChange={(patch) => onTrackChange(t, patch)}
                   onRemove={() =>
                     void act(async () => {
-                      const p = await window.jam.call<Project>(
+                      const p = await jamCall<Project>(
                         project.kind === 'creation' ? 'take-delete' : 'take-select',
                         project.kind === 'creation'
                           ? { id: project.id, takeId: t.id }
@@ -167,6 +171,25 @@ export default function Mixer({
             </div>
           ))}
         </>
+      )}
+      {isAndroid && (
+        <details className="mobile-advanced-mix">
+          <summary>{tr('伴奏与录音设置')}</summary>
+          {project.kind !== 'creation' && (
+            <ResultPicker
+              project={project}
+              onProject={onAdopt}
+              onError={onError}
+              loading={loading}
+            />
+          )}
+          <PracticeModeControl
+            project={project}
+            onProject={onProject}
+            disabled={recording || loading}
+          />
+          <PresetControls project={project} onProject={onProject} onError={onError} />
+        </details>
       )}
       <div className="mixer-section">
         <div className="mixer-subheading">

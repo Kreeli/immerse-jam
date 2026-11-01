@@ -1,3 +1,6 @@
+import Select from '../../shared/Select';
+import { jamCall } from '../../platform/project-call';
+import { isAndroid } from '../../platform/environment';
 import { ChevronDown, ChevronRight, Layers, Mic2, Plus, Upload, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { LiveEnvelope } from '../../audio/live-envelope';
@@ -23,7 +26,7 @@ function AddSource({
   onProject: (project: Project) => void;
   onError: (error: string) => void;
 }) {
-  const songs = library.filter((item) => !item.kind),
+  const songs = library.filter((item) => !item.kind || (isAndroid && item.kind === 'practice')),
     [sourceId, setSourceId] = useState(songs[0]?.id || ''),
     [resultId, setResultId] = useState(''),
     [start, setStart] = useState(String(position.toFixed(3))),
@@ -33,7 +36,7 @@ function AddSource({
   const add = async (external = false) => {
     setBusy(true);
     try {
-      const updated = await window.jam.call<Project | null>(
+      const updated = await jamCall<Project | null>(
         external ? 'creation-import-group' : 'creation-add-group',
         { id: project.id, sourceId, resultId: selected || undefined, position: Number(start) },
       );
@@ -64,7 +67,7 @@ function AddSource({
         <div className="session-create-fields">
           <label>
             {tr('音乐库歌曲')}
-            <select
+            <Select
               aria-label={tr('音乐库歌曲')}
               value={sourceId}
               onChange={(event) => {
@@ -77,12 +80,12 @@ function AddSource({
                   {song.title}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
           {source && (
             <label>
               {tr('使用分离结果')}
-              <select
+              <Select
                 aria-label={tr('使用分离结果')}
                 value={selected}
                 onChange={(event) => setResultId(event.target.value)}
@@ -93,7 +96,7 @@ function AddSource({
                     {result.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
           )}
           <label>
@@ -214,7 +217,7 @@ export default function CreationTracks({
   };
   const importAudio = async () => {
     try {
-      const updated = await window.jam.call<Project | null>('take-import', {
+      const updated = await jamCall<Project | null>('take-import', {
         id: project.id,
         position: timeline.position,
       });
@@ -265,7 +268,10 @@ export default function CreationTracks({
               <small>{tr('{0} 条分轨', [group.tracks.length])}</small>
             </button>
             <label className="group-volume">
-              {tr('音量')}
+              <span>
+                {isAndroid ? tr('分组总音量') : tr('音量')}
+                <b>{Math.round(group.gain * 100)}%</b>
+              </span>
               <input
                 aria-label={tr('分组音量 {0}', [group.name])}
                 type="range"
@@ -360,8 +366,7 @@ export default function CreationTracks({
                 creation
                 onChange={(patch) => onTrackChange(take, patch)}
                 onRemove={() => {
-                  void window.jam
-                    .call<Project>('take-delete', { id: project.id, takeId: take.id })
+                  void jamCall<Project>('take-delete', { id: project.id, takeId: take.id })
                     .then(onProject)
                     .catch((error) => onError(error.message));
                 }}

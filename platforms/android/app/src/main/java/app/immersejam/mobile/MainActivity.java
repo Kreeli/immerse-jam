@@ -29,6 +29,7 @@ public class MainActivity extends ComponentActivity {
   NativeBridge bridge;
   private CompletableFuture<List<Uri>> selection;
   private PermissionRequest microphone;
+  private CompletableFuture<Boolean> nativeMicrophone;
   private long lastBack;
   private boolean pageReady;
   private Intent sharedIntent;
@@ -55,6 +56,9 @@ public class MainActivity extends ComponentActivity {
       registerForActivityResult(
           new ActivityResultContracts.RequestPermission(),
           granted -> {
+            CompletableFuture<Boolean> nativeTask = nativeMicrophone;
+            nativeMicrophone = null;
+            if (nativeTask != null) nativeTask.complete(granted);
             PermissionRequest request = microphone;
             microphone = null;
             if (request != null) {
@@ -67,6 +71,8 @@ public class MainActivity extends ComponentActivity {
   public void onCreate(Bundle saved) {
     super.onCreate(saved);
     web = new WebView(this);
+    web.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, false);
+    PlaybackService.host = new java.lang.ref.WeakReference<>(this);
     web.setBackgroundColor(Color.rgb(17, 17, 20));
     FrameLayout frame = new FrameLayout(this);
     frame.setBackgroundColor(Color.rgb(17, 17, 20));
@@ -94,6 +100,8 @@ public class MainActivity extends ComponentActivity {
         new WebViewAssetLoader.Builder()
             .addPathHandler("/app/", path -> assetResponse(path))
             .addPathHandler("/projects/", path -> bridge.store.response(path))
+            .addPathHandler("/stream/", path -> bridge.streaming.response(path))
+            .addPathHandler("/capture/", path -> bridge.capture.response(path))
             .build();
     web.setWebViewClient(
         new WebViewClient() {
@@ -140,7 +148,7 @@ public class MainActivity extends ComponentActivity {
                   if (checkSelfPermission(Manifest.permission.RECORD_AUDIO)
                       == PackageManager.PERMISSION_GRANTED)
                     request.grant(new String[] {PermissionRequest.RESOURCE_AUDIO_CAPTURE});
-                  else if (microphone != null) request.deny();
+                  else if (microphone != null || nativeMicrophone != null) request.deny();
                   else {
                     microphone = request;
                     audioPermission.launch(Manifest.permission.RECORD_AUDIO);
@@ -217,6 +225,21 @@ public class MainActivity extends ComponentActivity {
     CompletableFuture<List<Uri>> current = selection;
     runOnUiThread(() -> files.launch(mime));
     return current.get();
+  }
+
+  void requireMicrophone() throws Exception {
+    CompletableFuture<Boolean> task = new CompletableFuture<>();
+    runOnUiThread(() -> {
+      if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) task.complete(true);
+      else if (microphone != null || nativeMicrophone != null) task.completeExceptionally(new IOException("请先完成麦克风授权"));
+      else { nativeMicrophone = task; audioPermission.launch(Manifest.permission.RECORD_AUDIO); }
+    });
+    if (!task.get()) throw new IOException("请在系统设置中允许麦克风权限");
+  }
+
+  @Override protected void onStop() {
+    if (bridge != null) bridge.capture.stop(null);
+    super.onStop();
   }
 
   String scan() throws Exception {
@@ -312,11 +335,33 @@ public class MainActivity extends ComponentActivity {
     }
   }
 
+  boolean playback(boolean playing, String title) throws Exception {
+    CompletableFuture<Boolean> task = new CompletableFuture<>();
+    runOnUiThread(() -> {
+      try {
+        Intent intent = new Intent(this, PlaybackService.class)
+            .putExtra("playing", playing).putExtra("title", title);
+        if (playing) startForegroundService(intent);
+        else startService(intent);
+        task.complete(true);
+      } catch (Exception error) { task.completeExceptionally(error); }
+    });
+    return task.get(5, TimeUnit.SECONDS);
+  }
+
+  void audioEvent(String action) {
+    runOnUiThread(() -> web.evaluateJavascript(
+        "window.dispatchEvent(new CustomEvent('immerse-audio',{detail:" + JSONObject.quote(action) + "}))", null));
+  }
+
   @Override
   protected void onDestroy() {
+    stopService(new Intent(this, PlaybackService.class));
+    PlaybackService.host.clear();
     if (selection != null) selection.complete(List.of());
     if (scanTask != null) scanTask.complete("");
     if (microphone != null) microphone.deny();
+    if (nativeMicrophone != null) nativeMicrophone.complete(false);
     io.shutdownNow();
     bridge.close();
     web.destroy();

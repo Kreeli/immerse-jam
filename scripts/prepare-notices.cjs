@@ -18,6 +18,19 @@ const packages = [
   'ffmpeg-static',
   'lucide-react',
 ];
+// Include the complete dependency closure of the new UI primitives as well
+// as the existing top-level notices (floating-ui, scroll/focus helpers, etc.).
+const added = new Set(packages);
+function include(name) {
+  if (added.has(name)) return;
+  added.add(name);
+  packages.push(name);
+  const p = JSON.parse(fs.readFileSync(path.join('node_modules', name, 'package.json')));
+  for (const dependency of Object.keys(p.dependencies || {})) include(dependency);
+}
+include('@radix-ui/react-select');
+include('@radix-ui/react-dialog');
+include('@radix-ui/react-dropdown-menu');
 const rows = [];
 for (const name of packages) {
   const base = path.join('node_modules', name),

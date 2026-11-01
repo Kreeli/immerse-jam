@@ -89,6 +89,7 @@ public class ProjectStore {
 
   public synchronized JSONObject get(String id) throws Exception {
     JSONObject p = normalize(read(new File(dir(id), "project.json")));
+    if (!p.has("kind")) p.put("kind", "practice");
     ProjectValidation.validate(p);
     File pending = new File(root, "pending-results");
     File[] records = pending.listFiles();
@@ -139,6 +140,45 @@ public class ProjectStore {
       }
     write(new File(dir(project.getString("id")), "project.json"), project);
     return project;
+  }
+
+  public synchronized JSONObject update(String id, JSONObject patch) throws Exception {
+    JSONObject p = get(id), filtered = new JSONObject();
+    Set<String> allowed = Set.of("title", "artist", "starred", "bookmarks", "practice", "alignment", "analysis", "attachments", "tracks", "duration", "waveform", "playlist", "notes", "originalMix", "presets", "chordCharts", "activeChordChartId", "takes", "selectedTakeIds", "recordingSettings", "practiceMode", "sourceMix", "sourceGroups");
+    for (Iterator<String> it = patch.keys(); it.hasNext();) {
+      String key = it.next();
+      if (allowed.contains(key)) filtered.put(key, patch.get(key));
+    }
+    return save(mergePatch(p, filtered));
+  }
+
+  static JSONObject mergePatch(JSONObject base, JSONObject patch) throws Exception {
+    JSONObject result = new JSONObject(base.toString());
+    for (Iterator<String> it = patch.keys(); it.hasNext();) {
+      String key = it.next();
+      if (Set.of("__proto__", "constructor", "prototype").contains(key)) throw new IOException("无效字段");
+      Object value = patch.get(key);
+      if (value instanceof JSONObject object && object.optJSONArray("$items") != null) {
+        JSONArray list = result.getJSONArray(key), changes = object.getJSONArray("$items");
+        for (int i = 0; i < changes.length(); i++) {
+          JSONObject change = changes.getJSONObject(i);
+          boolean found = false;
+          for (int j = 0; j < list.length(); j++) {
+            JSONObject item = list.getJSONObject(j);
+            if (!item.getString("id").equals(change.getString("id"))) continue;
+            if (change.has("file") && !change.getString("file").equals(item.optString("file"))) throw new IOException("音轨已变化，请重新打开项目");
+            list.put(j, mergePatch(item, change.getJSONObject("patch")));
+            found = true;
+            break;
+          }
+          if (!found) throw new IOException("音轨已变化，请重新打开项目");
+        }
+      } else if (value instanceof JSONObject object) {
+        JSONObject old = result.optJSONObject(key);
+        result.put(key, mergePatch(old == null ? new JSONObject() : old, object));
+      } else result.put(key, value);
+    }
+    return result;
   }
 
   public synchronized JSONObject recover(String id) throws Exception {
@@ -355,6 +395,7 @@ public class ProjectStore {
                 reader.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST), ""));
       } catch (Exception ignored) {
       }
+      if (!p.has("kind")) p.put("kind", "practice");
       return save(p);
     } catch (Exception error) {
       remove(folder);
@@ -417,6 +458,7 @@ public class ProjectStore {
       ProjectValidation.validate(p);
       normalize(p);
       for (String file : media(p)) if (!hashes.has(file)) throw new IOException("媒体缺少校验值");
+      if (!p.has("kind")) p.put("kind", "practice");
       String origin = p.optString("originId", p.optString("id", id));
       File[] existing = projects.listFiles();
       if (existing != null)
@@ -424,7 +466,8 @@ public class ProjectStore {
           if (directory.equals(folder) || !new File(directory, "project.json").isFile()) continue;
           try {
             JSONObject item = get(directory.getName());
-            if (item.optString("originId").equals(origin)) {
+            if (item.optString("originId", item.optString("id")).equals(origin)
+                && item.optString("importRevision", item.optString("updatedAt")).equals(p.optString("updatedAt"))) {
               remove(folder);
               return item;
             }
@@ -432,6 +475,7 @@ public class ProjectStore {
             /* Broken items remain visible in list(). */
           }
         }
+      p.put("importRevision", p.optString("updatedAt"));
       p.put("originId", origin).put("id", id).remove("recordingSettings");
       ProjectValidation.validate(p);
       double measured = 0;
@@ -445,6 +489,7 @@ public class ProjectStore {
         }
       p.put("duration", Math.max(p.optDouble("duration", 0), measured));
       if (Thread.currentThread().isInterrupted()) throw new IOException("已取消");
+      if (!p.has("kind")) p.put("kind", "practice");
       return save(p);
     } catch (Exception error) {
       remove(folder);
@@ -467,6 +512,7 @@ public class ProjectStore {
         out.closeEntry();
       }
       out.putNextEntry(new ZipEntry("project.json"));
+      p.remove("importRevision");
       p.remove("recordingSettings");
       if (!p.optString("kind").equals("creation") && p.getJSONArray("sourceGroups").length() == 0)
         p.remove("sourceGroups");
@@ -486,7 +532,7 @@ public class ProjectStore {
     String sourceId = options.optString("sourceId");
     if (!sourceId.isEmpty()) {
       JSONObject source = get(sourceId);
-      if (!source.optString("kind").isEmpty()) throw new IOException("请选择音乐库歌曲");
+
       p = new JSONObject(source.toString());
       JSONArray results = source.getJSONArray("results");
       JSONObject result = null;
@@ -508,6 +554,7 @@ public class ProjectStore {
               .put("projectId", sourceId)
               .put("title", source.getString("title"))
               .put("resultId", requested));
+      p.remove("importRevision");
       p.remove("recordingSettings");
       for (String file : media(p)) {
         File dest = asset(id, file);

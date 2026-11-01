@@ -1,4 +1,13 @@
-import { Bookmark, Repeat2 } from 'lucide-react';
+import {
+  SlidersHorizontal,
+  Bookmark,
+  Repeat2,
+  X,
+  MoreHorizontal,
+  FolderOpen,
+  Settings2,
+} from 'lucide-react';
+import { isAndroid } from '../../platform/environment';
 import { t as tr } from '../../i18n';
 import { time } from '../../shared/types';
 export default function PracticeToolbar({
@@ -9,8 +18,7 @@ export default function PracticeToolbar({
   onStop,
   onCancel,
   recording,
-  windowSeconds,
-  onWindow,
+  onMixer,
 }: {
   pendingRange: number | null;
   loop: boolean;
@@ -19,9 +27,74 @@ export default function PracticeToolbar({
   onStop: () => void;
   onCancel: () => void;
   recording: boolean;
-  windowSeconds: number;
-  onWindow: (seconds: number) => void;
+  onMixer?: () => void;
 }) {
+  if (isAndroid)
+    return (
+      <div className="mobile-practice-tools">
+        <button className="icon-button" aria-label={tr('打开控制台')} onClick={onMixer}>
+          <SlidersHorizontal size={22} />
+        </button>
+        <button
+          className={'icon-button ' + (pendingRange !== null ? 'recording-range' : '')}
+          aria-label={pendingRange === null ? tr('设置循环段落开始') : tr('设置循环段落结束')}
+          title={pendingRange === null ? tr('设置循环段落开始') : tr('设置循环段落结束')}
+          disabled={recording}
+          onClick={onRange}
+        >
+          <Repeat2 size={22} />
+          {pendingRange !== null && <i />}
+        </button>
+        <button
+          className="icon-button"
+          aria-label={tr('添加标记点')}
+          disabled={recording}
+          onClick={onPoint}
+        >
+          <Bookmark size={22} />
+        </button>
+        {(loop || pendingRange !== null) && (
+          <button
+            className="icon-button"
+            aria-label={loop ? tr('停止循环') : tr('取消选段')}
+            onClick={loop ? onStop : onCancel}
+          >
+            <X size={18} />
+          </button>
+        )}
+        <details className="mobile-tools-menu">
+          <summary role="button" aria-label={tr('更多工具')}>
+            <MoreHorizontal size={20} />
+          </summary>
+          <div>
+            <button
+              disabled={recording}
+              onClick={(event) => {
+                event.currentTarget.closest('details')?.removeAttribute('open');
+                window.dispatchEvent(
+                  new CustomEvent('immerse-recorder-action', { detail: 'settings' }),
+                );
+              }}
+            >
+              <Settings2 size={17} />
+              {tr('录音设置')}
+            </button>
+            <button
+              disabled={recording}
+              onClick={(event) => {
+                event.currentTarget.closest('details')?.removeAttribute('open');
+                window.dispatchEvent(
+                  new CustomEvent('immerse-recorder-action', { detail: 'library' }),
+                );
+              }}
+            >
+              <FolderOpen size={17} />
+              {tr('录音库')}
+            </button>
+          </div>
+        </details>
+      </div>
+    );
   return (
     <div className="practice-toolbar">
       <button
@@ -52,21 +125,6 @@ export default function PracticeToolbar({
         <Bookmark size={14} />
         {tr('添加标记点')}
       </button>
-      <label>
-        {tr('时间窗口')}
-        <select
-          aria-label={tr('波形窗口时长')}
-          value={windowSeconds}
-          onChange={(event) => onWindow(+event.target.value)}
-        >
-          {[10, 20, 30, 60].map((seconds) => (
-            <option key={seconds} value={seconds}>
-              {seconds}
-              {tr('秒')}
-            </option>
-          ))}
-        </select>
-      </label>
     </div>
   );
 }

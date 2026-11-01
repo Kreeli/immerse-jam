@@ -1,3 +1,9 @@
+import ModalFrame from '../shared/ModalFrame';
+import Select from '../shared/Select';
+import MobileActions from '../platform/android/MobileActions';
+import UsageHelp from '../features/settings/UsageHelp';
+import { jamCall } from '../platform/project-call';
+import MobileHome from '../platform/android/MobileHome';
 import {
   ArrowLeft,
   ArrowRight,
@@ -15,7 +21,9 @@ import {
   SlidersHorizontal,
   Sparkles,
   X,
-  Menu,
+  Guitar,
+  MessageSquare,
+  Heart,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { isAndroid } from '../platform/environment';
@@ -71,7 +79,6 @@ export default function App() {
   const [live, setLive] = useState<LiveEnvelope | null>(null);
   const [creatingFolder, setCreatingFolder] = useState(false);
   const [sessionSource, setSessionSource] = useState<Project | null>(null);
-  const [mobileMenu, setMobileMenu] = useState(false);
   const [mobileMixer, setMobileMixer] = useState(false);
   const [refreshRhythm, setRefreshRhythm] = useState(false);
   const androidBack = useRef<() => boolean>(() => false);
@@ -100,6 +107,7 @@ export default function App() {
     ready,
     setReady,
     loading,
+    loadProgress,
     setLoading,
     peaks,
     setPeaks,
@@ -155,7 +163,6 @@ export default function App() {
     setWaveLoading,
     modelDownloads,
     setModelDownloads,
-    scrubResume,
     player,
     notify,
     refresh,
@@ -182,24 +189,21 @@ export default function App() {
     setDeletingProject,
     deleteProject,
   } = controller;
+  const lastModal = useRef(modal);
+  if (modal) lastModal.current = modal;
+  const shownModal = modal || lastModal.current;
   const timeline = {
     player: player.current,
     position,
     duration: Math.max(project?.duration || 0, position),
     windowSeconds: waveWindow,
+    onWindow: setWaveWindow,
+    active: view === 'wave' && showPlayer,
     recording,
     loading,
     onSeek: (seconds: number) => player.current.seek(seconds),
-    onScrubStart: () => {
-      scrubResume.current = player.current.playing;
-      player.current.pause();
-    },
-    onScrubEnd: () => {
-      if (scrubResume.current) {
-        scrubResume.current = false;
-        void player.current.play().catch((error) => notify(error.message));
-      }
-    },
+    onScrubStart: () => player.current.beginScrub(),
+    onScrubEnd: () => player.current.endScrub(),
   };
   const isVideo = /\.(mp4|webm|mov)$/i.test(project?.original || '');
   androidBack.current = () => {
@@ -207,15 +211,20 @@ export default function App() {
       notify(tr('请先停止录音后再返回'));
       return true;
     }
+    const menu = document.querySelector<HTMLElement>('.mobile-select-menu[data-state="open"]');
+    if (menu) {
+      menu.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      return true;
+    }
     if (mobileMixer) {
       setMobileMixer(false);
       return true;
     }
-    if (mobileMenu) {
-      setMobileMenu(false);
-      return true;
-    }
-    const close = [...document.querySelectorAll<HTMLButtonElement>('.modal-backdrop button')]
+    const close = [
+      ...document.querySelectorAll<HTMLButtonElement>(
+        '.modal-backdrop button, [role="dialog"] button',
+      ),
+    ]
       .reverse()
       .find(
         (button) =>
@@ -249,12 +258,13 @@ export default function App() {
         setView('wave');
         return true;
       }
+      if (isAndroid) player.current.pause();
       setShowPlayer(false);
       setPage(project.kind ? 'practice' : 'library');
       return true;
     }
-    if (page !== 'library') {
-      setPage('library');
+    if (page !== (isAndroid ? 'practice' : 'library')) {
+      setPage(isAndroid ? 'practice' : 'library');
       return true;
     }
     return false;
@@ -262,22 +272,21 @@ export default function App() {
   useEffect(() => {
     if (!isAndroid) return;
     const back = () => {
-      void window.jam.call('android-back-result', { handled: androidBack.current() });
+      void jamCall('android-back-result', { handled: androidBack.current() });
     };
     window.addEventListener('immerse-android-back', back);
     return () => window.removeEventListener('immerse-android-back', back);
   }, []);
   useEffect(() => {
-    setMobileMenu(false);
     setMobileMixer(false);
   }, [page, modal, project?.id]);
+  useEffect(() => {
+    if (isAndroid && !showPlayer) player.current.pause();
+  }, [showPlayer]);
   return (
     <div
       className={
-        'app ' +
-        (recording ? 'is-recording ' : '') +
-        (mobileMenu ? 'mobile-menu-open ' : '') +
-        (mobileMixer ? 'mobile-mixer-open ' : '')
+        'app ' + (recording ? 'is-recording ' : '') + (mobileMixer ? 'mobile-mixer-open ' : '')
       }
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => {
@@ -291,7 +300,7 @@ export default function App() {
         if (project?.kind === 'creation' && showPlayer) {
           void act(async () => {
             for (const file of files) {
-              const updated = await window.jam.call<Project | null>(
+              const updated = await jamCall<Project | null>(
                 /\.(ijam|aum)$/i.test(file) ? 'creation-import-group' : 'take-import',
                 { id: project.id, path: file, paths: [file], position: player.current.position() },
               );
@@ -301,41 +310,12 @@ export default function App() {
         } else void importSongs(files);
       }}
     >
-      <Sidebar {...controller} onCreateFolder={() => setCreatingFolder(true)} />
-      {(mobileMenu || mobileMixer) && (
-        <button
-          className="mobile-scrim"
-          aria-label={tr('关闭侧栏')}
-          onClick={() => {
-            setMobileMenu(false);
-            setMobileMixer(false);
-          }}
-        />
-      )}
-      <main className={'workspace ' + (project ? 'has-player' : '')}>
-        {isAndroid && (
-          <div className="mobile-chrome">
-            <button
-              className="icon-button"
-              aria-label={tr('打开导航')}
-              onClick={() => setMobileMenu(true)}
-            >
-              <Menu size={22} />
-            </button>
-            <strong>Immerse Jam</strong>
-            {project && showPlayer && (
-              <button
-                className="icon-button"
-                aria-label={tr('打开控制台')}
-                onClick={() => setMobileMixer(!mobileMixer)}
-              >
-                <SlidersHorizontal size={22} />
-              </button>
-            )}
-          </div>
-        )}
+      {!isAndroid && <Sidebar {...controller} onCreateFolder={() => setCreatingFolder(true)} />}
+      <main className={'workspace ' + (project && (!isAndroid || showPlayer) ? 'has-player' : '')}>
         <div className="browse-content" hidden={!!project && showPlayer}>
-          {page.startsWith('folder:') ? (
+          {isAndroid ? (
+            !showPlayer && <MobileHome controller={controller} />
+          ) : page.startsWith('folder:') ? (
             <FolderPage
               key={page}
               {...folderProps}
@@ -360,93 +340,169 @@ export default function App() {
         {project && (
           <>
             <div className="player-screen" hidden={!showPlayer}>
-              <header className="player-header">
-                <button
-                  className="icon-button"
-                  title={project.kind ? tr('返回列表') : tr('返回曲库')}
-                  onClick={() => {
-                    setPage(project.kind ? 'practice' : 'library');
-                    setShowPlayer(false);
-                  }}
-                >
-                  <ArrowLeft size={20} />
-                </button>
-                <div className="now-cover">
-                  <Music2 size={24} />
-                </div>
-                <ProjectHeading {...folderProps} project={project} onProject={save} />
-                <div className="view-switch">
-                  {[
-                    {
-                      id: 'wave',
-                      label: project.kind === 'creation' ? tr('音轨') : tr('波形'),
-                      icon: AudioLines,
-                    },
-                    { id: 'chords', label: tr('和弦'), icon: Library },
-                    { id: 'score', label: tr('乐谱'), icon: FileMusic },
-                    { id: 'attachments', label: tr('附件'), icon: Bookmark },
-                  ].map(({ id, label, icon: Icon }) => (
+              {isAndroid ? (
+                <header className="mobile-player-header">
+                  <div className="mobile-project-row">
                     <button
-                      key={id}
-                      className={view === id ? 'selected' : ''}
-                      onClick={() => setView(id)}
+                      className="icon-button"
+                      aria-label={tr('返回列表')}
+                      disabled={recording}
+                      onClick={() => {
+                        player.current.pause();
+                        setShowPlayer(false);
+                      }}
                     >
-                      <Icon size={16} />
-                      {label}
+                      <ArrowLeft size={20} />
                     </button>
-                  ))}
-                </div>
-                {!project.kind && (
-                  <CreateFromSong
-                    project={project}
-                    onCreate={(kind) => {
-                      setSessionSource(project);
-                      setCreatingSession(kind);
-                    }}
-                  />
-                )}
-                {project.kind !== 'creation' && (
+                    <span className="mobile-project-title" title={project.title}>
+                      {project.title}
+                    </span>
+                    <MobileActions controller={controller} />
+                  </div>
+                  <div className="mobile-player-tabs" role="tablist" aria-label={tr('练习视图')}>
+                    {[
+                      { id: 'wave', icon: AudioLines, label: tr('波形') },
+                      { id: 'chords', icon: Library, label: tr('和弦') },
+                      { id: 'score', icon: FileMusic, label: tr('乐谱') },
+                      { id: 'attachments', icon: Bookmark, label: tr('附件') },
+                    ].map(({ id, icon: Icon, label }) => (
+                      <button
+                        role="tab"
+                        aria-label={label}
+                        aria-selected={view === id}
+                        key={id}
+                        onClick={() => setView(id)}
+                      >
+                        <Icon size={18} />
+                        <span>{label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </header>
+              ) : (
+                <header className="player-header">
                   <button
-                    className="primary small"
-                    disabled={!!job}
-                    onClick={() => setModal('separate')}
+                    className="icon-button"
+                    title={project.kind ? tr('返回列表') : tr('返回曲库')}
+                    onClick={() => {
+                      setPage(project.kind ? 'practice' : 'library');
+                      setShowPlayer(false);
+                    }}
                   >
-                    <Sparkles size={15} />
-                    {tr('开始分析')}
+                    <ArrowLeft size={20} />
                   </button>
-                )}
-                <button
-                  className="icon-button"
-                  title={tr('导出歌曲项目')}
-                  onClick={() => setModal('export')}
-                >
-                  <Download size={18} />
-                </button>
-                <button
-                  className={'icon-button ' + (mix ? 'pressed' : '')}
-                  title={tr('混音面板')}
-                  onClick={() => setMix(!mix)}
-                >
-                  <SlidersHorizontal size={18} />
-                </button>
-              </header>
-              <PracticeToolbar
-                pendingRange={pendingRange}
-                loop={loop}
-                onRange={captureRange}
-                onPoint={addPoint}
-                onStop={() => setLoop(false)}
-                onCancel={() => {
-                  setPendingRange(null);
-                  setLoopA(null);
-                  setLoopB(null);
-                }}
-                recording={recording}
-                windowSeconds={waveWindow}
-                onWindow={setWaveWindow}
-              />
+                  <div className="now-cover">
+                    <Music2 size={24} />
+                  </div>
+                  <ProjectHeading {...folderProps} project={project} onProject={save} />
+                  <button
+                    className="save-indicator text-button"
+                    onClick={() => void controller.flushEdits().catch(() => {})}
+                  >
+                    {controller.saveState === 'saving'
+                      ? tr('正在保存…')
+                      : controller.saveState === 'error'
+                        ? tr('保存失败，点此重试')
+                        : tr('已保存')}
+                  </button>
+                  <div className="view-switch">
+                    {[
+                      {
+                        id: 'wave',
+                        label: project.kind === 'creation' ? tr('音轨') : tr('波形'),
+                        icon: AudioLines,
+                      },
+                      { id: 'chords', label: tr('和弦'), icon: Library },
+                      { id: 'score', label: tr('乐谱'), icon: FileMusic },
+                      { id: 'attachments', label: tr('附件'), icon: Bookmark },
+                    ].map(({ id, label, icon: Icon }) => (
+                      <button
+                        key={id}
+                        className={view === id ? 'selected' : ''}
+                        onClick={() => setView(id)}
+                      >
+                        <Icon size={16} />
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  {!project.kind && (
+                    <CreateFromSong
+                      project={project}
+                      onCreate={(kind) => {
+                        setSessionSource(project);
+                        setCreatingSession(kind);
+                      }}
+                    />
+                  )}
+                  {!isAndroid && project.kind !== 'creation' && (
+                    <button
+                      className="primary small"
+                      disabled={!!job}
+                      onClick={() => setModal('separate')}
+                    >
+                      <Sparkles size={15} />
+                      {tr('开始分析')}
+                    </button>
+                  )}
+                  <button
+                    className="icon-button"
+                    title={tr('导出歌曲项目')}
+                    onClick={() =>
+                      void act(async () => {
+                        await controller.flushEdits();
+                        await controller.flushNotes();
+                        setModal('export');
+                      })
+                    }
+                  >
+                    <Download size={18} />
+                  </button>
+                  <button
+                    className={'icon-button ' + (mix ? 'pressed' : '')}
+                    title={tr('混音面板')}
+                    onClick={() => setMix(!mix)}
+                  >
+                    <SlidersHorizontal size={18} />
+                  </button>
+                </header>
+              )}
+              {(!isAndroid || view === 'wave') && (
+                <PracticeToolbar
+                  pendingRange={pendingRange}
+                  loop={loop}
+                  onRange={captureRange}
+                  onPoint={addPoint}
+                  onStop={() => setLoop(false)}
+                  onCancel={() => {
+                    setPendingRange(null);
+                    setLoopA(null);
+                    setLoopB(null);
+                  }}
+                  recording={recording}
+                  onMixer={() => {
+                    setMix(true);
+                    setSidePanel('mixer');
+                    setMobileMixer(true);
+                  }}
+                />
+              )}
               <div className="player-body">
                 <div className="practice-area">
+                  {loading && (
+                    <div
+                      className={isAndroid ? 'mobile-audio-loading' : 'audio-loading'}
+                      role="status"
+                      aria-label={tr('正在准备音轨')}
+                    >
+                      <div className="loading-equalizer">
+                        {[0, 1, 2, 3, 4].map((i) => (
+                          <i key={i} style={{ animationDelay: `${i * -0.12}s` }} />
+                        ))}
+                      </div>
+                      <span>{loadProgress || tr('正在准备音轨')}</span>
+                    </div>
+                  )}
                   {view === 'attachments' ? (
                     <Attachments
                       project={project}
@@ -474,79 +530,84 @@ export default function App() {
                       busy={!!job}
                       formatLabel={(label) => transpose(label, project.practice.pitch)}
                     />
-                  ) : project.kind === 'creation' ? (
-                    <CreationTracks
-                      {...timeline}
-                      project={project}
-                      library={library}
-                      live={live}
-                      onProject={save}
-                      onError={notify}
-                      onTrackChange={changeTrack}
-                      onTrackState={changeTrackState}
-                    />
-                  ) : (
-                    <div
-                      className={
-                        'wave-workspace ' +
-                        (project.kind === 'practice' ? 'practice-wave-comparison' : '')
-                      }
-                    >
-                      <div className="wave-caption">
-                        <div>
-                          <button
-                            className={
-                              'small ' + (waveSource === 'mix' ? 'wave-source-active' : '')
-                            }
-                            onClick={() => setWaveSource('mix')}
-                          >
-                            {tr('总混音波形')}
-                          </button>
-                          <span className="wave-source-name">
-                            {waveSource === 'mix'
-                              ? sourceTracks(project).length > 1
-                                ? tr('{0} 条音轨混合', [sourceTracks(project).length])
-                                : sourceTracks(project)[0]
-                                  ? trackLabel(sourceTracks(project)[0])
-                                  : tr('音轨')
-                              : trackLabel(
-                                  sourceTracks(project).find((t) => t.id === waveSource) ||
-                                    project.originalMix ||
-                                    ({ name: tr('原曲') } as Track),
-                                )}
-                            {waveLoading ? tr(' \u00B7 正在生成波形…') : ''}
-                          </span>
+                  ) : null}
+                  <div className="wave-view" hidden={view !== 'wave'}>
+                    {project.kind === 'creation' ? (
+                      <CreationTracks
+                        {...timeline}
+                        project={project}
+                        library={library}
+                        live={live}
+                        onProject={save}
+                        onError={notify}
+                        onTrackChange={changeTrack}
+                        onTrackState={changeTrackState}
+                      />
+                    ) : (
+                      <div
+                        className={
+                          'wave-workspace ' +
+                          (project.kind === 'practice' ? 'practice-wave-comparison' : '')
+                        }
+                      >
+                        <div className="wave-caption">
+                          <div>
+                            <button
+                              className={
+                                'small ' + (waveSource === 'mix' ? 'wave-source-active' : '')
+                              }
+                              onClick={() => setWaveSource('mix')}
+                            >
+                              {tr('总混音波形')}
+                            </button>
+                            <span className="wave-source-name">
+                              {waveSource === 'mix'
+                                ? sourceTracks(project).length > 1
+                                  ? tr('{0} 条音轨混合', [sourceTracks(project).length])
+                                  : sourceTracks(project)[0]
+                                    ? trackLabel(sourceTracks(project)[0])
+                                    : tr('音轨')
+                                : trackLabel(
+                                    sourceTracks(project).find((t) => t.id === waveSource) ||
+                                      project.originalMix ||
+                                      ({ name: tr('原曲') } as Track),
+                                  )}
+                              {waveLoading ? tr(' \u00B7 正在生成波形…') : ''}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                      <>
-                        <div className="comparison-lane main-wave-lane">
-                          <Waveform
-                            {...timeline}
-                            peaks={peaks}
-                            peakDuration={player.current.duration}
-                            source={waveSource}
-                            a={loopA}
-                            b={loopB}
-                            disabled={recording}
-                          />
+                        <>
+                          <div className="comparison-lane main-wave-lane">
+                            <Waveform
+                              {...timeline}
+                              peaks={peaks}
+                              peakDuration={player.current.duration}
+                              source={waveSource}
+                              a={loopA}
+                              b={loopB}
+                              disabled={recording}
+                            />
+                          </div>
+                          {project.kind === 'practice' && (
+                            <PracticeWaves {...timeline} project={project} live={live} />
+                          )}
+                        </>
+                        <div className="wave-window-hint">
+                          {tr(
+                            '播放位置固定在中央 \u00B7 左右拖动波形移动时间窗口 \u00B7 点击音轨切换波形，再点一次回到总混音',
+                          )}
                         </div>
-                        {project.kind === 'practice' && (
-                          <PracticeWaves {...timeline} project={project} live={live} />
-                        )}
-                      </>
-                      <div className="wave-window-hint">
-                        {tr(
-                          '播放位置固定在中央 \u00B7 左右拖动波形移动时间窗口 \u00B7 点击音轨切换波形，再点一次回到总混音',
+                        {isVideo && (
+                          <SyncedVideo project={project} position={position} playing={playing} />
                         )}
                       </div>
-                      {isVideo && (
-                        <SyncedVideo project={project} position={position} playing={playing} />
-                      )}
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
                 {mix && (
                   <SidePanel
+                    open={mobileMixer}
+                    onClose={() => setMobileMixer(false)}
                     tab={sidePanel}
                     onTab={setSidePanel}
                     recording={recording}
@@ -611,39 +672,41 @@ export default function App() {
                 )}
               </div>
             </div>
-            <Transport
-              recorder={
-                project.kind || project.takes?.length ? (
-                  <PracticeRecorder
-                    key={project.id}
-                    project={project}
-                    libraryOnly={!project.kind}
-                    player={player.current}
-                    onProject={save}
-                    onError={notify}
-                    onActive={(active) => {
-                      setRecording(active);
-                      if (active) setShowPlayer(true);
-                    }}
-                    onLive={setLive}
-                    disabled={loading}
-                  />
-                ) : null
-              }
-              browsing={!showPlayer}
-              onReturn={() => setShowPlayer(true)}
-              project={project}
-              player={player.current}
-              recording={recording}
-              loading={loading}
-              playing={playing}
-              position={position}
+            {(!isAndroid || showPlayer) && (
+              <Transport
+                recorder={
+                  isAndroid || project.kind || project.takes?.length ? (
+                    <PracticeRecorder
+                      key={project.id}
+                      project={project}
+                      libraryOnly={!isAndroid && !project.kind}
+                      player={player.current}
+                      onProject={save}
+                      onError={notify}
+                      onActive={(active) => {
+                        setRecording(active);
+                        if (active) setShowPlayer(true);
+                      }}
+                      onLive={setLive}
+                      disabled={loading}
+                    />
+                  ) : null
+                }
+                browsing={!showPlayer}
+                onReturn={() => setShowPlayer(true)}
+                project={project}
+                player={player.current}
+                recording={recording}
+                loading={loading}
+                playing={playing}
+                position={position}
 
-              countInRemaining={countInRemaining}
+                countInRemaining={countInRemaining}
 
-              onTogglePlay={togglePlay}
-              onPractice={patchPractice}
-            />
+                onTogglePlay={togglePlay}
+                onPractice={patchPractice}
+              />
+            )}
           </>
         )}
       </main>
@@ -696,7 +759,7 @@ export default function App() {
                     : tr('本地处理')}
             </strong>
             {job.jobId && (
-              <button onClick={() => void window.jam.call('cancel', { jobId: job.jobId })}>
+              <button onClick={() => void jamCall('cancel', { jobId: job.jobId })}>
                 <X size={16} />
               </button>
             )}
@@ -713,216 +776,231 @@ export default function App() {
           </button>
         </div>
       )}
-      {modal && (
-        <div
-          className="modal-backdrop"
-          onMouseDown={(e) => e.target === e.currentTarget && setModal(null)}
-        >
-          <section
-            className={'modal ' + (modal === 'separate' || modal === 'settings' ? 'wide' : '')}
+      <ModalFrame
+        open={!!modal}
+        onClose={() => setModal(null)}
+        className={shownModal === 'separate' || shownModal === 'settings' ? 'wide' : ''}
+      >
+        <div className="modal-heading">
+          <div>
+            <span className="eyebrow">IMMERSE JAM</span>
+            <h2>
+              {
+                {
+                  separate: tr('分析音乐'),
+                  help: tr('第一次使用？'),
+                  settings: isAndroid ? tr('设置') : tr('设置与模型'),
+                  transfer: tr('设备互传'),
+                  migration: tr('迁移 Audio Jam'),
+                  donate: tr('请作者喝一瓶冰可乐'),
+                  feedback: tr('用户反馈'),
+                  export: tr('导出音乐'),
+                  files: tr('导入与导出'),
+                }[shownModal || '']
+              }
+            </h2>
+          </div>
+          <button
+            className="icon-button"
+            aria-label={tr('关闭窗口')}
+            onClick={() => setModal(null)}
           >
-            <div className="modal-heading">
-              <div>
-                <span className="eyebrow">IMMERSE JAM</span>
-                <h2>
-                  {
-                    {
-                      separate: tr('分析音乐'),
-                      settings: tr('设置与模型'),
-                      transfer: tr('设备互传'),
-                      migration: tr('迁移 Audio Jam'),
-                      donate: tr('请作者喝一瓶冰可乐'),
-                      feedback: tr('用户反馈'),
-                      export: tr('导出音乐'),
-                    }[modal]
-                  }
-                </h2>
-              </div>
-              <button
-                className="icon-button"
-                aria-label={tr('关闭窗口')}
-                onClick={() => setModal(null)}
-              >
-                <X size={22} />
-              </button>
-            </div>
-            {modal === 'separate' && (
-              <>
-                <p className="muted">
-                  {isAndroid
-                    ? tr('所有计算都在本机完成。复杂分轨方式会随移动模型适配逐步加入。')
-                    : tr('选择练习方式，所有计算都在这台电脑完成。')}
-                </p>
-                <AnalysisNote />
-                {isAndroid && !!project?.analysis?.beats.length && (
-                  <label className="notice">
-                    <input
-                      type="checkbox"
-                      checked={refreshRhythm}
-                      onChange={(e) => setRefreshRhythm(e.target.checked)}
-                    />
-                    {tr('重新识别节拍（替换已有节拍）')}
-                    <small>{tr('默认保留导入或已校准的节拍，只更新和弦。')}</small>
-                  </label>
-                )}
+            <X size={22} />
+          </button>
+        </div>
+        {shownModal === 'separate' && !isAndroid && (
+          <>
+            <p className="muted">
+              {isAndroid
+                ? tr('所有计算都在本机完成。复杂分轨方式会随移动模型适配逐步加入。')
+                : tr('选择练习方式，所有计算都在这台电脑完成。')}
+            </p>
+            <AnalysisNote />
+            {isAndroid && !!project?.analysis?.beats.length && (
+              <label className="notice">
+                <input
+                  type="checkbox"
+                  checked={refreshRhythm}
+                  onChange={(e) => setRefreshRhythm(e.target.checked)}
+                />
+                {tr('重新识别节拍（替换已有节拍）')}
+                <small>{tr('默认保留导入或已校准的节拍，只更新和弦。')}</small>
+              </label>
+            )}
+            <button
+              className="analysis-only"
+              disabled={!!job}
+              onClick={() => {
+                setModal(null);
+                void run('analyze', refreshRhythm);
+                setRefreshRhythm(false);
+              }}
+            >
+              <Music2 size={18} />
+              <span>
+                <strong>{tr('识别和弦与节拍')}</strong>
+                <small>{tr('生成可编辑的小节和弦谱，不分离音轨')}</small>
+              </span>
+              <ArrowRight size={17} />
+            </button>
+            <h3>{tr('音轨分离')}</h3>
+            <div className="mode-grid">
+              {modes().map((m) => (
                 <button
-                  className="analysis-only"
-                  disabled={!!job}
+                  key={m.id}
+                  className={mode === m.id ? 'selected' : ''}
+                  disabled={
+                    isAndroid &&
+                    (!['vocal', 'basic', 'drummer', 'bassist'].includes(m.id) ||
+                      !models.some((model) => compatible(model, m.id)))
+                  }
                   onClick={() => {
-                    setModal(null);
-                    void run('analyze', refreshRhythm);
-                    setRefreshRhythm(false);
+                    setMode(m.id);
+                    const selectedModel = models.find((x) => x.id === modelId);
+                    if (selectedModel && !compatible(selectedModel, m.id))
+                      setModelId('roformer-sw');
                   }}
                 >
-                  <Music2 size={18} />
                   <span>
-                    <strong>{tr('识别和弦与节拍')}</strong>
-                    <small>{tr('生成可编辑的小节和弦谱，不分离音轨')}</small>
+                    {translateMessage(m.name)}
+                    {mode === m.id && <Check size={16} />}
                   </span>
-                  <ArrowRight size={17} />
+                  <small>{m.desc}</small>
                 </button>
-                <h3>{tr('音轨分离')}</h3>
-                <div className="mode-grid">
-                  {modes().map((m) => (
-                    <button
-                      key={m.id}
-                      className={mode === m.id ? 'selected' : ''}
-                      disabled={
-                        isAndroid &&
-                        (!['vocal', 'basic', 'drummer', 'bassist'].includes(m.id) ||
-                          !models.some((model) => compatible(model, m.id)))
-                      }
-                      onClick={() => {
-                        setMode(m.id);
-                        const selectedModel = models.find((x) => x.id === modelId);
-                        if (selectedModel && !compatible(selectedModel, m.id))
-                          setModelId('roformer-sw');
-                      }}
-                    >
-                      <span>
-                        {translateMessage(m.name)}
-                        {mode === m.id && <Check size={16} />}
-                      </span>
-                      <small>{m.desc}</small>
-                    </button>
+              ))}
+            </div>
+            <label className="field">
+              {tr('分离模型')}
+              <Select value={modelId} onChange={(e) => setModelId(e.target.value)}>
+                {models
+                  .filter((m) => !['guitar-lead', 'karaoke'].includes(m.id) && compatible(m, mode))
+                  .map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {translateMessage(m.name)}
+                      {m.installed ? tr(' \u00B7 已下载') : ''}
+                    </option>
                   ))}
+              </Select>
+            </label>
+            <p className="muted">
+              {translateMessage(models.find((m) => m.id === modelId)?.description || '')}
+            </p>
+            {['guitarist', 'singer'].includes(mode) && (
+              <p className="notice">
+                {tr('此模式会分两阶段计算，首次使用还会下载对应的专用模型。')}
+              </p>
+            )}
+            <div className="modal-actions">
+              <button onClick={() => setModal(null)}>{tr('取消')}</button>
+              <button
+                className="primary"
+                disabled={
+                  isAndroid &&
+                  !models.some((model) => model.id === modelId && compatible(model, mode))
+                }
+                onClick={() => {
+                  setModal(null);
+                  void run('separate');
+                }}
+              >
+                <Sparkles size={16} />
+                {tr('开始分析')}
+              </button>
+            </div>
+          </>
+        )}
+        {shownModal === 'help' && <UsageHelp />}
+        {shownModal === 'settings' && (
+          <>
+            {isAndroid && (
+              <nav className="mobile-settings-nav">
+                <button
+                  onClick={() => {
+                    if (!recording) {
+                      player.current.pause();
+                      setShowPlayer(false);
+                      setModal(null);
+                    }
+                  }}
+                >
+                  <Guitar size={19} />
+                  {tr('跟练/创作')}
+                </button>
+                <button onClick={() => setModal('feedback')}>
+                  <MessageSquare size={19} />
+                  {tr('用户反馈')}
+                </button>
+                <button onClick={() => setModal('donate')}>
+                  <Heart size={19} />
+                  {tr('请作者喝一瓶冰可乐')}
+                </button>
+              </nav>
+            )}
+            <AppearanceSettings />
+            {!isAndroid && <AnalysisNote />}
+            <StorageLocations />
+            {!isAndroid && (
+              <>
+                <div className="setup-card">
+                  <div className="setup-icon">
+                    <AudioLines size={26} />
+                  </div>
+                  <div>
+                    <h3>
+                      {ready ? tr('本地运行环境已准备好') : tr('准备 Immerse Jam 的本地引擎')}
+                    </h3>
+                    <p>
+                      {tr('自动下载应用专用运行库，无需预装 Python 或开发工具。模型按需下载。')}
+                    </p>
+                  </div>
+                  <span className={'badge ' + (ready ? 'green' : '')}>
+                    {ready ? tr('就绪') : tr('待安装')}
+                  </span>
                 </div>
-                <label className="field">
-                  {tr('分离模型')}
-                  <select value={modelId} onChange={(e) => setModelId(e.target.value)}>
-                    {models
-                      .filter(
-                        (m) => !['guitar-lead', 'karaoke'].includes(m.id) && compatible(m, mode),
-                      )
-                      .map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {translateMessage(m.name)}
-                          {m.installed ? tr(' \u00B7 已下载') : ''}
-                        </option>
-                      ))}
-                  </select>
-                </label>
-                <p className="muted">
-                  {translateMessage(models.find((m) => m.id === modelId)?.description || '')}
-                </p>
-                {['guitarist', 'singer'].includes(mode) && (
-                  <p className="notice">
-                    {tr('此模式会分两阶段计算，首次使用还会下载对应的专用模型。')}
-                  </p>
-                )}
-                <div className="modal-actions">
-                  <button onClick={() => setModal(null)}>{tr('取消')}</button>
+                <div className="runtime-controls">
+                  <Select
+                    value={runtimeMode}
+                    onChange={(e) => setRuntimeMode(e.target.value)}
+                    disabled={installing}
+                  >
+                    <option value="cuda">{tr('NVIDIA 显卡加速')}</option>
+                    <option value="cpu">{tr('CPU 通用兼容')}</option>
+                  </Select>
                   <button
                     className="primary"
-                    disabled={
-                      isAndroid &&
-                      !models.some((model) => model.id === modelId && compatible(model, mode))
+                    disabled={installing}
+                    onClick={() =>
+                      void act(async () => {
+                        setInstalling(true);
+                        await jamCall('runtime-install', { mode: runtimeMode });
+                      })
                     }
-                    onClick={() => {
-                      setModal(null);
-                      void run('separate');
-                    }}
                   >
-                    <Sparkles size={16} />
-                    {tr('开始分析')}
+                    {installing ? (
+                      <LoaderCircle className="spin" size={16} />
+                    ) : (
+                      <Download size={16} />
+                    )}{' '}
+                    {installing
+                      ? tr('准备中…')
+                      : ready
+                        ? tr('重新检查 / 切换引擎')
+                        : tr('自动安装环境')}
                   </button>
                 </div>
+                {runtimeMessage && (
+                  <pre className="install-status">
+                    {translateMessage(runtimeMessage.slice(-1400))}
+                  </pre>
+                )}
               </>
             )}
-            {modal === 'settings' && (
+            {isAndroid && <p className="notice">{tr('手机端仅支持外部导入的音轨与分析')}</p>}
+            {!isAndroid && (
               <>
-                <AppearanceSettings />
-                <AnalysisNote />
-                <StorageLocations />
-                {!isAndroid && (
-                  <>
-                    <div className="setup-card">
-                      <div className="setup-icon">
-                        <AudioLines size={26} />
-                      </div>
-                      <div>
-                        <h3>
-                          {ready ? tr('本地运行环境已准备好') : tr('准备 Immerse Jam 的本地引擎')}
-                        </h3>
-                        <p>
-                          {tr('自动下载应用专用运行库，无需预装 Python 或开发工具。模型按需下载。')}
-                        </p>
-                      </div>
-                      <span className={'badge ' + (ready ? 'green' : '')}>
-                        {ready ? tr('就绪') : tr('待安装')}
-                      </span>
-                    </div>
-                    <div className="runtime-controls">
-                      <select
-                        value={runtimeMode}
-                        onChange={(e) => setRuntimeMode(e.target.value)}
-                        disabled={installing}
-                      >
-                        <option value="cuda">{tr('NVIDIA 显卡加速')}</option>
-                        <option value="cpu">{tr('CPU 通用兼容')}</option>
-                      </select>
-                      <button
-                        className="primary"
-                        disabled={installing}
-                        onClick={() =>
-                          void act(async () => {
-                            setInstalling(true);
-                            await window.jam.call('runtime-install', { mode: runtimeMode });
-                          })
-                        }
-                      >
-                        {installing ? (
-                          <LoaderCircle className="spin" size={16} />
-                        ) : (
-                          <Download size={16} />
-                        )}{' '}
-                        {installing
-                          ? tr('准备中…')
-                          : ready
-                            ? tr('重新检查 / 切换引擎')
-                            : tr('自动安装环境')}
-                      </button>
-                    </div>
-                    {runtimeMessage && (
-                      <pre className="install-status">
-                        {translateMessage(runtimeMessage.slice(-1400))}
-                      </pre>
-                    )}
-                  </>
-                )}
-                {isAndroid && (
-                  <p className="notice">
-                    {tr(
-                      '移动引擎已随应用安装。随包模型可离线使用；运行前检查内存，分块处理，过热或内存不足时保留原有结果。',
-                    )}
-                  </p>
-                )}
                 <div className="section-heading">
                   <h3>{tr('模型管理')}</h3>
-                  <button
-                    className="small"
-                    onClick={() => void act(() => window.jam.call('model-import'))}
-                  >
+                  <button className="small" onClick={() => void act(() => jamCall('model-import'))}>
                     <Plus size={14} />
                     {tr('导入自定义模型')}
                   </button>
@@ -935,8 +1013,7 @@ export default function App() {
                       ...list,
                       [id]: { status: 'progress', progress: 0, message: tr('正在准备下载…') },
                     }));
-                    void window.jam
-                      .call<Model[]>('model-download', { id })
+                    void jamCall<Model[]>('model-download', { id })
                       .then(setModels)
                       .catch((e) => {
                         setModelDownloads((list) => ({
@@ -954,250 +1031,276 @@ export default function App() {
                 </p>
               </>
             )}
-            {modal === 'export' && project && (
+          </>
+        )}
+        {shownModal === 'files' && (
+          <div className="mobile-file-actions">
+            <button
+              onClick={() => {
+                setModal(null);
+                void importSongs();
+              }}
+              disabled={recording}
+            >
+              <FolderInput size={22} />
+              <span>{tr('导入项目或音频')}</span>
+            </button>
+            <button
+              disabled={!project || recording}
+              onClick={() =>
+                void act(async () => {
+                  await controller.flushEdits();
+                  await controller.flushNotes();
+                  setModal('export');
+                })
+              }
+            >
+              <Download size={22} />
+              <span>{tr('导出音乐')}</span>
+            </button>
+          </div>
+        )}
+        {shownModal === 'export' && project && (
+          <>
+            <p className="muted">
+              {tr('导出分离音轨、当前练习混音，或包含乐谱和练习设置的完整项目。')}
+            </p>
+            <div className="export-options">
+              <button
+                onClick={() =>
+                  void act(() => jamCall('export', { id: project.id, full: true })).then(
+                    (f) => f && notify(tr('完整项目已导出')),
+                  )
+                }
+              >
+                <FileMusic size={22} />
+                <strong>{tr('完整歌曲项目')}</strong>
+                <small>{tr('.ijam \u00B7 原曲、分轨、乐谱、标记和设置')}</small>
+              </button>
+              <button
+                onClick={() =>
+                  void act(() => jamCall('export-audio', { id: project.id, stems: true })).then(
+                    (f) => f && notify(tr('原曲和分轨已导出')),
+                  )
+                }
+              >
+                <AudioLines size={22} />
+                <strong>{tr('原曲与各条分轨')}</strong>
+                <small>{tr('保留源文件格式，分别导出')}</small>
+              </button>
+              <button
+                onClick={() =>
+                  void act(() =>
+                    jamCall('export-audio', {
+                      id: project.id,
+                      region:
+                        loop && loopA !== null && loopB !== null ? { a: loopA, b: loopB } : null,
+                    }),
+                  ).then((f) => f && notify(tr('混音已导出')))
+                }
+              >
+                <Download size={22} />
+                <strong>{loop ? tr('当前循环段落混音') : tr('当前混音')}</strong>
+                <small>
+                  {isAndroid
+                    ? tr('WAV · 应用音量、速度和移调')
+                    : tr('WAV / MP3 \u00B7 应用音量、速度和移调')}
+                </small>
+              </button>
+            </div>
+          </>
+        )}
+        {shownModal === 'donate' && (
+          <div className="donation">
+            <p>
+              {tr('如果 Immerse Jam 陪你度过了一段愉快的练琴时间，欢迎自愿请作者喝一瓶冰可乐。')}
+            </p>
+            <div className="donation-qr">
+              <img src={donation} alt={tr('作者微信收款码')} />
+            </div>
+            <p className="muted">{tr('所有功能免费使用，打赏完全自愿。')}</p>
+          </div>
+        )}
+        {shownModal === 'feedback' && (
+          <div className="feedback-options">
+            <p>{tr('告诉我遇到的问题或练琴时希望改进的地方。')}</p>
+            <button onClick={() => void jamCall('feedback-open', { target: 'email' })}>
+              {tr('发送邮件')}
+              <span>meowmeowneko999@gmail.com</span>
+            </button>
+            <button onClick={() => void jamCall('feedback-open', { target: 'github' })}>
+              {tr('前往 GitHub 反馈')}
+              <span>Kreeli / immerse-jam</span>
+            </button>
+            <small>{tr('可以附上应用版本、操作步骤和截图，方便定位问题。')}</small>
+          </div>
+        )}
+        {shownModal === 'migration' && (
+          <>
+            <DatabaseMigration
+              onDone={() => {
+                void refresh();
+                setModal(null);
+              }}
+              onError={notify}
+            />
+            <hr />
+            <p className="muted">
+              {tr('导入 Audio Jam 导出的 .aum 项目，保留本机已有的原曲、分轨、附件和练习标记。')}
+            </p>
+            <button className="primary" onClick={() => void importSongs()}>
+              <FolderInput size={17} />
+              {tr('选择 .aum 项目')}
+            </button>
+            <div className="migration-folder">
+              <button
+                onClick={() =>
+                  void act(async () => {
+                    const folder = await jamCall<string>('pick-folder');
+                    if (folder) {
+                      setMigrationFolder(folder);
+                      const result = await jamCall('migration-scan', { folder });
+                      setMigration(result.items);
+                    }
+                  })
+                }
+              >
+                {tr('扫描导出文件夹')}
+              </button>
+              <small>{migrationFolder || tr('可一次扫描并迁移多个项目')}</small>
+            </div>
+            {migration.length > 0 && (
               <>
-                <p className="muted">
-                  {tr('导出分离音轨、当前练习混音，或包含乐谱和练习设置的完整项目。')}
-                </p>
-                <div className="export-options">
-                  <button
-                    onClick={() =>
-                      void act(() =>
-                        window.jam.call('export', { id: project.id, full: true }),
-                      ).then((f) => f && notify(tr('完整项目已导出')))
-                    }
-                  >
-                    <FileMusic size={22} />
-                    <strong>{tr('完整歌曲项目')}</strong>
-                    <small>{tr('.ijam \u00B7 原曲、分轨、乐谱、标记和设置')}</small>
-                  </button>
-                  <button
-                    onClick={() =>
-                      void act(() =>
-                        window.jam.call('export-audio', { id: project.id, stems: true }),
-                      ).then((f) => f && notify(tr('原曲和分轨已导出')))
-                    }
-                  >
-                    <AudioLines size={22} />
-                    <strong>{tr('原曲与各条分轨')}</strong>
-                    <small>{tr('保留源文件格式，分别导出')}</small>
-                  </button>
-                  <button
-                    onClick={() =>
-                      void act(() =>
-                        window.jam.call('export-audio', {
-                          id: project.id,
-                          region:
-                            loop && loopA !== null && loopB !== null
-                              ? { a: loopA, b: loopB }
-                              : null,
-                        }),
-                      ).then((f) => f && notify(tr('混音已导出')))
-                    }
-                  >
-                    <Download size={22} />
-                    <strong>{loop ? tr('当前循环段落混音') : tr('当前混音')}</strong>
-                    <small>
-                      {isAndroid
-                        ? tr('WAV · 应用音量、速度和移调')
-                        : tr('WAV / MP3 \u00B7 应用音量、速度和移调')}
-                    </small>
-                  </button>
-                </div>
-              </>
-            )}
-            {modal === 'donate' && (
-              <div className="donation">
-                <p>
-                  {tr(
-                    '如果 Immerse Jam 陪你度过了一段愉快的练琴时间，欢迎自愿请作者喝一瓶冰可乐。',
-                  )}
-                </p>
-                <div className="donation-qr">
-                  <img src={donation} alt={tr('作者微信收款码')} />
-                </div>
-                <p className="muted">{tr('所有功能免费使用，打赏完全自愿。')}</p>
-              </div>
-            )}
-            {modal === 'feedback' && (
-              <div className="feedback-options">
-                <p>{tr('告诉我遇到的问题或练琴时希望改进的地方。')}</p>
-                <button onClick={() => void window.jam.call('feedback-open', { target: 'email' })}>
-                  {tr('发送邮件')}
-                  <span>meowmeowneko999@gmail.com</span>
-                </button>
-                <button onClick={() => void window.jam.call('feedback-open', { target: 'github' })}>
-                  {tr('前往 GitHub 反馈')}
-                  <span>Kreeli / immerse-jam</span>
-                </button>
-                <small>{tr('可以附上应用版本、操作步骤和截图，方便定位问题。')}</small>
-              </div>
-            )}
-            {modal === 'migration' && (
-              <>
-                <DatabaseMigration
-                  onDone={() => {
-                    void refresh();
-                    setModal(null);
-                  }}
-                  onError={notify}
-                />
-                <hr />
-                <p className="muted">
-                  {tr(
-                    '导入 Audio Jam 导出的 .aum 项目，保留本机已有的原曲、分轨、附件和练习标记。',
-                  )}
-                </p>
-                <button className="primary" onClick={() => void importSongs()}>
-                  <FolderInput size={17} />
-                  {tr('选择 .aum 项目')}
-                </button>
-                <div className="migration-folder">
-                  <button
-                    onClick={() =>
-                      void act(async () => {
-                        const folder = await window.jam.call<string>('pick-folder');
-                        if (folder) {
-                          setMigrationFolder(folder);
-                          const result = await window.jam.call('migration-scan', { folder });
-                          setMigration(result.items);
-                        }
-                      })
-                    }
-                  >
-                    {tr('扫描导出文件夹')}
-                  </button>
-                  <small>{migrationFolder || tr('可一次扫描并迁移多个项目')}</small>
-                </div>
-                {migration.length > 0 && (
-                  <>
-                    <div className="selection-list">
-                      {migration.map((m) => (
-                        <label key={m.file}>
-                          <input
-                            type="checkbox"
-                            checked={selected.includes(m.file)}
-                            onChange={(e) =>
-                              setSelected(
-                                e.target.checked
-                                  ? [...selected, m.file]
-                                  : selected.filter((x) => x !== m.file),
-                              )
-                            }
-                          />
-                          <span>{translateMessage(m.name)}</span>
-                          <small>{Math.round(m.size / 1048576)} MB</small>
-                        </label>
-                      ))}
-                    </div>
-                    <button
-                      className="primary"
-                      disabled={!selected.length}
-                      onClick={() =>
-                        void act(async () => {
-                          const result = await window.jam.call<Project[]>('migration-import', {
-                            files: selected,
-                          });
-                          await refresh();
-                          notify(tr('已迁移 {0} 首歌曲', [result.length]));
-                          setModal(null);
-                        })
-                      }
-                    >
-                      {tr('迁移选中的')}
-                      {selected.length}
-                      {tr('首')}
-                    </button>
-                  </>
-                )}
-                <p className="notice">
-                  {tr(
-                    '迁移采用复制导入，原应用的项目文件保持完整。只有云端引用、尚未下载的音轨需要先在原应用中下载或导出。',
-                  )}
-                </p>
-              </>
-            )}
-            {modal === 'transfer' && (
-              <>
-                {!isAndroid && (
-                  <p className="muted">
-                    {tr(
-                      '选择歌曲，用手机扫描二维码。双方连接同一 Wi‑Fi 或热点，原曲、分轨、节拍、乐谱及录音（如有）直接互传。',
-                    )}
-                  </p>
-                )}
                 <div className="selection-list">
-                  {library.map((p) => (
-                    <label key={p.id}>
+                  {migration.map((m) => (
+                    <label key={m.file}>
                       <input
                         type="checkbox"
-                        checked={selected.includes(p.id)}
+                        checked={selected.includes(m.file)}
                         onChange={(e) =>
                           setSelected(
                             e.target.checked
-                              ? [...selected, p.id]
-                              : selected.filter((x) => x !== p.id),
+                              ? [...selected, m.file]
+                              : selected.filter((x) => x !== m.file),
                           )
                         }
                       />
-                      <span>{p.title}</span>
-                      <small>
-                        {p.tracks.length}
-                        {tr('分轨')}
-                      </small>
+                      <span>{translateMessage(m.name)}</span>
+                      <small>{Math.round(m.size / 1048576)} MB</small>
                     </label>
                   ))}
                 </div>
-                {isAndroid ? (
-                  <AndroidTransferSharing
-                    ids={selected}
-                    onError={notify}
-                    onChanged={() => void refresh()}
-                  />
-                ) : (
-                  <>
-                    <button
-                      className="primary"
-                      disabled={!selected.length}
-                      onClick={() =>
-                        void act(async () =>
-                          setPair(await window.jam.call('pair-start', { ids: selected })),
-                        )
-                      }
-                    >
-                      <Share2 size={16} />
-                      {tr('生成配对二维码')}
-                    </button>
-                    {pair && (
-                      <div className="pair-box">
-                        <img src={pair.qr} alt={tr('设备互传配对二维码')} />
-                        <div>
-                          <strong>{tr('手机扫码接收 / 发送歌曲')}</strong>
-                          <p>{tr('配对有效期 30 分钟。')}</p>
-                          <input aria-label={tr('配对地址')} readOnly value={pair.url} />
-                          <button
-                            className="small"
-                            onClick={() => {
-                              void window.jam.call('pair-stop');
-                              setPair(null);
-                            }}
-                          >
-                            {tr('结束本次互传')}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                    <p className="notice">
-                      {tr('如果电脑有多个网络连接，请选用手机所在网络的配对地址。')}
-                    </p>
-                  </>
-                )}
-                <RemoteTransfer ids={selected} onError={notify} />
+                <button
+                  className="primary"
+                  disabled={!selected.length}
+                  onClick={() =>
+                    void act(async () => {
+                      const result = await jamCall<Project[]>('migration-import', {
+                        files: selected,
+                      });
+                      await refresh();
+                      notify(tr('已迁移 {0} 首歌曲', [result.length]));
+                      setModal(null);
+                    })
+                  }
+                >
+                  {tr('迁移选中的')}
+                  {selected.length}
+                  {tr('首')}
+                </button>
               </>
             )}
-          </section>
-        </div>
-      )}
+            <p className="notice">
+              {tr(
+                '迁移采用复制导入，原应用的项目文件保持完整。只有云端引用、尚未下载的音轨需要先在原应用中下载或导出。',
+              )}
+            </p>
+          </>
+        )}
+        {shownModal === 'transfer' && (
+          <>
+            {!isAndroid && (
+              <p className="muted">
+                {tr(
+                  '选择歌曲，用手机扫描二维码。双方连接同一 Wi‑Fi 或热点，原曲、分轨、节拍、乐谱及录音（如有）直接互传。',
+                )}
+              </p>
+            )}
+            <div className="selection-list">
+              {library.map((p) => (
+                <label key={p.id}>
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(p.id)}
+                    onChange={(e) =>
+                      setSelected(
+                        e.target.checked ? [...selected, p.id] : selected.filter((x) => x !== p.id),
+                      )
+                    }
+                  />
+                  <span>{p.title}</span>
+                  <small>
+                    {p.tracks.length}
+                    {tr('分轨')}
+                  </small>
+                </label>
+              ))}
+            </div>
+            {isAndroid ? (
+              <AndroidTransferSharing
+                beforeSend={controller.flushEdits}
+                ids={selected}
+                onError={notify}
+                onChanged={() => void refresh()}
+              />
+            ) : (
+              <>
+                <button
+                  className="primary"
+                  disabled={!selected.length}
+                  onClick={() =>
+                    void act(async () => {
+                      await controller.flushEdits();
+                      setPair(await jamCall('pair-start', { ids: selected }));
+                    })
+                  }
+                >
+                  <Share2 size={16} />
+                  {tr('生成配对二维码')}
+                </button>
+                {pair && (
+                  <div className="pair-box">
+                    <img src={pair.qr} alt={tr('设备互传配对二维码')} />
+                    <div>
+                      <strong>{tr('手机扫码接收 / 发送歌曲')}</strong>
+                      <p>{tr('配对有效期 30 分钟。')}</p>
+                      <input aria-label={tr('配对地址')} readOnly value={pair.url} />
+                      <button
+                        className="small"
+                        onClick={() => {
+                          void jamCall('pair-stop');
+                          setPair(null);
+                        }}
+                      >
+                        {tr('结束本次互传')}
+                      </button>
+                    </div>
+                  </div>
+                )}
+                <p className="notice">
+                  {tr('如果电脑有多个网络连接，请选用手机所在网络的配对地址。')}
+                </p>
+              </>
+            )}
+            <p className="muted">
+              {tr(
+                '接收项目会保留音轨、混音、循环、标记和录音；再次传输修改后的项目会保留为新副本，原项目仍可继续使用。',
+              )}
+            </p>
+            <RemoteTransfer ids={selected} onError={notify} beforeSend={controller.flushEdits} />
+          </>
+        )}
+      </ModalFrame>
       {incoming && (
         <div className="modal-backdrop">
           <section className="modal">
@@ -1210,7 +1313,7 @@ export default function App() {
             <div className="modal-actions">
               <button
                 onClick={() => {
-                  void window.jam.call(incoming.remote ? 'peer-select' : 'pair-select', {
+                  void jamCall(incoming.remote ? 'peer-select' : 'pair-select', {
                     id: incoming.id,
                     accept: false,
                   });
@@ -1223,7 +1326,7 @@ export default function App() {
                 className="primary"
                 onClick={() =>
                   void act(async () => {
-                    await window.jam.call(incoming.remote ? 'peer-select' : 'pair-select', {
+                    await jamCall(incoming.remote ? 'peer-select' : 'pair-select', {
                       id: incoming.id,
                       accept: true,
                     });

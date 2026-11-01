@@ -1,3 +1,5 @@
+import Select from '../../shared/Select';
+import { jamCall } from '../../platform/project-call';
 import { ChevronRight, Folder, FolderPlus, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { t as tr } from '../../i18n';
@@ -14,17 +16,16 @@ export function FolderPicker({
   onError,
 }: FolderProps & { project: Project }) {
   return (
-    <select
+    <Select
       className="folder-picker"
       aria-label={tr('移动到分类 {0}', [project.title])}
       value={folders.find((folder) => folder.projectIds.includes(project.id))?.id || ''}
       onChange={(event) =>
-        void window.jam
-          .call<ProjectFolder[]>('folders-edit', {
-            action: 'move',
-            id: event.target.value,
-            projectId: project.id,
-          })
+        void jamCall<ProjectFolder[]>('folders-edit', {
+          action: 'move',
+          id: event.target.value,
+          projectId: project.id,
+        })
           .then(onFolders)
           .catch((error) => onError(error.message))
       }
@@ -35,7 +36,7 @@ export function FolderPicker({
           {folder.name}
         </option>
       ))}
-    </select>
+    </Select>
   );
 }
 export function FolderDialog({
@@ -54,12 +55,11 @@ export function FolderDialog({
         onSubmit={(event) => {
           event.preventDefault();
           setBusy(true);
-          void window.jam
-            .call<ProjectFolder[]>('folders-edit', {
-              action: folder ? 'rename' : 'create',
-              id: folder?.id,
-              name,
-            })
+          void jamCall<ProjectFolder[]>('folders-edit', {
+            action: folder ? 'rename' : 'create',
+            id: folder?.id,
+            name,
+          })
             .then((value) => {
               props.onFolders(value);
               onClose();
@@ -158,7 +158,7 @@ export default function FolderPage({
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
-        <select
+        <Select
           aria-label={tr('内容类型')}
           value={filter}
           onChange={(event) => setFilter(event.target.value)}
@@ -167,7 +167,7 @@ export default function FolderPage({
           <option value="music">{tr('分轨歌曲')}</option>
           <option value="practice">{tr('跟练')}</option>
           <option value="creation">{tr('创作')}</option>
-        </select>
+        </Select>
       </div>
       <div className="folder-project-list">
         {projects.length ? (
@@ -220,8 +220,7 @@ export default function FolderPage({
               <button
                 className="primary"
                 onClick={() =>
-                  void window.jam
-                    .call<ProjectFolder[]>('folders-edit', { action: 'delete', id })
+                  void jamCall<ProjectFolder[]>('folders-edit', { action: 'delete', id })
                     .then((value) => {
                       props.onFolders(value);
                       setDeleting(false);

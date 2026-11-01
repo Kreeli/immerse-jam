@@ -1,5 +1,491 @@
+/* Mobile has its own compact hierarchy, at phone and tablet widths. */
 html[data-platform='android'] {
   -webkit-tap-highlight-color: transparent;
+  font-size: 14px;
+}
+html[data-platform='android'] [hidden] {
+  display: none !important;
+}
+html[data-platform='android'] .app {
+  height: 100dvh;
+  display: flex;
+}
+html[data-platform='android'] .workspace {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+html[data-platform='android'] button {
+  touch-action: manipulation;
+}
+html[data-platform='android'] .icon-button {
+  width: 40px;
+  height: 40px;
+  padding: 8px;
+  flex: none;
+}
+html[data-platform='android'] .browse-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 16px 84px;
+}
+.mobile-home {
+  max-width: 960px;
+  margin: auto;
+}
+.mobile-home-top {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 0;
+}
+.mobile-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+}
+.mobile-actions .icon-button {
+  background: transparent;
+  border: 0;
+}
+.mobile-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  margin: 4px 0 12px;
+}
+.mobile-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  padding: 10px 0;
+  font-size: 13px;
+}
+html[data-platform='android'] .session-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0 18px;
+}
+html[data-platform='android'] .session-tabs button {
+  min-width: 56px;
+  padding: 8px 14px;
+  font-size: 13px;
+}
+.mobile-projects {
+  display: flex;
+  flex-direction: column;
+}
+.mobile-projects article {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border-bottom: 1px solid var(--line);
+  padding: 12px 0;
+}
+.mobile-project-open {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  gap: 14px;
+  border: 0;
+  background: transparent;
+  padding: 10px 0;
+  text-align: left;
+  justify-content: flex-start;
+}
+.mobile-project-open > svg {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--panel);
+}
+.mobile-project-open span {
+  min-width: 0;
+}
+.mobile-project-open strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mobile-project-open small {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.mobile-new-project {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--pink);
+  color: #fff;
+  box-shadow: 0 6px 24px #0003;
+}
+html[data-platform='android'] .player-screen {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.mobile-player-header {
+  flex: none;
+  border-bottom: 1px solid var(--line);
+}
+.mobile-project-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px;
+}
+.mobile-project-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mobile-player-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 8px 8px;
+}
+.mobile-player-tabs [role='tab'] {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  gap: 5px;
+  padding: 9px 4px;
+  font-size: 12px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+}
+.mobile-player-tabs [aria-selected='true'] {
+  color: var(--pink);
+  background: var(--panel);
+}
+.mobile-player-tabs > .icon-button {
+  background: transparent;
+  border: 0;
+  width: 36px !important;
+}
+html[data-platform='android'] .player-body {
+  flex: 1;
+  min-height: 0;
+}
+html[data-platform='android'] .practice-area {
+  width: 100%;
+  min-height: 0;
+}
+html[data-platform='android'] .wave-workspace {
+  flex: 1;
+  min-height: 0;
+  padding: 0 0 60px;
+  justify-content: stretch;
+}
+html[data-platform='android'] .main-wave-lane {
+  flex: 1;
+  min-height: 80px;
+  display: flex;
+}
+html[data-platform='android'] .wave-canvas-host {
+  flex: 1;
+  min-height: 80px;
+  height: 100%;
+}
+html[data-platform='android'] .waveform {
+  height: 100%;
+  min-height: 80px;
+  touch-action: none;
+}
+html[data-platform='android'] .wave-caption,
+html[data-platform='android'] .wave-window-hint,
+html[data-platform='android'] .chart-help,
+html[data-platform='android'] .creation-list-heading small,
+html[data-platform='android'] .practice-mode-control p,
+html[data-platform='android'] .count-in-options > small,
+html[data-platform='android'] .mixer-section.toggles > small {
+  display: none;
+}
+html[data-platform='android'] .practice-recording-waves {
+  flex: 0 0 28%;
+  min-height: 70px;
+  margin-top: 0;
+  padding: 8px 12px;
+}
+html[data-platform='android'] .practice-recording-waves h4 {
+  font-size: 11px;
+  margin: 0 0 4px;
+}
+.mobile-practice-tools {
+  position: absolute;
+  z-index: 12;
+  right: 12px;
+  bottom: 10px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.mobile-practice-tools > button,
+.mobile-tools-menu > summary {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  box-shadow: 0 2px 10px #0001;
+}
+.mobile-practice-tools .recording-range {
+  color: var(--pink);
+}
+.mobile-practice-tools button {
+  position: relative;
+}
+.mobile-practice-tools button i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--pink);
+  position: absolute;
+  right: 5px;
+  top: 5px;
+}
+.mobile-tools-menu > summary {
+  display: flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  cursor: pointer;
+  list-style: none;
+}
+.mobile-tools-menu > summary::-webkit-details-marker {
+  display: none;
+}
+.mobile-tools-menu > div {
+  position: absolute;
+  bottom: 48px;
+  right: 0;
+  min-width: 190px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: 0 5px 30px #0003;
+}
+.mobile-tools-menu button {
+  background: transparent;
+  border: 0;
+  justify-content: flex-start;
+  font-size: 13px;
+}
+.mobile-tools-menu label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+}
+.mobile-tools-menu select {
+  padding: 5px;
+}
+.mobile-transport {
+  flex: none;
+  padding: 8px 14px 12px;
+  border-top: 1px solid var(--line);
+  background: var(--panel);
+}
+.mobile-progress-time {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  margin: 0 2px 5px;
+}
+.mobile-transport-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+html[data-platform='android'] .mobile-transport .play-main {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  padding: 0;
+  border-radius: 50%;
+}
+.mobile-transport .practice-record-actions {
+  flex: none;
+  display: flex;
+  margin: 0;
+}
+html[data-platform='android'] .mobile-transport .transport-record {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.mobile-transport .record-action-label {
+  display: none;
+}
+.mobile-transport .transport-record.active {
+  color: var(--pink);
+}
+.mobile-transport input.seek {
+  flex: 1;
+  min-width: 30px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+.mobile-speed-control {
+  position: relative;
+  flex: none;
+}
+.mobile-speed-button {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  padding: 8px 5px;
+  min-width: 54px;
+  border: 0;
+  background: transparent;
+}
+.mobile-speed-popover {
+  position: absolute;
+  z-index: 20;
+  bottom: 52px;
+  right: 0;
+  width: 230px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 4px 24px #0003;
+}
+.mobile-speed-popover input {
+  min-width: 0;
+  width: 100%;
+  padding: 0;
+}
+html[data-platform='android'] .mixer-shell {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+  border: 0;
+  border-radius: inherit;
+  background: var(--panel);
+}
+.mobile-panel-tabs {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  padding: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.mobile-panel-tabs button {
+  padding: 8px;
+  font-size: 12px;
+  background: transparent;
+  border: 0;
+}
+.mobile-panel-tabs .icon-button {
+  margin-left: auto;
+}
+.mobile-panel-tabs .selected {
+  color: var(--pink);
+  background: var(--panel);
+}
+html[data-platform='android'] .mixer-shell .mixer {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  width: 100%;
+  padding: 16px 20px;
+}
+html[data-platform='android'] .mixer .panel-heading {
+  display: none;
+}
+html[data-platform='android'] .marks-panel {
+  overflow: auto;
+}
+html[data-platform='android'] .mixer .track-control {
+  padding: 10px 0;
+}
+html[data-platform='android'] .mixer .track-top {
+  min-height: 22px;
+}
+html[data-platform='android'] .mixer .track-slider {
+  gap: 8px;
+}
+html[data-platform='android'] .mixer .track-switch {
+  font-size: 12px;
+  padding: 6px 8px;
+  white-space: nowrap;
+}
+.mobile-advanced-mix {
+  margin: 18px 0;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+.mobile-advanced-mix summary {
+  font-size: 13px;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+html[data-platform='android'] .pan-control {
+  margin-top: 6px;
+}
+html[data-platform='android'] .modal-backdrop {
+  padding: 12px;
+}
+html[data-platform='android'] .modal {
+  width: 100%;
+  max-height: 92dvh;
+  padding: 18px 16px;
+}
+html[data-platform='android'] .modal h2 {
+  font-size: 19px;
+}
+html[data-platform='android'] .modal h3 {
+  font-size: 15px;
+}
+.mobile-settings-nav {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.mobile-settings-nav button {
+  justify-content: flex-start;
+  font-size: 13px;
 }
 html[data-platform='android'] .android-lan-transfer input:not([type='checkbox']) {
   width: 100%;
@@ -7,207 +493,828 @@ html[data-platform='android'] .android-lan-transfer input:not([type='checkbox'])
   box-sizing: border-box;
   margin: 8px 0;
 }
-html[data-platform='android'] .app {
-  height: 100dvh;
+html[data-platform='android'] .chart-toolbar,
+html[data-platform='android'] .score-toolbar {
+  flex-wrap: wrap;
+  gap: 6px;
 }
-.mobile-chrome,
-.mobile-scrim {
+html[data-platform='android'] .chart-toolbar button,
+html[data-platform='android'] .score-toolbar button {
+  font-size: 12px;
+  padding: 7px 9px;
+}
+html[data-platform='android'] .creation-tracks {
+  padding: 12px;
+}
+html[data-platform='android'] .creation-list-heading {
+  padding: 0 0 10px;
+}
+html[data-platform='android'] .creation-list-heading h3 {
+  font-size: 14px;
+}
+html[data-platform='android'] .creation-list-heading button {
+  font-size: 12px;
+  padding: 7px;
+}
+html[data-platform='android'] .creation-object-heading {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+html[data-platform='android'] .recording-device-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+html[data-platform='android'] .recording-device-grid label {
+  font-size: 12px;
+  min-width: 0;
+}
+html[data-platform='android'] .recording-device-grid .mobile-select-trigger {
+  width: 100%;
+  min-width: 0;
+}
+html[data-platform='android'] .recording-mode-options small {
   display: none;
 }
-@media (max-width: 1050px) {
-  html[data-platform='android'] .mobile-chrome {
-    display: flex;
-    height: 52px;
-    flex: none;
-    align-items: center;
-    gap: 12px;
-    padding: 6px 12px;
-    background: var(--panel);
-    border-bottom: 1px solid var(--line);
-  }
-  html[data-platform='android'] .mobile-chrome strong {
-    flex: 1;
-  }
-  html[data-platform='android'] .mobile-chrome button {
-    min-width: 40px;
-    min-height: 40px;
-    padding: 8px;
-  }
-  html[data-platform='android'] .sidebar {
-    position: fixed;
-    z-index: 80;
-    inset: 0 auto 0 0;
-    width: min(285px, 85vw);
-    transform: translateX(-100%);
-    transition: transform 0.18s;
-    overflow-y: auto;
-  }
-  html[data-platform='android'] .mobile-menu-open .sidebar {
-    transform: translateX(0);
-  }
-  html[data-platform='android'] .mobile-scrim {
-    display: block;
-    position: fixed;
-    z-index: 79;
-    inset: 0;
-    border: 0;
-    border-radius: 0;
-    background: #0009;
-  }
-  html[data-platform='android'] .workspace {
-    display: flex;
-    flex-direction: column;
-  }
+html[data-platform='android'] .recording-mode-options button {
+  padding: 10px;
+  font-size: 13px;
+}
+html[data-platform='android'] .toast {
+  left: 12px;
+  right: 12px;
+  bottom: 96px;
+  width: auto;
+  transform: none;
+  font-size: 13px;
+}
+html[data-platform='android'] .job-card {
+  left: 12px;
+  right: 12px;
+  bottom: 96px;
+  width: auto;
+}
+@media (min-width: 700px) {
   html[data-platform='android'] .browse-content {
-    flex: 1;
-    overflow-y: auto;
-    padding: 24px 16px;
+    padding: 0 28px 84px;
   }
-  html[data-platform='android'] .library-header {
-    flex-wrap: wrap;
-    gap: 12px;
-    padding: 0;
-  }
-  html[data-platform='android'] .library-header h1 {
-    font-size: 28px;
-  }
-  html[data-platform='android'] .library-header .eyebrow {
-    display: none;
-  }
-  html[data-platform='android'] .library-tools {
-    flex-wrap: wrap;
-    margin: 20px 0;
-  }
-  html[data-platform='android'] .library-tools > span {
-    width: 100%;
-  }
-  html[data-platform='android'] .songs {
-    grid-template-columns: repeat(auto-fit, minmax(285px, 1fr));
-  }
-  html[data-platform='android'] .player-screen {
-    flex: 1;
-    min-height: 0;
-  }
-  html[data-platform='android'] .player-header {
-    height: auto;
-    padding: 10px 12px;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  html[data-platform='android'] .now-title {
-    min-width: 0;
-    flex: 1 1 calc(100% - 65px);
-  }
-  html[data-platform='android'] .now-title strong {
-    max-width: 100%;
-  }
-  html[data-platform='android'] .player-header > button[title='混音面板'],
-  html[data-platform='android'] .player-header > button[title='Mixer panel'] {
-    display: none;
-  }
-  html[data-platform='android'] .create-from-song {
-    margin-left: 40px;
-  }
-  html[data-platform='android'] .view-switch {
-    order: 9;
-    width: 100%;
-    justify-content: center;
-  }
-  html[data-platform='android'] .now-cover {
-    display: none;
-  }
-  html[data-platform='android'] .mixer-shell {
-    display: none;
-  }
-  html[data-platform='android'] .mobile-mixer-open .mixer-shell {
-    display: flex;
-    position: fixed;
-    z-index: 90;
-    right: 0;
-    top: 52px;
-    bottom: 0;
-    width: min(360px, 90vw);
-    box-shadow: -10px 0 50px #0008;
-  }
-  html[data-platform='android'] .mobile-mixer-open .mixer-shell .mixer {
-    flex: 1;
-    overflow-y: auto;
-  }
-  html[data-platform='android'] .practice-area {
-    width: 100%;
-  }
-  html[data-platform='android'] .wave-workspace {
-    padding: 12px;
-    min-height: 260px;
-  }
-  html[data-platform='android'] .practice-toolbar {
-    padding: 8px 12px;
-    flex-wrap: wrap;
-  }
-  html[data-platform='android'] .waveform {
-    flex: 1;
-    min-height: 240px;
-    touch-action: none;
-  }
-  html[data-platform='android'] .transport {
-    padding: 10px 12px 12px;
-  }
-  html[data-platform='android'] .transport-top {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  html[data-platform='android'] .transport-bottom {
-    gap: 8px;
-  }
-  html[data-platform='android'] .transport-bottom .time {
-    font-size: 14px;
-  }
-  html[data-platform='android'] .modal-backdrop {
-    padding: 12px;
-  }
-  html[data-platform='android'] .modal {
-    width: 100%;
-    max-height: 90dvh;
-    padding: 20px 16px;
-  }
-  html[data-platform='android'] .session-list {
-    overflow-x: auto;
-  }
-  html[data-platform='android'] .session-table {
-    min-width: 620px;
-  }
-  html[data-platform='android'] .chart-toolbar {
-    flex-wrap: wrap;
-  }
-  html[data-platform='android'] .chart-row {
-    overflow-x: auto;
-  }
-  html[data-platform='android'] .job-card {
-    bottom: 160px;
-    right: 12px;
-    left: 12px;
-    width: auto;
-  }
-  html[data-platform='android'] .toast {
-    left: 12px;
-    right: 12px;
-    bottom: 150px;
-    width: auto;
-    transform: none;
+  html[data-platform='android'] .mobile-panel-dialog {
+    left: auto;
+    right: 16px;
+    bottom: 16px;
+    top: 16px;
+    width: 420px;
+    border-radius: 16px;
+    max-height: none;
   }
 }
-@media (min-width: 700px) and (max-width: 1050px) {
-  html[data-platform='android'] .mobile-chrome {
-    height: 56px;
+@media (max-width: 370px) {
+  .mobile-player-tabs [role='tab'] {
+    gap: 4px;
   }
-  html[data-platform='android'] .player-header .view-switch {
-    width: auto;
-    order: 0;
+  .mobile-project-row .mobile-actions {
+    gap: 0;
   }
-  html[data-platform='android'] .waveform {
-    min-height: 340px;
+  html[data-platform='android'] .mobile-project-row .icon-button {
+    width: 36px;
   }
-  html[data-platform='android'] .songs {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+html[data-platform='android'] .modal-heading .eyebrow {
+  display: none;
+}
+html[data-platform='android'] .mixer .track-control {
+  margin-bottom: 8px;
+  padding: 8px 0;
+}
+html[data-platform='android'] .mixer .track-name {
+  padding: 4px 0;
+}
+html[data-platform='android'] .mixer .track-top {
+  margin-bottom: 4px;
+}
+
+html[data-platform='android'] .creation-tracks .track-control {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+html[data-platform='android'] .source-stem-row {
+  display: block;
+  min-width: 0;
+}
+html[data-platform='android'] .creation-object-content {
+  padding: 10px;
+}
+
+html[data-platform='android'] .chart-workspace {
+  padding: 0 10px 18px;
+}
+html[data-platform='android'] .chart-header {
+  padding: 4px 0;
+  margin-bottom: 8px;
+}
+.mobile-chord-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 42px;
+}
+.mobile-chord-bar .mobile-select-trigger {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  padding: 7px;
+  background: transparent;
+  border: 0;
+}
+html[data-platform='android'] .mobile-chord-bar .icon-button {
+  width: 36px;
+  height: 36px;
+  padding: 7px;
+  border: 0;
+}
+html[data-platform='android'] .chart-editor-tools {
+  padding: 8px 0;
+}
+html[data-platform='android'] .chart-name-line {
+  gap: 8px;
+  margin: 8px 0;
+}
+html[data-platform='android'] .chart-name-line > label {
+  display: none;
+}
+html[data-platform='android'] .chart-timing {
+  font-size: 12px;
+}
+html[data-platform='android'] .chord-bank {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+html[data-platform='android'] .chord-bank input {
+  width: 80px;
+}
+html[data-platform='android'] .chord-row-heading {
+  margin: 6px 0;
+  font-size: 11px;
+}
+html[data-platform='android'] .chord-row-heading input {
+  font-size: 11px;
+  padding: 4px;
+}
+html[data-platform='android'] .chart-row {
+  gap: 5px;
+  min-height: 80px;
+  overflow: visible;
+  padding: 0;
+}
+html[data-platform='android'] .pickup-row {
+  grid-template-columns: minmax(0, calc((100% - 15px) / 4));
+  margin-bottom: 10px;
+}
+html[data-platform='android'] .chart-measure {
+  border-radius: 6px;
+}
+html[data-platform='android'] .chart-measure .measure-heading {
+  padding: 5px 4px 0;
+}
+html[data-platform='android'] .measure-heading small {
+  font-size: 9px;
+}
+html[data-platform='android'] .measure-number {
+  font-size: 10px;
+  padding: 1px 0;
+  white-space: nowrap;
+}
+html[data-platform='android'] .chart-slots {
+  min-height: 30px;
+  margin: 2px 3px;
+  gap: 2px;
+}
+html[data-platform='android'] .chord-token {
+  height: 30px;
+  font-size: 15px;
+  padding: 3px 0;
+}
+html[data-platform='android'] .chart-slots:has(> :nth-child(2)) .chord-token {
+  font-size: 12px;
+}
+html[data-platform='android'] .chart-measure-footer {
+  padding: 2px 4px;
+}
+html[data-platform='android'] .measure-beats {
+  font-size: 8px;
+}
+html[data-platform='android'] .add-chord-slot {
+  width: 20px;
+  height: 20px;
+  padding: 3px;
+}
+html[data-platform='android'] .chart-row-section {
+  margin-bottom: 10px;
+}
+
+/* Mobile interaction language: quiet surfaces, segmented tabs, short eased
+   transitions. No backdrop blur on the audio rendering screen. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+html[data-platform='android'] button {
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+}
+html[data-platform='android'] button:active:not(:disabled) {
+  transform: scale(0.96);
+}
+html[data-platform='android'] button:focus-visible {
+  outline: 2px solid var(--pink);
+  outline-offset: 3px;
+}
+.mobile-player-tabs {
+  margin: 0 12px 8px;
+  padding: 4px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--muted) 9%, transparent);
+  gap: 3px;
+}
+.mobile-player-tabs [role='tab'] {
+  border-radius: 12px;
+  min-height: 40px;
+  font-size: 12px;
+}
+.mobile-player-tabs [aria-selected='true'] {
+  background: var(--panel);
+  color: var(--pink);
+  box-shadow: 0 2px 8px #0001;
+}
+.mobile-practice-tools {
+  gap: 8px;
+  right: 16px;
+  bottom: 12px;
+}
+html[data-platform='android'] .mobile-practice-tools > .icon-button,
+.mobile-tools-menu > summary {
+  width: 46px;
+  height: 46px;
+  border-radius: 15px;
+}
+.mobile-practice-tools > button,
+.mobile-tools-menu > summary {
+  border-color: color-mix(in srgb, var(--line) 65%, transparent);
+  box-shadow: 0 3px 12px #0001;
+}
+html[data-platform='android'] .mobile-transport .transport-record {
+  color: #ed6d7a;
+  border-radius: 50%;
+  background: color-mix(in srgb, #ed6d7a 10%, transparent);
+}
+.mobile-transport {
+  background: transparent;
+  padding-top: 10px;
+}
+.mobile-progress-time {
+  margin-bottom: 8px;
+}
+.mobile-speed-button {
+  border-radius: 12px;
+  background: var(--panel);
+}
+.mobile-select-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 40px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 9px 12px;
+  font-size: 13px;
+  border-radius: 12px;
+  text-align: left;
+  background: color-mix(in srgb, var(--muted) 7%, var(--panel));
+}
+.mobile-select-trigger > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mobile-select-trigger > span:last-child {
+  display: flex;
+  flex: none;
+  color: var(--muted);
+}
+.mobile-select-trigger[data-state='open'] {
+  border-color: var(--pink);
+}
+.mobile-select-menu {
+  z-index: 300;
+  padding: 6px;
+  min-width: var(--radix-select-trigger-width);
+  max-width: calc(100vw - 24px);
+  max-height: min(360px, var(--radix-select-content-available-height));
+  overflow: hidden;
+  color: inherit;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 10px 36px #0003;
+  transform-origin: var(--radix-select-content-transform-origin);
+}
+.mobile-select-menu[data-state='open'] {
+  animation: mobile-menu-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.mobile-select-menu[data-state='closed'] {
+  animation: mobile-menu-out 120ms ease-in;
+}
+.mobile-select-menu [data-radix-select-viewport] {
+  max-height: 320px;
+}
+.mobile-select-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 44px;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+  transition: background-color 120ms ease;
+}
+.mobile-select-option[data-highlighted] {
+  background: color-mix(in srgb, var(--pink) 12%, transparent);
+}
+.mobile-select-option[data-state='checked'] {
+  color: var(--pink);
+}
+.mobile-select-option[data-disabled] {
+  opacity: 0.4;
+  pointer-events: none;
+}
+.mobile-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: #0007;
+}
+.mobile-dialog-overlay[data-state='open'] {
+  animation: mobile-fade-in 200ms ease;
+}
+.mobile-dialog-overlay[data-state='closed'] {
+  animation: mobile-fade-out 160ms ease;
+}
+html[data-platform='android'] .mobile-dialog,
+.mobile-panel-dialog {
+  position: fixed;
+  z-index: 101;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  max-height: 90dvh;
+  max-width: 100%;
+  margin: 0;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  border-radius: 24px 24px 0 0;
+  background: var(--panel);
+  box-shadow: 0 -8px 36px #0002;
+  outline: none;
+}
+html[data-platform='android'] .mobile-dialog {
+  padding: 22px 20px 28px;
+}
+.mobile-panel-dialog {
+  height: min(78dvh, 760px);
+  overflow: hidden;
+}
+.mobile-dialog[data-state='open'],
+.mobile-panel-dialog[data-state='open'] {
+  animation: mobile-sheet-in 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.mobile-dialog[data-state='closed'],
+.mobile-panel-dialog[data-state='closed'] {
+  animation: mobile-sheet-out 160ms ease-in;
+}
+.mobile-dialog::before,
+.mobile-panel-dialog::before {
+  content: '';
+  display: block;
+  width: 34px;
+  height: 4px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--muted) 35%, transparent);
+  margin: -10px auto 16px;
+}
+.mobile-panel-dialog::before {
+  position: absolute;
+  top: 18px;
+  left: calc(50% - 17px);
+  margin: 0;
+}
+.mobile-panel-dialog .mobile-panel-tabs {
+  padding: 30px 14px 12px;
+}
+.mobile-panel-tabs button {
+  border-radius: 12px;
+  min-height: 40px;
+}
+.mobile-panel-tabs .selected {
+  background: color-mix(in srgb, var(--pink) 12%, transparent);
+}
+.mobile-file-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 10px 0;
+}
+.mobile-file-actions button {
+  flex-direction: column;
+  gap: 14px;
+  min-height: 112px;
+  border-radius: 18px;
+  font-size: 13px;
+}
+.mobile-file-actions button svg {
+  color: var(--pink);
+}
+html[data-platform='android'] .session-tabs {
+  border-radius: 16px;
+  background: var(--panel);
+  padding: 4px;
+  gap: 4px;
+}
+html[data-platform='android'] .session-tabs button {
+  flex: 1;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+}
+html[data-platform='android'] .session-tabs button.selected {
+  background: color-mix(in srgb, var(--pink) 12%, transparent);
+  color: var(--pink);
+}
+html[data-platform='android'] .modal-backdrop {
+  animation: mobile-fade-in 180ms ease;
+}
+html[data-platform='android'] .modal-backdrop > .modal {
+  animation: mobile-menu-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  border-radius: 22px;
+}
+.mobile-speed-popover,
+.mobile-tools-menu[open] > div {
+  animation: mobile-menu-in 160ms ease;
+}
+@keyframes mobile-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(48px);
   }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes mobile-sheet-out {
+  to {
+    opacity: 0;
+    transform: translateY(32px);
+  }
+}
+@keyframes mobile-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes mobile-menu-out {
+  to {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+}
+@keyframes mobile-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes mobile-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@media (min-width: 700px) {
+  html[data-platform='android'] .mobile-dialog {
+    left: 50%;
+    bottom: 50%;
+    transform: translate(-50%, 50%);
+    max-width: 680px;
+    border-radius: 24px;
+    border-bottom: 1px solid var(--line);
+  }
+  .mobile-dialog[data-state='open'] {
+    animation: mobile-fade-in 180ms ease;
+  }
+  .mobile-dialog[data-state='closed'] {
+    animation: mobile-fade-out 140ms ease;
+  }
+  .mobile-panel-dialog {
+    left: auto;
+    right: 16px;
+    bottom: 16px;
+    top: 16px;
+    width: 420px;
+    height: auto;
+    max-height: none;
+    border-radius: 24px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-platform='android'] *,
+  .mobile-select-menu,
+  .mobile-dialog-overlay,
+  .mobile-dialog,
+  .mobile-panel-dialog {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+html[data-platform='android'] .modal-backdrop {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Review: compact transport, fully visible practice lanes and local rendering. */
+.mobile-home-brand {
+  margin-right: auto;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+}
+html[data-platform='android'] .mobile-transport {
+  padding: 10px 16px 14px;
+}
+.mobile-seek-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.mobile-seek-row > span {
+  flex: none;
+  min-width: 32px;
+}
+.mobile-seek-row > span:last-child {
+  text-align: right;
+}
+.mobile-transport-controls {
+  position: relative;
+  justify-content: center;
+  margin-top: 12px;
+  min-height: 52px;
+}
+.mobile-primary-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+}
+html[data-platform='android'] .mobile-transport .play-main {
+  width: 50px;
+  min-width: 50px;
+  height: 50px;
+}
+.mobile-transport .practice-record-actions {
+  padding: 0;
+  border: 0;
+  margin: 0;
+  flex-wrap: nowrap;
+}
+html[data-platform='android'] .mobile-transport .transport-record {
+  width: 46px;
+  height: 46px;
+  min-height: 46px;
+}
+.mobile-speed-control {
+  position: absolute;
+  right: 0;
+  top: 5px;
+}
+.mobile-speed-button {
+  background: transparent;
+  min-height: 40px;
+  font-size: 13px;
+  padding: 8px 4px;
+}
+html[data-platform='android'] .practice-area {
+  position: relative;
+}
+html[data-platform='android'] .practice-wave-comparison .main-wave-lane {
+  flex: 1;
+  min-height: 0;
+}
+html[data-platform='android'] .practice-recording-waves {
+  flex-basis: 0;
+  min-height: 0;
+  padding: 4px 10px 0;
+  gap: 4px;
+}
+html[data-platform='android'] .practice-recording-waves > .comparison-lane {
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+html[data-platform='android'] .practice-wave-comparison .wave-canvas-host,
+html[data-platform='android'] .practice-wave-comparison .waveform {
+  min-height: 0;
+}
+html[data-platform='android'] .practice-recording-waves h4 {
+  flex: none;
+  font-size: 10px;
+  margin: 0;
+  line-height: 18px;
+}
+.mobile-audio-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 13px;
+}
+.loading-equalizer {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.loading-equalizer i {
+  display: block;
+  height: 32px;
+  width: 4px;
+  border-radius: 4px;
+  background: var(--pink);
+  animation: audio-loading 0.85s ease-in-out infinite alternate;
+}
+@keyframes audio-loading {
+  from {
+    transform: scaleY(0.25);
+    opacity: 0.45;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+.mobile-dialog[data-state='open'],
+.mobile-panel-dialog[data-state='open'] {
+  will-change: transform, opacity;
+}
+.mobile-chart-list {
+  width: min(340px, calc(100vw - 24px));
+  max-height: 55dvh;
+  overflow-y: auto;
+}
+.mobile-chart-picker {
+  width: 100%;
+}
+.mobile-chart-choice {
+  display: flex;
+  align-items: stretch;
+}
+.mobile-chart-choice .mobile-select-option {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+.mobile-chart-delete {
+  width: 40px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+  color: var(--muted);
+  border-radius: 10px;
+  cursor: pointer;
+}
+.mobile-chart-delete[data-highlighted] {
+  color: #ed6d7a;
+  background: color-mix(in srgb, #ed6d7a 12%, transparent);
+}
+.mobile-chart-new {
+  justify-content: flex-start;
+  gap: 10px;
+  color: var(--pink);
+}
+.mobile-menu-separator {
+  height: 1px;
+  background: var(--line);
+  margin: 5px 8px;
+}
+.mobile-chart-create input {
+  width: 100%;
+  margin: 14px 0;
+}
+html[data-platform='android'] .mobile-chord-input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  border-radius: 4px;
+  text-align: center;
+  color: var(--pink);
+  background: color-mix(in srgb, var(--pink) 10%, transparent);
+}
+html[data-platform='android'] .creation-object-heading .group-volume {
+  order: 3;
+  flex: 0 0 100%;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0 2px;
+}
+html[data-platform='android'] .group-volume > span {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+html[data-platform='android'] .group-volume b {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--pink);
+}
+html[data-platform='android'] .group-volume input {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-equalizer i {
+    animation: none;
+    transform: scaleY(0.65);
+    opacity: 0.7;
+  }
+}
+
+.mobile-speed-popover {
+  width: 264px;
+  gap: 12px;
+  align-items: flex-end;
+}
+.mobile-speed-slider {
+  flex: 1;
+  min-width: 0;
+}
+.mobile-speed-value {
+  display: block;
+  text-align: center;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pink);
+  margin-bottom: 10px;
+}
+.mobile-speed-popover > button {
+  flex: none;
+  min-width: 56px;
+  white-space: nowrap;
+  word-break: keep-all;
+  padding: 9px 12px;
+}
+
+/* Keep offscreen chord rows out of layout/paint during playback. */
+html[data-platform='android'] .chart-row-section {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 120px;
 }

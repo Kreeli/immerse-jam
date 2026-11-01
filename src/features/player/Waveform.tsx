@@ -1,10 +1,13 @@
+import type { Player } from '../../audio/Player';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { wavePainter } from './WavePainter';
 import { fixedEnvelope } from '../../audio/envelope';
 import { t as tr } from '../../i18n';
 import { time } from '../../shared/types';
 import { themeColor } from '../../styles/palette';
 export default function Waveform({
   peaks,
+  player,
   position,
   duration,
   windowSeconds,
@@ -14,6 +17,8 @@ export default function Waveform({
   onSeek,
   onScrubStart,
   onScrubEnd,
+  onWindow,
+  active = true,
   peakOrigin = 0,
   peakDuration = duration,
   amplitudeScale,
@@ -22,6 +27,7 @@ export default function Waveform({
   preserveBins = false,
 }: {
   peaks: number[];
+  player?: Player;
   position: number;
   duration: number;
   windowSeconds: number;
@@ -31,6 +37,8 @@ export default function Waveform({
   onSeek: (seconds: number) => void;
   onScrubStart: () => void;
   onScrubEnd: () => void;
+  onWindow?: (seconds: number) => void;
+  active?: boolean;
   peakOrigin?: number;
   peakDuration?: number;
   amplitudeScale?: number;
@@ -39,6 +47,9 @@ export default function Waveform({
   preserveBins?: boolean;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null),
+    waveCanvas = useRef<HTMLCanvasElement>(null),
+    pointers = useRef(new Map<number, { x: number; y: number }>()),
+    pinch = useRef<{ distance: number; window: number } | null>(null),
     drag = useRef<{
       x: number;
       position: number;
@@ -52,6 +63,18 @@ export default function Waveform({
       attributeFilter: ['data-theme', 'data-accent', 'lang'],
     });
     return () => observer.disconnect();
+  }, []);
+  useEffect(() => {
+    const element = waveCanvas.current;
+    if (!element) return;
+    const lost = (event: Event) => event.preventDefault();
+    const restored = () => setThemeRevision((value) => value + 1);
+    element.addEventListener('webglcontextlost', lost);
+    element.addEventListener('webglcontextrestored', restored);
+    return () => {
+      element.removeEventListener('webglcontextlost', lost);
+      element.removeEventListener('webglcontextrestored', restored);
+    };
   }, []);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const scale = useMemo(() => {
@@ -69,135 +92,175 @@ export default function Waveform({
       max: sorted.at(-1) || 0,
     };
   }, [peaks, amplitudeScale]);
+  // Keep bin boundaries attached to the song, independent of the viewport's
+  // position. Limit detail to one peak per CSS pixel to avoid edge shimmer.
+  const stride = preserveBins
+    ? 1
+    : Math.max(
+        1,
+        Math.ceil(
+          (peaks.length * windowSeconds) / Math.max(peakDuration, 0.001) / Math.max(1, size.width),
+        ),
+      );
   const envelope = useMemo(
     () =>
       preserveBins
         ? { values: peaks, step: peakDuration / Math.max(1, peaks.length) }
-        : fixedEnvelope(peaks, peakDuration, windowSeconds, size.width),
-    [peaks, peakDuration, windowSeconds, size.width, preserveBins],
+        : fixedEnvelope(
+            peaks,
+            peakDuration,
+            (stride * peakDuration) / Math.max(1, peaks.length),
+            1,
+          ),
+    [peaks, peakDuration, stride, preserveBins],
   );
   const start = position - windowSeconds / 2,
     end = position + windowSeconds / 2;
   useEffect(() => {
     const element = canvas.current;
     if (!element) return;
-    const observer = new ResizeObserver(() =>
-      setSize({ width: element.clientWidth, height: element.clientHeight }),
-    );
+    const observer = new ResizeObserver(() => {
+      const width = element.clientWidth,
+        height = element.clientHeight;
+      // Retain the GPU envelope while this view is hidden.
+      if (width && height)
+        setSize((old) => (old.width === width && old.height === height ? old : { width, height }));
+    });
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
+  const latest = useRef({ position, duration, a, b, active, windowSeconds });
+  latest.current = { position, duration, a, b, active, windowSeconds };
   useEffect(() => {
     const element = canvas.current;
-    if (!element || !size.width || !size.height) return;
-    const ratio = devicePixelRatio || 1,
-      { width, height } = size;
-    if (
-      element.width !== Math.round(width * ratio) ||
-      element.height !== Math.round(height * ratio)
-    ) {
-      element.width = Math.round(width * ratio);
-      element.height = Math.round(height * ratio);
-    }
+    if (!element || !waveCanvas.current || !size.width || !size.height) return;
+    const ratio = Math.min(window.ImmerseNative ? 2 : Infinity, devicePixelRatio || 1);
+    const { width, height } = size;
+    element.width = Math.round(width * ratio);
+    element.height = Math.round(height * ratio);
     const ctx = element.getContext('2d')!;
-    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-    ctx.clearRect(0, 0, width, height);
-    const center = height / 2 - 8,
-      available = Math.max(50, height - 90),
-      xAt = (seconds: number) => ((seconds - start) / windowSeconds) * width;
-    ctx.fillStyle = themeColor('#ffffff02');
-    if (start < 0) ctx.fillRect(0, 0, xAt(0), height - 27);
-    if (end > duration) ctx.fillRect(xAt(duration), 0, width - xAt(duration), height - 27);
-    ctx.strokeStyle = themeColor('#302b36');
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(0, center);
-    ctx.lineTo(width, center);
-    ctx.stroke();
-    const tick = windowSeconds <= 10 ? 1 : windowSeconds <= 30 ? 2 : 5;
-    ctx.font = '14px "Segoe UI",sans-serif';
-    for (
-      let seconds = Math.max(0, Math.ceil(start / tick) * tick);
-      seconds <= Math.min(duration, end);
-      seconds += tick
-    ) {
-      const x = xAt(seconds);
-      ctx.fillStyle = themeColor('#7a6d84');
-      ctx.fillText(time(seconds), Math.min(x + 4, width - 35), height - 9);
-      ctx.fillStyle = themeColor('#51425d');
-      ctx.fillRect(x, height - 27, 1, 5);
-    }
-    if (a !== null && b !== null && b > a) {
-      ctx.fillStyle = themeColor('#e9688617');
-      ctx.fillRect(xAt(a), 20, xAt(b) - xAt(a), height - 50);
-    }
-    const values = envelope.values,
-      step = envelope.step,
-      first = Math.max(
-        0,
-        Math.ceil(-peakOrigin / Math.max(step, 0.001) - 0.5),
-        Math.floor((start - peakOrigin) / Math.max(step, 0.001)) - 1,
-      ),
-      last = Math.min(
-        values.length - 1,
-        Math.floor((duration - peakOrigin) / Math.max(step, 0.001) - 0.5),
-        Math.ceil((end - peakOrigin) / Math.max(step, 0.001)) + 1,
-      );
-    if (values.length && last >= first) {
-      ctx.beginPath();
-      for (let i = first; i <= last; i++) {
-        const x = xAt(peakOrigin + (i + 0.5) * step),
-          h = (Math.min(1, values[i] / scale.normal) * available) / 2;
-        if (i === first) ctx.moveTo(x, center - h);
-        else ctx.lineTo(x, center - h);
+    waveCanvas.current.width = element.width;
+    waveCanvas.current.height = element.height;
+    const colors = Object.fromEntries(
+      [
+        '#aa92b8',
+        '#ffffff02',
+        '#302b36',
+        '#e9688617',
+        '#7a6d84',
+        '#51425d',
+        '#f48da8',
+        '#ed96af',
+      ].map((c) => [c, themeColor(c)]),
+    );
+    const painter = wavePainter(
+      waveCanvas.current,
+      envelope.values,
+      Math.max(envelope.step, 0.000001),
+      peakOrigin,
+      scale.normal,
+      colors['#aa92b8'],
+      width,
+      height,
+    );
+    const center = (height - 30) / 2;
+    let last = '',
+      frame = 0;
+    const paint = () => {
+      const state = latest.current;
+      const windowSeconds = state.windowSeconds;
+      const at = player ? player.displayPosition() : state.position;
+      const stamp = `${at}|${state.a}|${state.b}|${state.duration}|${windowSeconds}`;
+      if (state.active && stamp !== last) {
+        last = stamp;
+        const start = at - windowSeconds / 2,
+          end = at + windowSeconds / 2;
+        const xAt = (seconds: number) => ((seconds - start) / windowSeconds) * width;
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = colors['#ffffff02'];
+        if (start < 0) ctx.fillRect(0, 0, xAt(0), height - 27);
+        if (end > state.duration)
+          ctx.fillRect(xAt(state.duration), 0, width - xAt(state.duration), height - 27);
+        ctx.strokeStyle = colors['#302b36'];
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, center);
+        ctx.lineTo(width, center);
+        ctx.stroke();
+        if (state.a !== null && state.b !== null && state.b > state.a) {
+          ctx.fillStyle = colors['#e9688617'];
+          ctx.fillRect(xAt(state.a), 0, xAt(state.b) - xAt(state.a), height - 27);
+        }
+        painter.draw(start, windowSeconds);
+        ctx.font = '12px "Segoe UI",sans-serif';
+        const textWidth = ctx.measureText(time(state.duration)).width;
+        const tick =
+          [0.5, 1, 2, 5, 10, 15, 30, 60, 120].find(
+            (value) => (value * width) / windowSeconds >= textWidth + 12,
+          ) || 120;
+        // Draw partly visible labels beyond both edges. Canvas performs the
+        // clipping, so characters enter and leave one by one with the waveform.
+        const labelSeconds = ((textWidth + 8) * windowSeconds) / width;
+        for (
+          let seconds = Math.max(0, Math.floor((start - labelSeconds) / tick) * tick);
+          seconds <= Math.min(state.duration, end);
+          seconds += tick
+        ) {
+          const x = xAt(seconds);
+          ctx.fillStyle = colors['#7a6d84'];
+          ctx.fillText(time(seconds), x + 4, height - 9);
+          ctx.fillStyle = colors['#51425d'];
+          ctx.fillRect(x, height - 27, 1, 5);
+        }
+        ctx.fillStyle = colors['#f48da8'];
+        ctx.fillRect(width / 2 - 1, 8, 2, height - 38);
+        for (const [value, label] of [
+          [state.a, tr('开始')],
+          [state.b, tr('结束')],
+        ] as const)
+          if (value !== null && value >= start && value <= end) {
+            const x = xAt(value);
+            ctx.fillStyle = colors['#ed96af'];
+            ctx.fillRect(x, 8, 1, height - 38);
+            ctx.fillText(label, x + 5, 12);
+          }
       }
-      for (let i = last; i >= first; i--) {
-        const x = xAt(peakOrigin + (i + 0.5) * step),
-          h = (Math.min(1, values[i] / scale.normal) * available) / 2;
-        ctx.lineTo(x, center + h);
-      }
-      ctx.closePath();
-      ctx.fillStyle = themeColor('#aa92b8');
-      ctx.globalAlpha = 0.75;
-      ctx.fill();
-      ctx.globalAlpha = 1;
-    }
-    ctx.fillStyle = themeColor('#f48da8');
-    ctx.fillRect(width / 2 - 1, 15, 2, height - 46);
-    for (const [value, label] of [
-      [a, tr('开始')],
-      [b, tr('结束')],
-    ] as const)
-      if (value !== null && value >= start && value <= end) {
-        const x = xAt(value);
-        ctx.fillStyle = themeColor('#ed96af');
-        ctx.fillRect(x, 15, 1, height - 46);
-        ctx.fillText(label, Math.min(width - 15, x + 5), 13);
-      }
-  }, [
-    peaks,
-    position,
-    duration,
-    windowSeconds,
-    a,
-    b,
-    size,
-    scale,
-    start,
-    end,
-    envelope,
-    themeRevision,
-    peakOrigin,
-  ]);
+      frame = requestAnimationFrame(paint);
+    };
+    paint();
+    return () => {
+      cancelAnimationFrame(frame);
+      painter.dispose();
+    };
+  }, [size, scale, envelope, peakOrigin, themeRevision, player]);
   const bounded = (value: number) => Math.max(0, Math.min(duration, value));
-  const finish = () => {
-    if (drag.current) {
-      drag.current = null;
-      onScrubEnd();
+  const zoom = (seconds: number) => onWindow?.(Math.max(2, Math.min(600, seconds)));
+  useEffect(() => {
+    const element = canvas.current;
+    if (!element) return;
+    const wheel = (event: WheelEvent) => {
+      if (!event.ctrlKey || disabled || !onWindow) return;
+      event.preventDefault();
+      event.stopPropagation();
+      zoom(windowSeconds * Math.exp(event.deltaY * 0.002));
+    };
+    element.addEventListener('wheel', wheel, { passive: false });
+    return () => element.removeEventListener('wheel', wheel);
+  }, [windowSeconds, disabled, onWindow]);
+  const finish = (pointerId: number) => {
+    pointers.current.delete(pointerId);
+    if (pinch.current) {
+      if (!pointers.current.size) pinch.current = null;
+      return;
     }
+    const state = drag.current;
+    drag.current = null;
+    if (state?.moved) onScrubEnd();
   };
   return (
     <div className="wave-canvas-host">
+      <canvas ref={waveCanvas} className="wave-paint" aria-hidden="true" />
       <canvas
         ref={canvas}
         className="waveform"
@@ -219,14 +282,43 @@ export default function Waveform({
           event.preventDefault();
           event.currentTarget.focus();
           event.currentTarget.setPointerCapture(event.pointerId);
-          drag.current = { x: event.clientX, position, moved: false };
-          onScrubStart();
+          pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+          if (pointers.current.size === 2) {
+            const [a, b] = [...pointers.current.values()];
+            pinch.current = {
+              distance: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)),
+              window: windowSeconds,
+            };
+            if (drag.current?.moved) onScrubEnd();
+            drag.current = null;
+          } else if (!pinch.current) {
+            drag.current = {
+              x: event.clientX,
+              position: player?.displayPosition() ?? position,
+              moved: false,
+            };
+          }
         }}
         onPointerMove={(event) => {
+          if (!pointers.current.has(event.pointerId)) return;
+          pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+          if (pinch.current) {
+            if (pointers.current.size === 2) {
+              const [a, b] = [...pointers.current.values()];
+              zoom(
+                (pinch.current.window * pinch.current.distance) /
+                  Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)),
+              );
+            }
+            return;
+          }
           const state = drag.current;
           if (!state) return;
           const distance = event.clientX - state.x;
-          if (Math.abs(distance) > 3) state.moved = true;
+          if (!state.moved && Math.abs(distance) > 5) {
+            state.moved = true;
+            onScrubStart();
+          }
           if (state.moved)
             onSeek(
               bounded(
@@ -234,22 +326,9 @@ export default function Waveform({
               ),
             );
         }}
-        onPointerUp={(event) => {
-          const state = drag.current;
-          if (state && !state.moved) {
-            const rect = event.currentTarget.getBoundingClientRect();
-            onSeek(
-              bounded(
-                state.position -
-                  windowSeconds / 2 +
-                  ((event.clientX - rect.left) / rect.width) * windowSeconds,
-              ),
-            );
-          }
-          finish();
-        }}
-        onPointerCancel={finish}
-        onLostPointerCapture={finish}
+        onPointerUp={(event) => finish(event.pointerId)}
+        onPointerCancel={(event) => finish(event.pointerId)}
+        onLostPointerCapture={(event) => finish(event.pointerId)}
         onKeyDown={(event) => {
           if (disabled) return;
           if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {

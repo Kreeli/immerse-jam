@@ -71,7 +71,9 @@ public final class WaveReader implements AutoCloseable {
       format = f;
       data = start;
       frames = length / (channels * bits / 8);
-      cache = new byte[8192 * channels * bits / 8];
+      // Keep the interpolation guard in the same page. Reading left/right at
+      // a page edge otherwise reloads the two adjacent pages repeatedly.
+      cache = new byte[8193 * channels * bits / 8];
     } catch (IOException error) {
       in.close();
       throw error;
@@ -82,7 +84,7 @@ public final class WaveReader implements AutoCloseable {
     if (frame < 0 || frame >= frames) return 0;
     if (frame < cached || frame >= cached + cachedFrames) {
       cached = frame / 8192 * 8192;
-      cachedFrames = (int) Math.min(8192, frames - cached);
+      cachedFrames = (int) Math.min(8193, frames - cached);
       in.seek(data + cached * channels * bits / 8);
       in.readFully(cache, 0, cachedFrames * channels * bits / 8);
     }

@@ -1,8 +1,16 @@
+import { NativeCapture } from '../platform/android/NativeCapture';
 import { t as tr } from '../i18n';
 import type { RecordingSettings } from '../shared/types';
 import captureUrl from './capture-processor.js?url';
 const installed = new WeakSet<AudioContext>();
-export class AudioCapture {
+export interface CaptureSession {
+  frames: number;
+  error: Error | null;
+  queue: Promise<unknown>;
+  arm(at: number): void;
+  stop(): Promise<void>;
+}
+export class AudioCapture implements CaptureSession {
   stream: MediaStream;
   node: AudioWorkletNode;
   source: MediaStreamAudioSourceNode;
@@ -70,8 +78,11 @@ export class AudioCapture {
     onProgress: (seconds: number, level: number) => void,
     onLost: () => void,
     signal?: AbortSignal,
-  ) {
+  ): Promise<CaptureSession> {
     signal?.throwIfAborted();
+    if (window.ImmerseNative) {
+      return NativeCapture.open(context, settings, onChunk, onProgress, onLost, signal);
+    }
     if (!installed.has(context)) {
       await context.audioWorklet.addModule(captureUrl);
       installed.add(context);
@@ -80,7 +91,10 @@ export class AudioCapture {
     const pending = navigator.mediaDevices.getUserMedia({
       video: false,
       audio: {
-        deviceId: settings.inputDeviceId ? { exact: settings.inputDeviceId } : undefined,
+        deviceId:
+          settings.inputDeviceId && settings.inputDeviceId !== 'default'
+            ? { exact: settings.inputDeviceId }
+            : undefined,
         echoCancellation: false,
         noiseSuppression: false,
         autoGainControl: false,

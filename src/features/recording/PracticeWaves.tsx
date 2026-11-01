@@ -1,4 +1,5 @@
 import type { LiveEnvelope } from '../../audio/live-envelope';
+import { isAndroid } from '../../platform/environment';
 import { activeTakes } from '../../audio/performance';
 import { t as tr } from '../../i18n';
 import type { Project } from '../../shared/types';
@@ -9,8 +10,12 @@ export default function PracticeWaves({
   ...timeline
 }: TimelineProps & { project: Project; live: LiveEnvelope | null }) {
   const takes = activeTakes(project);
+  if (isAndroid && !live && !takes.length) return null;
   return (
-    <div className="practice-recording-waves">
+    <div
+      className="practice-recording-waves"
+      style={isAndroid ? { flex: live ? 1 : Math.max(1, takes.length) } : undefined}
+    >
       {live ? (
         <section className="comparison-lane live-lane">
           <h4>

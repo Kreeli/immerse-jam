@@ -251,8 +251,11 @@ test('desktop playback estimates actual file duration before decoding', async ()
   assert.equal(result.bytes, 48000 * 2 * 4);
   const repeated = await check(store, p.id, [p.original, p.original], 'unused-for-wav');
   assert.equal(repeated.bytes, result.bytes * 2);
-  assert.equal(decodeBudget(1000), 400);
-  assert.ok(decodeBudget(16 * 1024 ** 3) <= 1536 * 1048576);
+  assert.equal(decodeBudget(1000, 10000), 2500);
+  // A 16 GiB desktop with only 2 GiB currently free must not reject a
+  // previously playable 1.6 GiB multi-track project before decoding starts.
+  assert.equal(decodeBudget(2 * 1024 ** 3, 16 * 1024 ** 3), 4 * 1024 ** 3);
+  assert.ok(decodeBudget(64 * 1024 ** 3, 128 * 1024 ** 3) <= 8 * 1024 ** 3);
   await assert.rejects(check(store, p.id, ['missing.wav'], 'unused'), /无效/);
 });
 test('binary peer chunks avoid base64 on desktop while preserving integrity', async () => {
@@ -318,7 +321,7 @@ test('reset drains SoundTouch circular adapter history while preserving the work
     scope,
   );
   const processor = new Processor(),
-    parameters = { pitch: [1], pitchSemitones: [0], playbackRate: [1] };
+    parameters = { pitch: [1], pitchSemitones: [0], playbackRate: [0.8] };
   const render = (value) => {
     const input = new Float32Array(128).fill(value),
       output = [new Float32Array(128), new Float32Array(128)];

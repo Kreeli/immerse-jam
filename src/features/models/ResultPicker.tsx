@@ -1,3 +1,6 @@
+import Select from '../../shared/Select';
+import { jamCall } from '../../platform/project-call';
+import { isAndroid } from '../../platform/environment';
 import { FolderOpen, Pencil } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { t as tr, message as translateMessage } from '../../i18n';
@@ -24,16 +27,15 @@ export default function ResultPicker({
     <div className="result-picker">
       <label>
         {tr('分离结果')}
-        <select
+        <Select
           aria-label={tr('当前分离结果')}
           disabled={loading}
           value={project.activeResultId || ''}
           onChange={(event) =>
-            void window.jam
-              .call<Project>('result-select', {
-                id: project.id,
-                resultId: event.target.value || null,
-              })
+            void jamCall<Project>('result-select', {
+              id: project.id,
+              resultId: event.target.value || null,
+            })
               .then(onProject)
               .catch((error) => onError(error.message))
           }
@@ -45,7 +47,7 @@ export default function ResultPicker({
               {tr('轨')}
             </option>
           ))}
-        </select>
+        </Select>
       </label>
       <div className="result-actions">
         {result && (
@@ -58,25 +60,26 @@ export default function ResultPicker({
             {tr('重命名')}
           </button>
         )}
-        <button
-          className="small"
-          title={result ? tr('打开分离结果文件夹') : tr('打开项目文件夹')}
-          onClick={() =>
-            void window.jam
-              .call('result-open', { id: project.id, resultId: result?.id })
-              .catch((error) => onError(error.message))
-          }
-        >
-          <FolderOpen size={12} />
-          {result ? tr('结果文件夹') : tr('项目文件夹')}
-        </button>
+        {!isAndroid && (
+          <button
+            className="small"
+            title={result ? tr('打开分离结果文件夹') : tr('打开项目文件夹')}
+            onClick={() =>
+              void jamCall('result-open', { id: project.id, resultId: result?.id }).catch((error) =>
+                onError(error.message),
+              )
+            }
+          >
+            <FolderOpen size={12} />
+            {result ? tr('结果文件夹') : tr('项目文件夹')}
+          </button>
+        )}
       </div>
       {renaming && result && (
         <form
           onSubmit={(event) => {
             event.preventDefault();
-            void window.jam
-              .call<Project>('result-rename', { id: project.id, resultId: result.id, name })
+            void jamCall<Project>('result-rename', { id: project.id, resultId: result.id, name })
               .then(onProject)
               .catch((error) => onError(error.message));
           }}

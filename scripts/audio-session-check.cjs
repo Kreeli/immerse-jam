@@ -43,10 +43,10 @@ let app, page;
       }
     };
     AudioNode.prototype.connect = function (...args) {
-      if (this instanceof DynamicsCompressorNode && args[0] instanceof GainNode) {
+      if (this instanceof WaveShaperNode && args[0] instanceof AudioDestinationNode) {
         window.__meter = this.context.createAnalyser();
         window.__meter.fftSize = 2048;
-        connect.call(args[0], window.__meter);
+        connect.call(this, window.__meter);
       }
       return connect.apply(this, args);
     };

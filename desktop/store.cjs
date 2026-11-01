@@ -148,10 +148,11 @@ class Store {
         validateProject(value);
         for (const media of require('../shared/project-validation.cjs').referencedFiles(value))
           if (!fs.statSync(this.asset(id, media)).isFile()) throw new Error('备份缺少媒体');
-        fs.copyFileSync(
-          path.join(this.dir(id), 'project.json'),
-          path.join(this.dir(id), 'project.corrupt.' + Date.now() + '.json'),
-        );
+        if (fs.existsSync(path.join(this.dir(id), 'project.json')))
+          fs.copyFileSync(
+            path.join(this.dir(id), 'project.json'),
+            path.join(this.dir(id), 'project.corrupt.' + Date.now() + '.json'),
+          );
         atomicJson(path.join(this.dir(id), 'project.json'), { ...value, id });
         return this.get(id);
       } catch {
@@ -187,6 +188,8 @@ class Store {
   }
   update(id, patch) {
     const p = this.get(id);
+    const merged = require('../shared/project-patch.cjs').merge(p, patch);
+    patch = Object.fromEntries(Object.keys(patch).map((key) => [key, merged[key]]));
     let changedTracks = false;
     for (const key of [
       'title',

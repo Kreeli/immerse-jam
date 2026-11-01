@@ -9,6 +9,8 @@ export interface TimelineProps {
   position: number;
   duration: number;
   windowSeconds: number;
+  onWindow?: (seconds: number) => void;
+  active?: boolean;
   recording: boolean;
   loading: boolean;
   onSeek: (time: number) => void;

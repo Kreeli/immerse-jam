@@ -1,3 +1,6 @@
+import { StreamTrack } from '../platform/android/StreamTrack';
+import streamProcessorUrl from './stream-processor.js?url';
+import { StreamingAudio } from '../platform/android/StreamingAudio';
 import { SoundTouchNode } from '@soundtouchjs/audio-worklet';
 import processorUrl from './playback-processor.js?worker&url';
 import { t as tr } from '../i18n';
@@ -14,6 +17,7 @@ import {
 } from './performance';
 type Channel = {
   buffer: AudioBuffer;
+  duration: number;
   track: Track;
   gain: GainNode;
   pan: StereoPannerNode;
@@ -21,9 +25,50 @@ type Channel = {
   meters: AnalyserNode[];
   meterData: Float32Array<ArrayBuffer>[];
   source?: AudioBufferSourceNode;
+  stream?: StreamTrack;
 };
 export class Player {
   context: AudioContext | null = null;
+  private streaming: StreamingAudio | null = null;
+  scrubbing = false;
+  private seekSerial = 0;
+  private preview: number | null = null;
+  private visualClock: { wall: number; audio: number } | null = null;
+  private seekTarget: number | null = null;
+  private streamCarry: { track: string; index: number }[] = [];
+  private carryUntil = 0;
+  private streamFillAt = -Infinity;
+  private warmSignature = '';
+  private warmPromise: Promise<void> = Promise.resolve();
+  private scrubWarmTimer: ReturnType<typeof setTimeout> | null = null;
+  onError: (message: string) => void = () => {};
+  onLoadProgress: (message: string) => void = () => {};
+  private nativeActive = false;
+  private nativeEvent = (event: Event) => {
+    const action = (event as CustomEvent<string>).detail;
+    if (action === 'pause' || action === 'route-changed') this.pause();
+    else if (action === 'play') void this.play().catch(() => this.pause());
+    else if (action === 'tick' && this.playing) {
+      this.schedule();
+      if (document.hidden) this.onUpdate(this.position(), this.playing);
+    }
+  };
+  private async nativePlayback(active: boolean) {
+    if (!window.ImmerseNative || active === this.nativeActive) return;
+    this.nativeActive = active;
+    try {
+      await window.jam.call('android-playback-state', {
+        playing: active,
+        title: this.project?.title || 'Immerse Jam',
+      });
+    } catch (error) {
+      this.nativeActive = false;
+      if (active) throw error;
+    }
+  }
+  private get horizon() {
+    return window.ImmerseNative ? 1.25 : 0.25;
+  }
   private capturing = false;
   get captureActive() {
     return this.capturing;
@@ -43,7 +88,7 @@ export class Player {
   mix: GainNode | null = null;
   master: GainNode | null = null;
   dsp: SoundTouchNode | null = null;
-  limiter: DynamicsCompressorNode | null = null;
+  limiter: WaveShaperNode | null = null;
   project: Project | null = null;
   playing = false;
   offset = 0;
@@ -67,6 +112,9 @@ export class Player {
   transportGain: GainNode | null = null;
   playSerial = 0;
   private resumeRequested = false;
+  get starting() {
+    return this.resumeRequested;
+  }
   scheduledCycles = new Set<number>();
   activeSources = new Set<{ source: AudioBufferSourceNode; gate: GainNode }>();
   private initPromise: Promise<void> | null = null;
@@ -118,18 +166,21 @@ export class Player {
     )
       return;
     const context = this.context;
-    this.idleTimer = setTimeout(() => {
-      this.idleTimer = null;
-      if (
-        this.context === context &&
-        !this.playing &&
-        !this.resumeRequested &&
-        !this.captureActive &&
-        !this.audioLeases &&
-        context.state === 'running'
-      )
-        void context.suspend().catch(() => {});
-    }, 80);
+    this.idleTimer = setTimeout(
+      () => {
+        this.idleTimer = null;
+        if (
+          this.context === context &&
+          !this.playing &&
+          !this.resumeRequested &&
+          !this.captureActive &&
+          !this.audioLeases &&
+          context.state === 'running'
+        )
+          void context.suspend().catch(() => {});
+      },
+      window.ImmerseNative ? 8000 : 80,
+    );
   }
   async acquireAudio() {
     await this.init();
@@ -198,9 +249,15 @@ export class Player {
   }
   private async initialize() {
     const lifecycle = this.lifecycleSerial;
-    const ctx = new AudioContext({ latencyHint: 'interactive', sampleRate: 48000 });
+    // A 4 ms interactive sink underruns repeatedly on the tested Android
+    // tablet. A bounded 40 ms render budget keeps six stems continuous.
+    const ctx = new AudioContext({
+      latencyHint: window.ImmerseNative ? 0.04 : 'interactive',
+      sampleRate: 48000,
+    });
     try {
       await SoundTouchNode.register(ctx, processorUrl);
+      if (window.ImmerseNative) await ctx.audioWorklet.addModule(streamProcessorUrl);
     } catch (error) {
       await ctx.close();
       throw error;
@@ -210,6 +267,7 @@ export class Player {
       return;
     }
     this.context = ctx;
+    window.addEventListener('immerse-audio', this.nativeEvent);
     this.mix = ctx.createGain();
     this.metronomeGain = ctx.createGain();
     this.countInGain = ctx.createGain();
@@ -219,16 +277,18 @@ export class Player {
     this.master.gain.value = 0.8;
     this.midiGain = ctx.createGain();
     this.midiGain.gain.value = 0.3;
-    this.limiter = ctx.createDynamicsCompressor();
-    this.limiter.threshold.value = -2;
-    this.limiter.knee.value = 0;
-    this.limiter.ratio.value = 20;
+    // Stateless peak protection, identical to desktop and Android exports.
+    // A compressor's lookahead retains old samples across pause/seek/resume.
+    this.limiter = ctx.createWaveShaper();
+    this.limiter.curve = Float32Array.from({ length: 65537 }, (_, i) =>
+      Math.max(-0.98, Math.min(0.98, (i / 65536) * 2 - 1)),
+    );
     this.transportGain = ctx.createGain();
     this.transportGain.gain.value = 0;
-    this.midiGain.connect(this.limiter);
-    this.limiter.connect(this.transportGain);
+    this.midiGain.connect(this.transportGain);
     this.transportGain.connect(this.master);
-    this.master.connect(ctx.destination);
+    this.master.connect(this.limiter);
+    this.limiter.connect(ctx.destination);
     this.initWaveWorker();
     this.rebuildDsp();
     this.scheduleIdleSuspend();
@@ -241,37 +301,52 @@ export class Player {
     this.dsp.playbackRate.value = this.tempo;
     this.dsp.pitchSemitones.value = this.pitch;
     this.mix.connect(this.dsp);
-    this.dsp.connect(this.limiter!);
+    this.dsp.connect(this.transportGain!);
   }
   async load(project: Project) {
     const generation = ++this.generation;
     this.pause();
-    if (window.ImmerseNative)
-      await window.jam.call('android-playback-budget', {
-        bytes:
-          sessionDuration(project, project.duration || 0) *
-          48000 *
-          2 *
-          4 *
-          sourceTracks(project).length,
-      });
-    else
-      await window.jam.call('playback-budget', {
-        id: project.id,
-        files: sourceTracks(project).map((track) => track.file),
-      });
-    await this.init();
-    if (generation !== this.generation || !this.context) return;
+    this.onLoadProgress(tr('正在准备音轨'));
     const same = this.project?.id === project.id,
       oldBuffers = new Map(
         (same ? this.channels : []).map((channel) => [channel.track.file, channel.buffer]),
       );
+    // Detach old buffers before duration inspection and decoding the next song.
+    // Otherwise a large project temporarily holds both complete songs in RAM.
+    for (const c of this.channels) {
+      c.stream?.close();
+      c.gain.disconnect();
+      c.pan.disconnect();
+      c.split.disconnect();
+      c.meters.forEach((meter) => meter.disconnect());
+    }
+    this.channels = [];
+    this.streaming?.close();
+    this.streaming = null;
+    if (!window.ImmerseNative)
+      await window.jam.call('playback-budget', {
+        id: project.id,
+        files: sourceTracks(project).map((track) => track.file),
+      });
+    const tracks = sourceTracks(project);
+    const opening = window.ImmerseNative
+      ? StreamingAudio.open(project, tracks)
+      : Promise.resolve(null);
+    const [, streaming] = await Promise.all([this.init(), opening]);
+    if (generation !== this.generation || !this.context) {
+      streaming?.close();
+      return;
+    }
     if (!same) this.peakCache.clear();
-    const tracks = sourceTracks(project),
-      loaded: Channel[] = [];
+    const loaded: Channel[] = [];
+    this.streaming = streaming;
+
     try {
-      for (const track of tracks) {
-        let buffer = oldBuffers.get(track.file);
+      for (const [index, track] of tracks.entries()) {
+        this.onLoadProgress(tr('正在载入音轨 {0}/{1}', [index + 1, tracks.length]));
+        let buffer = streaming
+          ? this.context.createBuffer(2, 1, 48000)
+          : oldBuffers.get(track.file);
         if (!buffer) {
           const response = await fetch(asset(project.id, track.file));
           if (!response.ok) throw new Error(tr('无法读取 {0}', [track.name]));
@@ -279,6 +354,7 @@ export class Player {
         }
         if (generation !== this.generation) {
           for (const c of loaded) {
+            c.stream?.close();
             c.gain.disconnect();
             c.pan.disconnect();
             c.split.disconnect();
@@ -298,6 +374,8 @@ export class Player {
         });
         loaded.push({
           buffer,
+          stream: streaming ? new StreamTrack(this.context, streaming, track.id, gain) : undefined,
+          duration: streaming?.durations.get(track.id) ?? buffer.duration,
           track: { ...track },
           gain,
           pan,
@@ -308,20 +386,16 @@ export class Player {
       }
     } catch (error) {
       for (const c of loaded) {
+        c.stream?.close();
         c.gain.disconnect();
         c.pan.disconnect();
         c.split.disconnect();
         c.meters.forEach((meter) => meter.disconnect());
       }
+      streaming?.close();
       throw error;
     }
     if (generation !== this.generation) return;
-    for (const c of this.channels) {
-      c.gain.disconnect();
-      c.pan.disconnect();
-      c.split.disconnect();
-      c.meters.forEach((meter) => meter.disconnect());
-    }
     this.channels = loaded;
     this.trackWaves.clear();
     this.mixWaves.clear();
@@ -332,22 +406,27 @@ export class Player {
         0,
         ...loaded
           .filter((c) => !(project.takes || []).some((t) => t.id === c.track.id))
-          .map((c) => Math.max(0, (c.track.start || 0) + c.buffer.duration)),
+          .map((c) => Math.max(0, (c.track.start || 0) + c.duration)),
       ),
     );
     this.offset = 0;
     this.apply(project);
-    for (const channel of loaded) {
-      const values =
-        this.peakCache.get(channel.track.file) || (await this.calculateWaveform(channel.buffer));
-      if (generation !== this.generation) return;
-      this.peakCache.set(channel.track.file, values);
-      this.trackWaves.set(
-        channel.track.id,
-        placeEnvelope(values, channel.buffer.duration, channel.track.start || 0, this.duration),
-      );
-    }
-    if (project.kind !== 'creation') await this.waveform('mix');
+    if (!streaming)
+      for (const channel of loaded) {
+        const values =
+          this.peakCache.get(channel.track.file) || (await this.calculateWaveform(channel.buffer));
+        if (generation !== this.generation) return;
+        this.peakCache.set(channel.track.file, values);
+        this.trackWaves.set(
+          channel.track.id,
+          placeEnvelope(values, channel.duration, channel.track.start || 0, this.duration),
+        );
+      }
+    if (project.kind !== 'creation' && !streaming) {
+      this.onLoadProgress(tr('正在准备波形'));
+      await this.waveform('mix');
+    } else if (project.kind !== 'creation') void this.waveform('mix').catch(() => {});
+    if (streaming) await this.prepareStream();
     if (generation === this.generation) this.onUpdate(0, false);
   }
   apply(project: Project) {
@@ -355,7 +434,7 @@ export class Player {
     const was = this.playing || this.resumeRequested;
     const position = this.position();
     const changed = this.tempo !== project.practice.tempo || this.pitch !== project.practice.pitch;
-    if (changed) this.pause();
+    if (changed) this.pause(false);
     this.tempo = project.practice.tempo;
     this.pitch = project.practice.pitch;
     if (this.dsp) {
@@ -437,13 +516,20 @@ export class Player {
       clearTimeout(this.idleTimer);
       this.idleTimer = null;
     }
+    if (this.scrubWarmTimer) {
+      clearTimeout(this.scrubWarmTimer);
+      this.scrubWarmTimer = null;
+    }
     const serial = ++this.playSerial,
       context = this.context;
     try {
+      await this.nativePlayback(true);
+      if (serial !== this.playSerial) return;
       await context.resume();
     } catch (error) {
       if (serial !== this.playSerial) return;
       this.resumeRequested = false;
+      void this.nativePlayback(false);
       throw error;
     }
     if (serial !== this.playSerial || this.context !== context) return;
@@ -454,10 +540,13 @@ export class Player {
     const loop = this.usableLoop();
     if (loop && this.offset >= loop.b) this.offset = loop.a;
     try {
+      if (this.streaming) await this.prepareStream();
+      if (serial !== this.playSerial || this.context !== context) return;
       await this.resetTransport();
     } catch (error) {
       if (serial === this.playSerial) {
         this.resumeRequested = false;
+        void this.nativePlayback(false);
         this.scheduleIdleSuspend();
         throw error;
       }
@@ -469,7 +558,7 @@ export class Player {
     this.scheduledCycles.clear();
     this.metroScheduled.clear();
     const origin = this.context.currentTime;
-    let delay = countIn ? 0.12 : 0.02;
+    let delay = countIn ? 0.12 : window.ImmerseNative ? Math.max(0.008, context.baseLatency) : 0.02;
     this.countInBeats = 0;
     this.countInInterval = 0;
     if (countIn) {
@@ -483,12 +572,26 @@ export class Player {
       delay += beats * interval;
     }
     this.started = origin + delay;
-    this.scheduleSources();
+    if (this.streaming) {
+      const frame = Math.ceil(this.started * context.sampleRate);
+      this.started = frame / context.sampleRate;
+      for (const channel of this.channels)
+        channel.stream!.play(
+          frame,
+          this.offset,
+          this.tempo,
+          channel.track.start || 0,
+          channel.duration,
+          this.usableLoop(),
+        );
+    }
     this.playing = true;
+    this.scheduleSources();
     this.notesScheduled.clear();
     this.schedule();
     this.timer = setInterval(() => this.schedule(), 25);
-    const tick = () => {
+    let lastPaint = 0;
+    const tick = (stamp: number) => {
       if (!this.playing) return;
       const p = this.position();
       if (!this.captureActive && p >= this.duration - 0.005) {
@@ -497,7 +600,10 @@ export class Player {
         this.onUpdate(this.offset, false);
         return;
       }
-      this.onUpdate(p, true);
+      if (!window.ImmerseNative || stamp - lastPaint >= 100) {
+        lastPaint = stamp;
+        this.onUpdate(this.displayPosition(), true);
+      }
       this.raf = requestAnimationFrame(tick);
     };
     this.onUpdate(this.offset, true);
@@ -515,7 +621,13 @@ export class Player {
     }
     await context.setSinkId(id === 'default' ? '' : id);
   }
-  pause() {
+  pause(releaseNative = true) {
+    this.seekSerial++;
+    this.preview = null;
+    this.seekTarget = null;
+    if (this.scrubWarmTimer) clearTimeout(this.scrubWarmTimer);
+    this.scrubWarmTimer = null;
+    if (releaseNative) void this.nativePlayback(false);
     this.playSerial++;
     this.resumeRequested = false;
     if (this.playing) this.offset = this.position();
@@ -534,6 +646,9 @@ export class Player {
       }
     }
     this.activeSources.clear();
+    this.streamFillAt = -Infinity;
+    for (const channel of this.channels)
+      channel.stream?.stop(Math.ceil((now + 0.006) * this.context!.sampleRate));
     for (const channel of this.channels) channel.source = undefined;
     for (const source of this.voices) {
       try {
@@ -546,24 +661,271 @@ export class Player {
     this.onUpdate(this.offset, false);
     this.scheduleIdleSuspend();
   }
+  displayPosition() {
+    if (this.preview !== null) return this.preview;
+    if (!this.playing || !this.context) {
+      this.visualClock = null;
+      return this.position();
+    }
+    // Android exposes currentTime in output-buffer bursts. Draw against a
+    // monotonic presentation clock, gently corrected to the real audio clock.
+    // The scheduler/recording clock remains sample accurate and unchanged.
+    const wall = performance.now() / 1000,
+      audio = this.context.currentTime;
+    const old = this.visualClock;
+    let presented = audio;
+    if (old && wall - old.wall < 0.25) {
+      const dt = Math.max(0, wall - old.wall),
+        predicted = old.audio + dt;
+      presented = predicted + Math.max(-dt * 0.05, Math.min(dt * 0.05, (audio - predicted) * 0.1));
+    }
+    this.visualClock = { wall, audio: presented };
+    return Math.max(
+      0,
+      Math.min(
+        this.captureActive ? Infinity : this.duration,
+        this.loopPosition(this.offset + Math.max(0, presented - this.started) * this.tempo),
+      ),
+    );
+  }
+  beginScrub() {
+    this.scrubbing = true;
+    this.preview = this.displayPosition();
+  }
+  endScrub() {
+    if (!this.scrubbing) return;
+    const target = this.displayPosition();
+    this.scrubbing = false;
+    this.seek(target);
+  }
   seek(position: number) {
-    const was = this.playing || this.resumeRequested;
-    this.pause();
-    this.offset = Math.max(0, Math.min(this.duration, position));
-    this.onUpdate(this.offset, false);
-    if (was) void this.play();
+    let target = Math.max(0, Math.min(this.duration, position));
+    const loop = this.usableLoop();
+    if (loop && target >= loop.b) target = loop.a;
+    this.preview = target;
+    this.seekTarget = target;
+    const serial = ++this.seekSerial;
+    if (this.scrubWarmTimer) clearTimeout(this.scrubWarmTimer);
+    this.scrubWarmTimer = null;
+    if (this.scrubbing) {
+      if (this.streaming)
+        this.scrubWarmTimer = setTimeout(() => {
+          this.scrubWarmTimer = null;
+          void this.prepareStream(target, true).catch(() => {});
+        }, 40);
+      return;
+    }
+    if (this.playing) {
+      void this.movePlayback(target, serial).catch((error) => {
+        if (serial !== this.seekSerial || error.name === 'AbortError') return;
+        this.preview = null;
+        this.seekTarget = null;
+        this.onError(error.message);
+      });
+      return;
+    }
+    const wasStarting = this.resumeRequested;
+    if (wasStarting) this.pause(false);
+    this.offset = target;
+    this.preview = null;
+    this.seekTarget = null;
+    this.onUpdate(target, false);
+    if (wasStarting) void this.play().catch((error) => this.onError(error.message));
+  }
+  private async movePlayback(target: number, serial: number) {
+    // Storage preparation happens while the old position continues playing.
+    if (this.streaming) await this.prepareStream(target, true);
+    if (serial !== this.seekSerial || !this.playing || !this.context) return;
+    if (this.tempo !== 1 || this.pitch !== 0) {
+      // Time stretching owns a FIFO; clear it to prevent old-position residue.
+      // Only the short DSP reset remains silent, never the storage request.
+      this.pause(false);
+      this.offset = target;
+      await this.play();
+      return;
+    }
+    const context = this.context,
+      frame = Math.ceil(
+        (context.currentTime + Math.max(0.012, context.baseLatency)) * context.sampleRate,
+      ),
+      at = frame / context.sampleRate;
+    this.streamCarry = this.streaming
+      ? this.streamPlan(
+          context.currentTime,
+          this.started,
+          Math.max(0, at - context.currentTime) + 0.006,
+        ).map((e) => ({ track: e.channel.track.id, index: e.index }))
+      : [];
+    this.carryUntil = at + 0.006;
+    for (const item of this.activeSources) {
+      item.gate.gain.cancelAndHoldAtTime(at);
+      item.gate.gain.linearRampToValueAtTime(0, at + 0.003);
+      try {
+        item.source.stop(at + 0.003);
+      } catch {}
+    }
+    for (const voice of this.voices) {
+      try {
+        voice.stop(at);
+      } catch {}
+    }
+    this.voices.clear();
+    this.offset = target;
+    this.started = at;
+    this.preview = null;
+    this.seekTarget = null;
+    this.streamFillAt = -Infinity;
+    this.scheduledCycles.clear();
+    this.metroScheduled.clear();
+    this.notesScheduled.clear();
+    for (const channel of this.channels)
+      channel.stream?.play(
+        frame,
+        target,
+        this.tempo,
+        channel.track.start || 0,
+        channel.duration,
+        this.usableLoop(),
+      );
+    this.schedule();
+    this.onUpdate(target, true);
+  }
+  private prepareStream(offset = this.offset, preservePlayback = false): Promise<void> {
+    if (!this.streaming || !this.context) return Promise.resolve();
+    const signature = `${this.generation}|${offset}|${this.tempo}|${JSON.stringify(this.usableLoop())}`;
+    if (signature === this.warmSignature) return this.warmPromise;
+    this.warmSignature = signature;
+    this.streaming.cancelParts();
+    for (const channel of this.channels) channel.stream!.resetHeads(!preservePlayback);
+    const stream = this.streaming,
+      prefix = 0.35 * this.tempo;
+    if (!preservePlayback) {
+      const plan = this.streamPlan(
+        this.context.currentTime,
+        this.context.currentTime + 0.01,
+        0.4,
+        offset,
+      );
+      stream.retain(plan.map((e) => ({ track: e.channel.track.id, index: e.index })));
+    }
+    const starts = [offset],
+      loop = this.usableLoop();
+    if (loop && loop.b - offset < prefix) starts.push(loop.a);
+    const tasks: Promise<void>[] = [];
+    for (const at of starts)
+      for (const channel of this.channels) {
+        const start = channel.track.start || 0,
+          from = Math.max(at, start),
+          to = Math.min(at + prefix, start + channel.duration);
+        if (to <= from) continue;
+        const first = Math.max(0, Math.floor((from - start) * 48000));
+        tasks.push(
+          channel.stream!.prime(first, Math.min(48002, Math.ceil((to - from) * 48000) + 2)),
+        );
+      }
+    this.warmPromise = Promise.all(tasks)
+      .then(() => {})
+      .catch((error) => {
+        if (this.warmSignature === signature) this.warmSignature = '';
+        throw error;
+      });
+    return this.warmPromise;
+  }
+  private streamPlan(now: number, origin: number, ahead: number, offset = this.offset) {
+    const entries: {
+      channel: Channel;
+      index: number;
+      cycle: number;
+      from: number;
+      to: number;
+      nominal: number;
+      fadeIn: boolean;
+      fadeOut: boolean;
+    }[] = [];
+    const loop = this.usableLoop(),
+      raw = offset + Math.max(0, now - origin) * this.tempo;
+    const cycle = loop && raw >= loop.b ? 1 + Math.floor((raw - loop.b) / (loop.b - loop.a)) : 0;
+    const count = loop ? Math.min(128, Math.ceil((ahead * this.tempo) / (loop.b - loop.a)) + 2) : 1;
+    for (let epoch = cycle; epoch < cycle + count; epoch++) {
+      const from = epoch === 0 ? offset : loop!.a,
+        to = loop?.b ?? this.duration;
+      const at =
+        epoch === 0
+          ? origin
+          : origin + (loop!.b - offset + (epoch - 1) * (loop!.b - loop!.a)) / this.tempo;
+      if (at > now + ahead && epoch !== 0) break;
+      for (const channel of this.channels) {
+        const start = channel.track.start || 0;
+        const first = Math.max(from, start),
+          end = Math.min(to, start + channel.duration);
+        const visible = Math.max(first, from + (now - at) * this.tempo);
+        const last = Math.min(end, from + (now + ahead - at) * this.tempo);
+        if (last <= visible) continue;
+        for (
+          let index = Math.max(0, Math.floor(visible - start));
+          index <= Math.floor(last - start - 1 / 48000);
+          index++
+        ) {
+          const a = Math.max(first, start + index),
+            b = Math.min(end, start + index + 1);
+          entries.push({
+            channel,
+            index,
+            cycle: epoch,
+            from: a - start,
+            to: b - start,
+            nominal: at + (a - from) / this.tempo,
+            fadeIn: a === first,
+            fadeOut: b === end,
+          });
+        }
+      }
+    }
+    return entries.sort((a, b) => a.nominal - b.nominal);
+  }
+  private scheduleStreamSources() {
+    const stream = this.streaming!,
+      serial = this.playSerial;
+    const now = this.context!.currentTime;
+    if (now - this.streamFillAt < 0.08) return;
+    this.streamFillAt = now;
+    const ahead = Math.min(
+      6,
+      Math.max(0.4, 80 / Math.max(1, this.channels.length) - 1) / this.tempo,
+    );
+    const upcoming = this.streamPlan(now, this.started, ahead);
+    if (this.seekTarget !== null) upcoming.push(...this.streamPlan(now, now, 0.6, this.seekTarget));
+    if (now > this.carryUntil) this.streamCarry = [];
+    const keep = [
+      ...upcoming.map((e) => ({ track: e.channel.track.id, index: e.index })),
+      ...this.streamCarry,
+    ];
+    stream.retain(keep, this.seekTarget !== null);
+    for (const channel of this.channels)
+      channel.stream!.retain(keep.filter((e) => e.track === channel.track.id).map((e) => e.index));
+    for (const e of upcoming)
+      void e.channel.stream!.read(e.index).catch((error) => {
+        if (serial === this.playSerial && error.name !== 'AbortError') {
+          this.pause();
+          this.onError(error.message);
+        }
+      });
   }
   private scheduleSources() {
     if (!this.context) return;
+    if (this.streaming) {
+      this.scheduleStreamSources();
+      return;
+    }
     const loop = this.usableLoop(),
       now = this.context.currentTime,
-      horizon = now + 0.25;
+      horizon = now + this.horizon;
     const firstEnd = loop ? loop.b : this.duration;
     const raw = this.offset + Math.max(0, now - this.started) * this.tempo;
     const cycle = loop && raw >= loop.b ? 1 + Math.floor((raw - loop.b) / (loop.b - loop.a)) : 0;
     for (
       let index = cycle;
-      index <= cycle + (loop ? Math.ceil((0.25 * this.tempo) / (loop.b - loop.a)) + 1 : 0);
+      index <= cycle + (loop ? Math.ceil((this.horizon * this.tempo) / (loop.b - loop.a)) + 1 : 0);
       index++
     ) {
       const from = index === 0 ? this.offset : loop!.a,
@@ -578,7 +940,7 @@ export class Player {
       for (const channel of this.channels) {
         const trackStart = channel.track.start || 0,
           start = Math.max(from, trackStart),
-          end = Math.min(to, trackStart + channel.buffer.duration);
+          end = Math.min(to, trackStart + channel.duration);
         if (!(end > start)) continue;
         const nominal = at + (start - from) / this.tempo,
           begins = Math.max(nominal, now + 0.003),
@@ -614,6 +976,12 @@ export class Player {
   }
   schedule() {
     if (!this.context || !this.project) return;
+    if (this.playing && !this.captureActive && this.position() >= this.duration - 0.005) {
+      this.pause();
+      this.offset = this.duration;
+      this.onUpdate(this.offset, false);
+      return;
+    }
     this.scheduleSources();
     const position = this.position(),
       loop = this.usableLoop(),
@@ -624,14 +992,14 @@ export class Player {
       this.metroBeats = beatGrid(this.project, position + 30);
     for (
       let epoch = cycle;
-      epoch <= cycle + (loop ? Math.ceil((0.22 * this.tempo) / (loop.b - loop.a)) + 1 : 0);
+      epoch <= cycle + (loop ? Math.ceil((this.horizon * this.tempo) / (loop.b - loop.a)) + 1 : 0);
       epoch++
     ) {
       const origin =
         epoch === 0
           ? this.started
           : this.started + (loop!.b - this.offset + (epoch - 1) * (loop!.b - loop!.a)) / this.tempo;
-      if (epoch > 0 && origin > now + 0.22) break;
+      if (epoch > 0 && origin > now + this.horizon) break;
       const offset = epoch === 0 ? this.offset : loop!.a,
         end = loop?.b || this.duration;
       if (this.project.practice.metronome) {
@@ -646,7 +1014,7 @@ export class Player {
             this.metroScheduled.has(key)
           )
             continue;
-          if (at > now + 0.22) break;
+          if (at > now + this.horizon) break;
           if (at >= this.context.currentTime - 0.003) {
             this.metroScheduled.add(key);
             this.click(
@@ -664,7 +1032,7 @@ export class Player {
           const start = interpolate(alignment.points, n.start),
             stop = interpolate(alignment.points, n.end);
           const at = origin + (start - offset) / this.tempo;
-          if (start >= offset - 0.002 && start < end && at >= now && at < now + 0.22) {
+          if (start >= offset - 0.002 && start < end && at >= now && at < now + this.horizon) {
             this.notesScheduled.add(key);
             const duration = Math.max(0.02, (Math.min(stop, end) - start) / this.tempo);
             if (at >= this.context!.currentTime)
@@ -722,7 +1090,8 @@ export class Player {
       osc = ctx.createOscillator(),
       gain = ctx.createGain();
     osc.frequency.value = strong ? 1600 : 1000;
-    gain.gain.setValueAtTime(0.16, at);
+    // Shared by the metronome, count-in and calibration reference clicks.
+    gain.gain.setValueAtTime(0.4, at);
     gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.04);
     osc.connect(gain);
     gain.connect(countIn ? this.countInGain! : this.metronomeGain!);
@@ -817,6 +1186,7 @@ export class Player {
     master: number,
     valid: () => boolean,
   ) {
+    if (this.streaming) return this.streaming.envelope(tracks, origin, duration, master);
     const rate = this.context!.sampleRate,
       values: number[] = [];
     // One two-second PCM buffer at a time, with a global queue across mix keys.
@@ -833,7 +1203,7 @@ export class Player {
         const channel = this.channels.find((c) => c.track.id === track.id);
         if (!channel) continue;
         const from = Math.max(origin + time, track.start || 0),
-          to = Math.min(origin + time + length, (track.start || 0) + channel.buffer.duration);
+          to = Math.min(origin + time + length, (track.start || 0) + channel.duration);
         if (to <= from) continue;
         const source = offline.createBufferSource(),
           gain = offline.createGain(),
@@ -875,7 +1245,7 @@ export class Player {
     return group
       ? groupWaveRegion(
           group,
-          new Map(this.channels.map((channel) => [channel.track.id, channel.buffer.duration])),
+          new Map(this.channels.map((channel) => [channel.track.id, channel.duration])),
         )
       : { origin: 0, duration: this.duration };
   }
@@ -888,8 +1258,15 @@ export class Player {
       const channel = this.channels.find((c) => c.track.id === source);
       if (!channel) throw new Error(tr('所选波形的音轨不存在'));
       const values = placeEnvelope(
-        await this.calculateWaveform(channel.buffer),
-        channel.buffer.duration,
+        this.streaming
+          ? await this.streaming.envelope(
+              [{ ...channel.track, start: 0, gain: 1, pan: 0 }],
+              0,
+              channel.duration,
+              1,
+            )
+          : await this.calculateWaveform(channel.buffer),
+        channel.duration,
         channel.track.start || 0,
         this.duration,
       );
@@ -941,17 +1318,23 @@ export class Player {
     }
   }
   dispose() {
+    window.removeEventListener('immerse-audio', this.nativeEvent);
     this.lifecycleSerial++;
     this.pause();
+    this.streaming?.close();
+    this.streaming = null;
     if (this.idleTimer) clearTimeout(this.idleTimer);
     this.idleTimer = null;
     this.audioLeases = 0;
     this.generation++;
+    if (this.scrubWarmTimer) clearTimeout(this.scrubWarmTimer);
+    this.scrubWarmTimer = null;
     if (this.mixWarmTimer) clearTimeout(this.mixWarmTimer);
     this.waveWorker?.terminate();
     this.waveWorker = null;
     for (const job of this.peakJobs.values()) job.reject(new Error(tr('播放器已关闭')));
     this.peakJobs.clear();
+    for (const channel of this.channels) channel.stream?.close();
     void this.context?.close();
     this.context = null;
     this.dsp?.port.close();

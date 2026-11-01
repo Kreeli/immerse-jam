@@ -1,3 +1,6 @@
+import Select from '../../shared/Select';
+import { jamCall } from '../../platform/project-call';
+import { isAndroid } from '../../platform/environment';
 import * as alphaTab from '@coderline/alphatab';
 import { Midi } from '@tonejs/midi';
 import { FileMusic, Plus, Target } from 'lucide-react';
@@ -44,7 +47,7 @@ export default function Score({
     setNotes([]);
     setVisibleTrack(-1);
     void (async () => {
-      const bytes = await window.jam.call<Uint8Array>('read-attachment', {
+      const bytes = await jamCall<Uint8Array>('read-attachment', {
         id: project.id,
         attachmentId: active.id,
       });
@@ -63,7 +66,7 @@ export default function Score({
             })),
           ),
         );
-        const updated = await window.jam.call<Project>('attach', {
+        const updated = await jamCall<Project>('attach', {
           id: project.id,
           midiBytes: Array.from(bytes),
         });
@@ -96,8 +99,7 @@ export default function Score({
         const handler = new alphaTab.midi.AlphaSynthMidiFileHandler(midi, true);
         const generator = new alphaTab.midi.MidiFileGenerator(score, a.settings, handler);
         generator.generate();
-        void window.jam
-          .call<Project>('attach', { id: project.id, midiBytes: Array.from(midi.toBinary()) })
+        void jamCall<Project>('attach', { id: project.id, midiBytes: Array.from(midi.toBinary()) })
           .then((p) => {
             if (!disposed) onProject(p);
           })
@@ -129,7 +131,7 @@ export default function Score({
   return (
     <div className="score-panel">
       <div className="score-toolbar">
-        <select
+        <Select
           value={active?.id || ''}
           onChange={(e) => setActive(scores.find((a) => a.id === e.target.value) || null)}
         >
@@ -139,26 +141,27 @@ export default function Score({
               {a.name}
             </option>
           ))}
-        </select>
+        </Select>
         {tracks.length > 0 && (
-          <select value={visibleTrack} onChange={(e) => setVisibleTrack(+e.target.value)}>
+          <Select value={visibleTrack} onChange={(e) => setVisibleTrack(+e.target.value)}>
             <option value={-1}>{tr('全部谱轨')}</option>
             {tracks.map((t) => (
               <option key={t.index} value={t.index}>
                 {t.name}
               </option>
             ))}
-          </select>
+          </Select>
         )}
-        <button className="primary small" onClick={onAlign} disabled={!project.scoreMidi}>
-          <Target size={15} />
-          {tr('自动对齐原曲')}
-        </button>
+        {!isAndroid && (
+          <button className="primary small" onClick={onAlign} disabled={!project.scoreMidi}>
+            <Target size={15} />
+            {tr('自动对齐原曲')}
+          </button>
+        )}
         <button
           className="small"
           onClick={() =>
-            void window.jam
-              .call<Project>('attach', { id: project.id })
+            void jamCall<Project>('attach', { id: project.id })
               .then(onProject)
               .catch((e) => onError(e.message))
           }

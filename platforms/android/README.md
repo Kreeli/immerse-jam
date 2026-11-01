@@ -1,5 +1,12 @@
 # Immerse Jam Android
 
+## 当前开发构建
+
+直接运行 `node scripts/android.cjs assembleDebug`。本轮 Android 只作播放/跟练/创作，不需要模型准备，不打包 ONNX 或模型权重。旧推理服务与模型引擎已移除。仍使用已有包名和调试签名，不在本轮更换签名或发布 Release。
+
+以下模型说明属于旧预览版历史。
+
+
 Android **0.1.0-preview.1**，与 Windows 独立打包、独立存储。当前为已实际运行的首个预览版本；完整能力进度见 [功能表](../../docs/ANDROID.md)。
 
 ## 结构

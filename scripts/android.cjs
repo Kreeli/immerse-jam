@@ -37,6 +37,7 @@ if (action !== 'wrapper') {
     'android',
   ]);
   const target = path.join(android, 'app/src/main/assets/web');
+  fs.rmSync(target, { recursive: true, force: true });
   fs.mkdirSync(target, { recursive: true });
   fs.cpSync(path.join(root, 'dist-android'), target, { recursive: true });
   fs.mkdirSync(path.join(android, 'app/src/main/res/drawable'), { recursive: true });
@@ -48,30 +49,11 @@ if (action !== 'wrapper') {
     path.join(root, 'shared/ipc-methods.json'),
     path.join(android, 'app/src/main/assets/ipc-methods.json'),
   );
-  const modelDir = path.join(android, 'app/src/main/assets/models');
-  fs.mkdirSync(modelDir, { recursive: true });
-  for (const spec of require('../platforms/android/model-catalog.json').filter(
-    (model) => model.bundled,
-  )) {
-    const model = path.join(root, '.runtime/android/models', spec.file);
-    if (!fs.existsSync(model))
-      throw new Error('Run npm run android:models before building the bundled-model APK.');
-    const hash = require('node:crypto')
-      .createHash('sha256')
-      .update(fs.readFileSync(model))
-      .digest('hex');
-    if (hash !== spec.sha256) throw new Error('Bundled model checksum mismatch');
-    fs.copyFileSync(model, path.join(modelDir, spec.file));
-    if (spec.melFile) {
-      const mel = path.join(root, '.runtime/android/models', spec.melFile);
-      if (
-        require('node:crypto').createHash('sha256').update(fs.readFileSync(mel)).digest('hex') !==
-        spec.melSha256
-      )
-        throw new Error('Beat feature checksum mismatch');
-      fs.copyFileSync(mel, path.join(modelDir, spec.melFile));
-    }
-  }
+  // Remove generated models from an earlier inference build.
+  const generated = path.resolve(android, 'app/src/main/assets/models');
+  if (!generated.startsWith(path.resolve(android, 'app/src/main/assets') + path.sep))
+    throw new Error('Invalid generated path');
+  fs.rmSync(generated, { recursive: true, force: true });
   fs.cpSync(path.join(root, 'assets/licenses'), path.join(android, 'app/src/main/assets/legal'), {
     recursive: true,
   });
@@ -84,14 +66,6 @@ if (action !== 'wrapper') {
       path.join(android, notice),
       path.join(android, 'app/src/main/assets/legal', notice),
     );
-  fs.copyFileSync(
-    path.join(root, 'backend/vendor/beat_this/LICENSE'),
-    path.join(android, 'app/src/main/assets/legal/BeatThis-LICENSE.txt'),
-  );
-  fs.copyFileSync(
-    path.join(root, 'platforms/android/model-catalog.json'),
-    path.join(android, 'app/src/main/assets/model-catalog.json'),
-  );
 }
 if (!/^[a-zA-Z][a-zA-Z0-9:]*$/.test(action)) throw new Error('Invalid Gradle task');
 const wrapper = path.join(android, 'gradle/wrapper/gradle-wrapper.jar');

@@ -1,4 +1,5 @@
 import {
+  CircleHelp,
   Folder,
   FolderPlus,
   MessageSquare,
@@ -12,7 +13,7 @@ import {
 } from 'lucide-react';
 import appIcon from '../../../assets/app-icon.png';
 import { version } from '../../../package.json';
-import { platformVersion } from '../../platform/environment';
+import { isAndroid, platformVersion } from '../../platform/environment';
 import type { WorkspaceController } from '../../app/useWorkspace';
 import { t as tr } from '../../i18n';
 type Props = Pick<
@@ -50,7 +51,6 @@ export default function Sidebar({
 
         <div>
           Immerse <span>Jam</span>
-          <small>{tr('沉浸在每一段音乐里')}</small>
         </div>
       </div>
 
@@ -58,11 +58,11 @@ export default function Sidebar({
 
       <nav>
         {[
-          { id: 'library', label: tr('音乐库'), icon: Library },
+          ...(!isAndroid ? [{ id: 'library', label: tr('音乐库'), icon: Library }] : []),
 
           { id: 'practice', label: tr('跟练/创作'), icon: Guitar },
 
-          { id: 'starred', label: tr('我的收藏'), icon: Star },
+          ...(!isAndroid ? [{ id: 'starred', label: tr('我的收藏'), icon: Star }] : []),
         ].map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -87,37 +87,40 @@ export default function Sidebar({
         ))}
       </nav>
 
-      <div className="nav-label folder-nav-heading">
-        {tr('分类文件夹')}
-        <button
-          className="icon-button"
-          aria-label={tr('新建分类')}
-          title={tr('新建分类')}
-          onClick={onCreateFolder}
-        >
-          <FolderPlus size={16} />
-        </button>
-      </div>
+      {!isAndroid && (
+        <>
+          <div className="nav-label folder-nav-heading">
+            {tr('分类文件夹')}
+            <button
+              className="icon-button"
+              aria-label={tr('新建分类')}
+              title={tr('新建分类')}
+              onClick={onCreateFolder}
+            >
+              <FolderPlus size={16} />
+            </button>
+          </div>
 
-      <nav className="playlist-nav">
-        {[{ id: 'unfiled', name: tr('默认分类'), projectIds: [] }, ...folders].map((folder) => (
-          <button
-            key={folder.id}
-            className={page === 'folder:' + folder.id && !showPlayer ? 'active' : ''}
+          <nav className="playlist-nav">
+            {[{ id: 'unfiled', name: tr('默认分类'), projectIds: [] }, ...folders].map((folder) => (
+              <button
+                key={folder.id}
+                className={page === 'folder:' + folder.id && !showPlayer ? 'active' : ''}
 
-            onClick={() => {
-              setShowPlayer(false);
+                onClick={() => {
+                  setShowPlayer(false);
 
-              setPage('folder:' + folder.id);
-            }}
-          >
-            <Folder size={16} />
+                  setPage('folder:' + folder.id);
+                }}
+              >
+                <Folder size={16} />
 
-            <span>{folder.name}</span>
-          </button>
-        ))}
-      </nav>
-
+                <span>{folder.name}</span>
+              </button>
+            ))}
+          </nav>
+        </>
+      )}
       <div className="sidebar-divider" />
 
       <div className="nav-label">{tr('设备与工具')}</div>
@@ -135,16 +138,18 @@ export default function Sidebar({
           {tr('设备互传')}
         </button>
 
-        <button onClick={() => setModal('migration')}>
-          <FolderInput size={18} />
+        {!isAndroid && (
+          <button onClick={() => setModal('migration')}>
+            <FolderInput size={18} />
 
-          {tr('迁移 Audio Jam')}
-        </button>
+            {tr('迁移 Audio Jam')}
+          </button>
+        )}
 
         <button onClick={() => setModal('settings')}>
           <Settings size={18} />
 
-          {tr('设置与模型')}
+          {isAndroid ? tr('设置') : tr('设置与模型')}
         </button>
       </nav>
 
@@ -153,12 +158,16 @@ export default function Sidebar({
           <span className={'dot ' + (ready ? 'green-dot' : '')} />
 
           <div>
-            {ready ? tr('本地引擎就绪') : tr('本地引擎待准备')}
+            {isAndroid ? tr('随时开始练习') : ready ? tr('本地引擎就绪') : tr('本地引擎待准备')}
 
             <small>{tr('音乐留在你的设备上')}</small>
           </div>
         </div>
 
+        <button className="feedback-button first-use-help" onClick={() => setModal('help')}>
+          <CircleHelp size={16} />
+          {tr('第一次使用？')}
+        </button>
         <button className="feedback-button" onClick={() => setModal('feedback')}>
           <MessageSquare size={16} />
           {tr('用户反馈')}

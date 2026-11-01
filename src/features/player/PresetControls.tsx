@@ -1,3 +1,4 @@
+import Select from '../../shared/Select';
 import { useState } from 'react';
 import { t as tr } from '../../i18n';
 import type { Project } from '../../shared/types';
@@ -59,7 +60,7 @@ export default function PresetControls({
   };
   return (
     <div className="preset-controls">
-      <select
+      <Select
         aria-label={tr('混音预设')}
         value=""
         onChange={(event) => {
@@ -122,7 +123,7 @@ export default function PresetControls({
             {preset.name}
           </option>
         ))}
-      </select>
+      </Select>
       <button className="small" onClick={() => setEditing(true)}>
         {tr('保存')}
       </button>

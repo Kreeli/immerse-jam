@@ -6,7 +6,6 @@ import android.net.Uri;
 import android.os.*;
 import androidx.core.content.FileProvider;
 import androidx.webkit.JavaScriptReplyProxy;
-import app.immersejam.mobile.inference.InferenceService;
 import app.immersejam.mobile.transfer.LanClient;
 import java.io.*;
 import java.nio.file.*;
@@ -20,37 +19,24 @@ public class NativeBridge {
   final NativeTakes takes;
   final PeerFiles peers;
   final NativeAudio audio;
+  final StreamingAudio streaming;
+  final NativeCapture capture;
+  final ExecutorService captureIO = Executors.newSingleThreadExecutor();
+  final ExecutorService playbackIO = Executors.newSingleThreadExecutor();
   final LanClient lan;
   final ExecutorService transfers = Executors.newSingleThreadExecutor();
   final Set<String> allowed = new HashSet<>();
   final Handler main = new Handler(Looper.getMainLooper());
   final ExecutorService downloads = Executors.newSingleThreadExecutor();
   volatile JavaScriptReplyProxy events;
-  Messenger inference;
-  boolean bound = false, running = false;
-  volatile boolean cancelRequested = false, sent = false;
-  String jobId;
-  final ServiceConnection connection =
-      new ServiceConnection() {
-        public void onServiceConnected(ComponentName name, IBinder binder) {
-          inference = new Messenger(binder);
-        }
-
-        public void onServiceDisconnected(ComponentName name) {
-          inference = null;
-          if (running) {
-            running = false;
-            emit(errorEvent("分离进程已停止，原有音轨已保留。请关闭其他应用后重试。"));
-          }
-        }
-      };
-
   NativeBridge(MainActivity activity) {
     this.activity = activity;
     store = new ProjectStore(activity);
     takes = new NativeTakes(store);
     peers = new PeerFiles(store, this::emit);
     audio = new NativeAudio(store, takes);
+    streaming = new StreamingAudio(store);
+    capture = new NativeCapture(activity);
     lan = new LanClient(store, this::emit);
     try {
       JSONArray methods =
@@ -75,6 +61,9 @@ public class NativeBridge {
       if (!allowed.contains(method)
           && !Set.of(
                   "android-back-result",
+                  "android-playback-state",
+                  "android-capture-devices", "android-capture-open", "android-capture-clock", "android-capture-stop", "android-capture-close",
+                  "android-stream-open", "android-stream-close", "android-stream-wave",
                   "android-playback-budget",
                   "android-device",
                   "android-render-start",
@@ -97,7 +86,7 @@ public class NativeBridge {
       JSONObject arguments = data;
       (network || method.equals("android-scan-pair")
               ? transfers
-              : method.equals("model-download") ? downloads : activity.io)
+              : method.startsWith("android-capture-") ? captureIO : method.startsWith("android-stream-") ? playbackIO : method.equals("model-download") ? downloads : activity.io)
           .execute(
               () -> {
                 try {
@@ -146,7 +135,7 @@ public class NativeBridge {
 
   JSONObject errorEvent(String message) {
     try {
-      return new JSONObject().put("type", "error").put("jobId", jobId).put("message", message);
+      return new JSONObject().put("type", "error").put("message", message);
     } catch (Exception error) {
       throw new IllegalStateException(error);
     }
@@ -166,6 +155,16 @@ public class NativeBridge {
 
   Object call(String method, JSONObject d) throws Exception {
     switch (method) {
+      case "android-capture-devices": return capture.devices(d.optBoolean("permission"));
+      case "android-capture-open": return capture.open(d);
+      case "android-capture-clock": return new JSONObject().put("seconds", System.nanoTime() / 1e9);
+      case "android-capture-stop": capture.stop(d.getString("session")); return true;
+      case "android-capture-close": capture.dispose(d.getString("session")); return true;
+      case "android-stream-open": return streaming.open(d);
+      case "android-stream-wave": return streaming.wave(d);
+      case "android-stream-close": streaming.close(d.getString("session")); return true;
+      case "android-playback-state":
+        return activity.playback(d.optBoolean("playing"), d.optString("title", "Immerse Jam"));
       case "android-back-result":
         activity.backResult(d.optBoolean("handled"));
         return true;
@@ -261,7 +260,7 @@ public class NativeBridge {
       case "runtime-status":
         return new JSONObject()
             .put("ready", true)
-            .put("mode", "android-cpu")
+            .put("mode", "player")
             .put("installing", false)
             .put("libraryPath", store.root.getAbsolutePath())
             .put("runtimePath", new File(activity.getFilesDir(), "models").getAbsolutePath())
@@ -278,21 +277,10 @@ public class NativeBridge {
         return true;
       case "window":
         return true;
-      case "models":
-        return models();
+      case "models": return new JSONArray();
       case "model-download":
-        {
-          JSONObject spec = model(d.getString("id"));
-          ensureModel(spec);
-          emit(
-              new JSONObject()
-                  .put("scope", "model-download")
-                  .put("modelId", spec.getString("id"))
-                  .put("type", "complete"));
-          return models();
-        }
       case "model-import":
-        throw new IOException("Android 预览版暂只启用已验证的随包模型；外部移动模型适配正在开发。");
+        throw new IOException("手机端仅支持外部导入的音轨与分析");
       case "import":
         {
           JSONArray imported = new JSONArray();
@@ -310,15 +298,7 @@ public class NativeBridge {
         return store.create(
             new JSONObject().put("kind", "creation").put("title", d.optString("title", "我的创作")));
       case "update":
-        {
-          JSONObject p = store.get(d.getString("id")), patch = d.getJSONObject("patch");
-          Iterator<String> keys = patch.keys();
-          while (keys.hasNext()) {
-            String key = keys.next();
-            if (!Set.of("id", "original", "playback").contains(key)) p.put(key, patch.get(key));
-          }
-          return store.save(p);
-        }
+        return store.update(d.getString("id"), d.getJSONObject("patch"));
       case "project-delete":
         store.trash(d.getString("id"));
         return true;
@@ -441,16 +421,8 @@ public class NativeBridge {
         return addGroup(d);
       case "creation-import-group":
         throw new IOException("请先将 .ijam 导入音乐库，再添加音乐库中的分轨分组。");
-      case "run":
-        return run(d);
-      case "cancel":
-        if (d.has("jobId") && !d.getString("jobId").equals(jobId)) return false;
-        cancelRequested = true;
-        if (sent && inference != null) {
-          Message m = Message.obtain(null, 2);
-          inference.send(m);
-        }
-        return true;
+      case "run": throw new IOException("手机端仅支持外部导入的音轨与分析");
+      case "cancel": return true;
       case "feedback-open":
         activity.runOnUiThread(
             () ->
@@ -547,255 +519,6 @@ public class NativeBridge {
     return store.save(p);
   }
 
-  JSONArray models() throws Exception {
-    JSONArray source =
-        new JSONArray(
-            new String(
-                ProjectStore.bytes(activity.getAssets().open("model-catalog.json")),
-                java.nio.charset.StandardCharsets.UTF_8));
-    for (int i = 0; i < source.length(); i++)
-      source
-          .getJSONObject(i)
-          .put(
-              "installed",
-              source.getJSONObject(i).optBoolean("bundled")
-                  || new File(
-                          activity.getFilesDir(),
-                          "models/" + source.getJSONObject(i).getString("file"))
-                      .isFile());
-    return source;
-  }
-
-  JSONObject model(String id) throws Exception {
-    JSONArray models = models();
-    for (int i = 0; i < models.length(); i++)
-      if (models.getJSONObject(i).getString("id").equals(id)) return models.getJSONObject(i);
-    throw new IOException("模型不存在");
-  }
-
-  File ensureModel(JSONObject spec) throws Exception {
-    File file = new File(activity.getFilesDir(), "models/" + spec.getString("file"));
-    if (!file.isFile()) {
-      file.getParentFile().mkdirs();
-      File part = new File(file.getPath() + ".part");
-      if (spec.optBoolean("bundled")) {
-        try (InputStream in = activity.getAssets().open("models/" + spec.getString("file"))) {
-          Files.copy(in, part.toPath(), StandardCopyOption.REPLACE_EXISTING);
-        }
-      } else {
-        java.net.URL url = new java.net.URL(spec.getString("modelUrl"));
-        if (!url.getProtocol().equals("https")) throw new IOException("Model URL must use HTTPS");
-        java.net.HttpURLConnection connection = (java.net.HttpURLConnection) url.openConnection();
-        connection.setConnectTimeout(20000);
-        connection.setReadTimeout(30000);
-        connection.setInstanceFollowRedirects(true);
-        if (connection.getResponseCode() != 200)
-          throw new IOException("Model download failed: " + connection.getResponseCode());
-        long size = spec.getLong("sizeBytes"), received = 0, last = 0;
-        if (file.getParentFile().getUsableSpace() < size * 2 + 100L * 1048576)
-          throw new IOException("模型存储空间不足");
-        try (InputStream in = connection.getInputStream();
-            OutputStream out = new FileOutputStream(part)) {
-          byte[] bytes = new byte[65536];
-          int n;
-          while ((n = in.read(bytes)) >= 0) {
-            received += n;
-            if (received > size) throw new IOException("Model size mismatch");
-            out.write(bytes, 0, n);
-            long now = android.os.SystemClock.elapsedRealtime();
-            if (now - last > 250) {
-              last = now;
-              emit(
-                  new JSONObject()
-                      .put("type", "progress")
-                      .put("scope", "model-download")
-                      .put("modelId", spec.getString("id"))
-                      .put("progress", (double) received / size)
-                      .put("message", "Downloading model"));
-            }
-          }
-        } finally {
-          connection.disconnect();
-        }
-        if (received != size) throw new IOException("Model size mismatch");
-      }
-      if (!ProjectStore.sha(part).equals(spec.getString("sha256"))) {
-        part.delete();
-        throw new IOException("模型校验失败");
-      }
-      Files.move(part.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
-    }
-    if (!ProjectStore.sha(file).equals(spec.getString("sha256"))) {
-      file.delete();
-      throw new IOException("模型校验失败");
-    }
-    return file;
-  }
-
-  Object run(JSONObject d) throws Exception {
-    if (running) throw new IOException("已有本地处理正在进行");
-    String operation = d.optString("operation");
-    if (!Set.of("separate", "analyze", "align").contains(operation))
-      throw new IOException("不支持的处理任务");
-    boolean separating = operation.equals("separate"), analyzing = operation.equals("analyze");
-    JSONObject project = store.get(d.getString("id")), existing = project.optJSONObject("analysis");
-    if (operation.equals("align") && !project.has("scoreMidi"))
-      throw new IOException("请先导入并打开 MIDI 或乐谱，再自动对齐");
-    boolean keepRhythm =
-        analyzing
-            && !d.optBoolean("refreshRhythm")
-            && existing != null
-            && existing.optJSONArray("beats") != null
-            && existing.getJSONArray("beats").length() >= 4;
-    JSONObject
-        spec =
-            separating
-                ? model(d.optString("modelId", "uvr-mobile"))
-                : !analyzing || keepRhythm ? new JSONObject() : model("beat-this-mobile"),
-        device = device();
-    if ((device.optBoolean("lowMemory") && !keepRhythm && !operation.equals("align"))
-        || device.getLong("availableMb")
-            < spec.optInt("minimumAvailableMb", separating ? 900 : 200))
-      throw new IOException("当前可用内存不足，暂不启动本地分轨。请关闭其他应用；已有分轨仍可播放。");
-    if (separating
-        && !spec.optBoolean("bundled")
-        && !new File(activity.getFilesDir(), "models/" + spec.getString("file")).isFile())
-      throw new IOException("请先在设置中下载所选移动模型");
-    if (separating || analyzing && !keepRhythm)
-      spec.put("path", ensureModel(spec).getAbsolutePath());
-    if (analyzing && !keepRhythm) {
-      File mel = new File(activity.getFilesDir(), "models/" + spec.getString("melFile"));
-      mel.getParentFile().mkdirs();
-      if (!mel.isFile())
-        try (InputStream in = activity.getAssets().open("models/" + spec.getString("melFile"))) {
-          Files.copy(in, mel.toPath(), StandardCopyOption.REPLACE_EXISTING);
-        }
-      if (!ProjectStore.sha(mel).equals(spec.getString("melSha256"))) {
-        mel.delete();
-        throw new IOException("节拍特征校验失败");
-      }
-      spec.put("melPath", mel.getAbsolutePath());
-    }
-    jobId = UUID.randomUUID().toString();
-    JSONObject request =
-        new JSONObject(d.toString())
-            .put("jobId", jobId)
-            .put("root", store.root.getAbsolutePath())
-            .put("model", spec);
-    request.put("keepRhythm", keepRhythm);
-    running = true;
-    cancelRequested = false;
-    sent = false;
-    Intent intent = new Intent(activity, InferenceService.class);
-    activity.runOnUiThread(
-        () -> {
-          try {
-            activity.startForegroundService(intent);
-            if (!bound) {
-              bound = activity.bindService(intent, connection, Context.BIND_AUTO_CREATE);
-            }
-            sendWhenBound(request, SystemClock.elapsedRealtime() + 15000);
-          } catch (Exception error) {
-            running = false;
-            emit(errorEvent(error.getMessage()));
-          }
-        });
-    return new JSONObject().put("jobId", jobId);
-  }
-
-  void sendWhenBound(JSONObject request, long deadline) {
-    if (!running || !request.optString("jobId").equals(jobId)) return;
-    if (cancelRequested) {
-      running = false;
-      if (bound) {
-        activity.unbindService(connection);
-        bound = false;
-        inference = null;
-      }
-      activity.stopService(new Intent(activity, InferenceService.class));
-      try {
-        emit(new JSONObject().put("type", "cancelled").put("jobId", jobId));
-      } catch (Exception ignored) {
-      }
-      return;
-    }
-    if (inference == null) {
-      if (SystemClock.elapsedRealtime() > deadline) {
-        running = false;
-        emit(errorEvent("分离进程未能启动"));
-        return;
-      }
-      main.postDelayed(() -> sendWhenBound(request, deadline), 100);
-      return;
-    }
-    try {
-      Message message = Message.obtain(null, 1);
-      Bundle bundle = new Bundle();
-      bundle.putString("request", request.toString());
-      message.setData(bundle);
-      message.replyTo =
-          new Messenger(
-              new Handler(
-                  Looper.getMainLooper(),
-                  reply -> {
-                    try {
-                      JSONObject e = new JSONObject(reply.getData().getString("event"));
-                      if (Set.of("complete", "error", "cancelled").contains(e.getString("type"))) {
-                        running = false;
-                        if (bound) {
-                          activity.unbindService(connection);
-                          bound = false;
-                          inference = null;
-                        }
-                      }
-                      if (e.has("processingPatch")) {
-                        activity.io.execute(
-                            () -> {
-                              try {
-                                e.put("result", store.get(e.getString("projectId")));
-                                emit(e);
-                              } catch (Exception error) {
-                                emit(errorEvent(error.getMessage()));
-                              }
-                            });
-                      } else if (e.has("separationResult")) {
-                        activity.io.execute(
-                            () -> {
-                              try {
-                                JSONObject p = store.get(e.getString("projectId")),
-                                    result = e.getJSONObject("separationResult");
-                                boolean present = false;
-                                for (int i = 0; i < p.getJSONArray("results").length(); i++)
-                                  if (p.getJSONArray("results")
-                                      .getJSONObject(i)
-                                      .getString("id")
-                                      .equals(result.getString("id"))) present = true;
-                                if (!present) p.getJSONArray("results").put(result);
-                                p.put("activeResultId", result.getString("id"))
-                                    .put("tracks", result.getJSONArray("tracks"));
-                                e.put("result", store.save(p));
-                                emit(e);
-                              } catch (Exception error) {
-                                emit(errorEvent(error.getMessage()));
-                              }
-                            });
-                      } else emit(e);
-                    } catch (Exception ignored) {
-                    }
-                    return true;
-                  }));
-      inference.send(message);
-      sent = true;
-      if (cancelRequested) {
-        Message cancel = Message.obtain(null, 2);
-        inference.send(cancel);
-      }
-    } catch (Exception error) {
-      running = false;
-      emit(errorEvent(error.getMessage()));
-    }
-  }
-
   void share(File file, String mime) {
     activity.runOnUiThread(
         () -> {
@@ -811,12 +534,15 @@ public class NativeBridge {
   }
 
   void close() {
+    capture.close();
+    captureIO.shutdownNow();
+    streaming.close();
+    playbackIO.shutdownNow();
     takes.close();
     peers.dispose();
     audio.close();
     downloads.shutdownNow();
     transfers.shutdownNow();
     lan.close();
-    if (bound) activity.unbindService(connection);
   }
 }

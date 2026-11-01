@@ -3,8 +3,11 @@ const fs = require('node:fs'),
   { execFile } = require('node:child_process');
 const { referencedFiles } = require('../shared/project-validation.cjs');
 const cache = new Map();
-function decodeBudget(available = os.freemem()) {
-  return Math.min(1536 * 1048576, Math.max(0, available * 0.4));
+function decodeBudget(available = os.freemem(), total = os.totalmem()) {
+  // Free RAM excludes reclaimable OS cache and the previous WebAudio buffers.
+  // Desktop has virtual memory: a transient low free-memory reading must not
+  // reject a song which comfortably fits this machine's normal audio budget.
+  return Math.max(0, Math.min(8 * 1024 ** 3, total * 0.5, Math.max(total * 0.25, available * 0.6)));
 }
 async function duration(file, ffmpeg) {
   const stat = fs.statSync(file),

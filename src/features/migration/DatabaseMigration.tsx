@@ -1,3 +1,4 @@
+import { jamCall } from '../../platform/project-call';
 import { useState } from 'react';
 import { t as tr } from '../../i18n';
 export default function DatabaseMigration({
@@ -28,7 +29,7 @@ export default function DatabaseMigration({
           disabled={busy}
           onClick={() =>
             void act(async () => {
-              const found = await window.jam.call<any[]>('migration-detect');
+              const found = await jamCall<any[]>('migration-detect');
               setDatabases(found);
               if (!found.length)
                 onError(tr('未在默认位置找到曲库，请选择 Audio Jam 的 AumDb 文件夹'));
@@ -41,9 +42,8 @@ export default function DatabaseMigration({
           disabled={busy}
           onClick={() =>
             void act(async () => {
-              const folder = await window.jam.call('pick-folder');
-              if (folder)
-                setDatabases([await window.jam.call('migration-database-scan', { folder })]);
+              const folder = await jamCall('pick-folder');
+              if (folder) setDatabases([await jamCall('migration-database-scan', { folder })]);
             })
           }
         >
@@ -94,7 +94,7 @@ export default function DatabaseMigration({
             disabled={busy || !selected.length}
             onClick={() =>
               void act(async () => {
-                const result = await window.jam.call('migration-database-import', {
+                const result = await jamCall('migration-database-import', {
                   folder: db.folder,
                   ids: selected,
                 });

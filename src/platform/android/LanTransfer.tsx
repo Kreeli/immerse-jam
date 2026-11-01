@@ -1,12 +1,15 @@
+import { jamCall } from '../project-call';
 import { useEffect, useState } from 'react';
 import { ScanLine } from 'lucide-react';
 import { message, t as tr } from '../../i18n';
 export default function LanTransfer({
   ids,
+  beforeSend,
   onChanged,
   onError,
 }: {
   ids: string[];
+  beforeSend: () => Promise<void>;
   onChanged: () => void;
   onError: (text: string) => void;
 }) {
@@ -29,7 +32,7 @@ export default function LanTransfer({
     });
     return () => {
       off();
-      void window.jam.call('android-lan-cancel');
+      void jamCall('android-lan-cancel');
     };
   }, []);
   const guard = async (task: () => Promise<void>) => {
@@ -44,7 +47,7 @@ export default function LanTransfer({
     }
   };
   const connect = async (value: string) => {
-    const list = await window.jam.call<{ id: string; title: string }[]>('android-lan-list', {
+    const list = await jamCall<{ id: string; title: string }[]>('android-lan-list', {
       url: value,
     });
     setUrl(value);
@@ -66,7 +69,7 @@ export default function LanTransfer({
           disabled={busy}
           onClick={() =>
             void guard(async () => {
-              const value = await window.jam.call<string>('android-scan-pair');
+              const value = await jamCall<string>('android-scan-pair');
               if (value) await connect(value);
             })
           }
@@ -110,7 +113,7 @@ export default function LanTransfer({
               onClick={() =>
                 void guard(async () => {
                   try {
-                    const result = await window.jam.call<any[]>('android-lan-download', {
+                    const result = await jamCall<any[]>('android-lan-download', {
                       url: paired,
                       ids: selected,
                     });
@@ -127,7 +130,8 @@ export default function LanTransfer({
               disabled={busy || !ids.length}
               onClick={() =>
                 void guard(async () => {
-                  await window.jam.call('android-lan-upload', { url: paired, ids });
+                  await beforeSend();
+                  await jamCall('android-lan-upload', { url: paired, ids });
                   setStatus(tr('已发送，请在电脑确认导入'));
                 })
               }
@@ -137,9 +141,7 @@ export default function LanTransfer({
           </div>
         </>
       )}
-      {busy && (
-        <button onClick={() => void window.jam.call('android-lan-cancel')}>{tr('取消传输')}</button>
-      )}
+      {busy && <button onClick={() => void jamCall('android-lan-cancel')}>{tr('取消传输')}</button>}
       {status && <p role="status">{message(status)}</p>}
     </div>
   );

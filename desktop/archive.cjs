@@ -47,6 +47,7 @@ async function pack(store, id, dest, full = false) {
           ...(project.kind === 'creation' ? {} : { takes: [], selectedTakeIds: [] }),
         }),
   };
+  delete manifest.importRevision;
   delete manifest.recordingSettings;
   delete manifest.playback;
   delete manifest.scoreMidi;
@@ -65,7 +66,7 @@ async function pack(store, id, dest, full = false) {
   for (const file of files) hashes[file] = await sha(store.asset(id, file));
   for (const [file, content] of Object.entries(virtual))
     hashes[file] = crypto.createHash('sha256').update(content).digest('hex');
-  const archive = require('archiver')('zip', { store: true }),
+  const archive = require('archiver')('zip', { zlib: { level: 3 } }),
     output = fs.createWriteStream(dest);
   const done = new Promise((resolve, reject) => {
     output.on('close', resolve);
@@ -269,8 +270,15 @@ async function importArchive(store, file, options = {}) {
     }
     const origin = project.originId || project.id;
     options.signal?.throwIfAborted();
-    const duplicate = store.list().find((p) => p.originId === origin);
+    const duplicate = store
+      .list()
+      .find(
+        (p) =>
+          (p.originId || p.id) === origin &&
+          (p.importRevision || p.updatedAt) === project.updatedAt,
+      );
     if (duplicate) return { ...duplicate, duplicate: true };
+    project.importRevision = project.updatedAt;
     project.id = crypto.randomUUID();
     project.originId = origin;
     project.updatedAt = new Date().toISOString();

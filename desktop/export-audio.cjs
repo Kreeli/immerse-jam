@@ -62,7 +62,7 @@ function exportMix(store, id, ffmpeg, dest, region) {
   const pitch = 2 ** (p.practice.pitch / 12);
   filters.push(
     tracks.map((_, i) => `[a${i}]`).join('') +
-      `amix=inputs=${tracks.length}:normalize=0,asetrate=${44100 * pitch},aresample=44100,${atempo(p.practice.tempo / pitch)},volume=${p.practice.master},alimiter=limit=0.98[out]`,
+      `amix=inputs=${tracks.length}:normalize=0,asetrate=${44100 * pitch},aresample=44100,${atempo(p.practice.tempo / pitch)},volume=${p.practice.master},aeval=exprs='clip(val(0),-0.98,0.98)|clip(val(1),-0.98,0.98)'[out]`,
   );
   args.push('-filter_complex', filters.join(';'), '-map', '[out]');
   if (region && region.b > region.a)

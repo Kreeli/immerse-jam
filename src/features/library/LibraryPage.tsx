@@ -1,3 +1,4 @@
+import { jamCall } from '../../platform/project-call';
 import {
   ArrowRight,
   ChevronRight,
@@ -178,7 +179,7 @@ export default function LibraryPage({
 
                   onClick={() =>
                     void act(async () => {
-                      const updated = await window.jam.call<Project>('update', {
+                      const updated = await jamCall<Project>('update', {
                         id: p.id,
 
                         patch: { starred: !p.starred },

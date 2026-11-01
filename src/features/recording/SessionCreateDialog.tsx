@@ -1,3 +1,6 @@
+import Select from '../../shared/Select';
+import { jamCall } from '../../platform/project-call';
+import { isAndroid } from '../../platform/environment';
 import { X } from 'lucide-react';
 import { useState } from 'react';
 import { t as tr } from '../../i18n';
@@ -19,7 +22,7 @@ export default function SessionCreateDialog({
 }) {
   const songs = library.filter(
     (project) =>
-      !project.kind &&
+      (!project.kind || (isAndroid && project.kind === 'practice')) &&
       (kind === 'creation' || project.results?.some((result) => result.tracks.length)),
   );
   const [title, setTitle] = useState(''),
@@ -36,7 +39,7 @@ export default function SessionCreateDialog({
     if (busy) return;
     setBusy(true);
     try {
-      const project = await window.jam.call<Project>('session-create', {
+      const project = await jamCall<Project>('session-create', {
         kind,
         title:
           title.trim() ||
@@ -93,7 +96,7 @@ export default function SessionCreateDialog({
           </label>
           <label>
             {tr('音乐库歌曲')}
-            <select
+            <Select
               aria-label={tr('音乐库歌曲')}
               value={sourceId}
               onChange={(event) => {
@@ -107,12 +110,12 @@ export default function SessionCreateDialog({
                   {song.title}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
           {source && (
             <label>
               {tr('使用分离结果')}
-              <select
+              <Select
                 aria-label={tr('使用分离结果')}
                 value={selectedResult}
                 onChange={(event) => setResultId(event.target.value)}
@@ -123,7 +126,7 @@ export default function SessionCreateDialog({
                     {result.name} · {tr('{0} 条分轨', [result.tracks.length])}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
           )}
           {kind === 'practice' && (

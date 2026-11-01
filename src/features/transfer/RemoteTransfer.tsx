@@ -1,13 +1,23 @@
+import { jamCall } from '../../platform/project-call';
 import { encode, decode } from './connection-code';
 import { useEffect, useRef, useState } from 'react';
 import { message, t as tr } from '../../i18n';
 export default function RemoteTransfer({
   ids,
   onError,
+  beforeSend,
 }: {
   ids: string[];
+  beforeSend?: () => Promise<void>;
   onError: (m: string) => void;
 }) {
+  const peerAcks = useRef(false);
+  const acknowledgement = useRef<{
+    offset: number;
+    resolve: () => void;
+    reject: (e: Error) => void;
+  } | null>(null);
+  const connectTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const peer = useRef<RTCPeerConnection | null>(null),
     channel = useRef<RTCDataChannel | null>(null),
     queue = useRef(Promise.resolve()),
@@ -30,15 +40,22 @@ export default function RemoteTransfer({
     }
   };
   const disconnect = () => {
+    if (connectTimer.current) clearTimeout(connectTimer.current);
+    acknowledgement.current?.reject(new Error(tr('连接已断开，请重新发送')));
+    acknowledgement.current = null;
     receiving.current = null;
+    setOffers([]);
     setConnected(false);
     setBusy(false);
-    void window.jam.call('peer-close').catch(() => {});
+    void jamCall('peer-close').catch(() => {});
   };
   const bind = (c: RTCDataChannel) => {
     channel.current = c;
+    peerAcks.current = false;
     c.binaryType = 'arraybuffer';
     c.onopen = () => {
+      c.send(JSON.stringify({ type: 'hello', acknowledgements: true }));
+      if (connectTimer.current) clearTimeout(connectTimer.current);
       setConnected(true);
       setStatus(tr('已加密直连，可以互相发送选中的歌曲'));
     };
@@ -49,6 +66,25 @@ export default function RemoteTransfer({
     };
     c.onerror = disconnect;
     c.onmessage = (e) => {
+      // Acknowledgements must bypass the disk queue: send() can be waiting
+      // inside that queue while handling the peer's accept-files message.
+      if (typeof e.data === 'string') {
+        try {
+          const ack = JSON.parse(e.data);
+          if (ack.type === 'hello') {
+            peerAcks.current = ack.acknowledgements === true;
+            return;
+          }
+          if (ack.type === 'written') {
+            const pending = acknowledgement.current;
+            if (pending && pending.offset === ack.offset) pending.resolve();
+            return;
+          }
+        } catch {
+          c.close();
+          return;
+        }
+      }
       queue.current = queue.current
         .then(async () => {
           if (typeof e.data === 'string') {
@@ -56,13 +92,14 @@ export default function RemoteTransfer({
             if (message.type === 'offer-files') setOffers(message.files);
             if (message.type === 'file-start') {
               if (receiving.current) throw new Error(tr('已有文件正在接收'));
-              const id = await window.jam.call<string>('peer-begin', message.file);
+              const id = await jamCall<string>('peer-begin', message.file);
               receiving.current = { id, offset: 0 };
             }
             if (message.type === 'file-end') {
               if (!receiving.current) throw new Error(tr('未找到正在接收的文件'));
-              await window.jam.call('peer-finish', { id: receiving.current.id });
+              await jamCall('peer-finish', { id: receiving.current.id });
               receiving.current = null;
+              c.send(JSON.stringify({ type: 'written', offset: -1 }));
               setStatus(tr('文件接收并校验完成，请确认导入'));
             }
             if (message.type === 'accept-files') await send(message.ids);
@@ -70,11 +107,12 @@ export default function RemoteTransfer({
             const item = receiving.current;
             if (!item) throw new Error(tr('意外的文件片段'));
             const bytes = new Uint8Array(e.data);
-            item.offset = await window.jam.call('peer-append', {
+            item.offset = await jamCall('peer-append', {
               id: item.id,
               offset: item.offset,
               chunk: bytes,
             });
+            c.send(JSON.stringify({ type: 'written', offset: item.offset }));
             setStatus(tr('已接收 {0} MB', [(item.offset / 1048576).toFixed(1)]));
           }
         })
@@ -113,6 +151,14 @@ export default function RemoteTransfer({
       });
     });
     setLocal(encode(p.localDescription!));
+    if (connectTimer.current) clearTimeout(connectTimer.current);
+    connectTimer.current = setTimeout(() => {
+      if (p.connectionState !== 'connected') {
+        p.close();
+        disconnect();
+        setStatus(tr('直连超时，请使用同一 Wi-Fi、热点或分享 .ijam 文件。'));
+      }
+    }, 90000);
     setBusy(false);
     setStatus(
       p.localDescription?.type === 'offer'
@@ -137,12 +183,37 @@ export default function RemoteTransfer({
         setStatus(tr('正在尝试直接连接…'));
       }
     });
+  const waitWritten = (offset: number, sendChunk: () => void) =>
+    new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        acknowledgement.current = null;
+        reject(new Error(tr('传输超时，请重新连接后发送')));
+      }, 30000);
+      acknowledgement.current = {
+        offset,
+        resolve: () => {
+          clearTimeout(timer);
+          acknowledgement.current = null;
+          resolve();
+        },
+        reject: (error) => {
+          clearTimeout(timer);
+          acknowledgement.current = null;
+          reject(error);
+        },
+      };
+      try {
+        sendChunk();
+      } catch (error) {
+        acknowledgement.current.reject(error as Error);
+      }
+    });
   const send = async (keys: string[]) => {
     const c = channel.current!;
     setBusy(true);
     try {
       for (const id of keys) {
-        const file = (await window.jam.call<any[]>('peer-outgoing')).find((f) => f.id === id);
+        const file = (await jamCall<any[]>('peer-outgoing')).find((f) => f.id === id);
         if (!file) throw new Error(tr('发送文件已失效'));
         c.send(JSON.stringify({ type: 'file-start', file }));
         for (let offset = 0; offset < file.size;) {
@@ -151,7 +222,7 @@ export default function RemoteTransfer({
             if (c.readyState !== 'open') throw new Error(tr('连接已断开'));
             await new Promise((r) => setTimeout(r, 20));
           }
-          const chunk = await window.jam.call<string | Uint8Array>('peer-read', {
+          const chunk = await jamCall<string | Uint8Array>('peer-read', {
             id,
             offset,
             binary: true,
@@ -160,13 +231,18 @@ export default function RemoteTransfer({
             typeof chunk === 'string'
               ? Uint8Array.from(atob(chunk), (c) => c.charCodeAt(0))
               : chunk;
-          c.send(new Uint8Array(bytes));
+          if (!bytes.length) throw new Error(tr('发送文件已失效'));
+          if (peerAcks.current)
+            await waitWritten(offset + bytes.length, () => c.send(new Uint8Array(bytes)));
+          else c.send(new Uint8Array(bytes));
           offset += bytes.length;
           setStatus(
             tr('发送 {0} \u00B7 {1}%', [file.name, Math.round((offset / file.size) * 100)]),
           );
         }
-        c.send(JSON.stringify({ type: 'file-end' }));
+        if (peerAcks.current)
+          await waitWritten(-1, () => c.send(JSON.stringify({ type: 'file-end' })));
+        else c.send(JSON.stringify({ type: 'file-end' }));
       }
       setStatus(tr('文件已发送，等待对方确认导入'));
     } finally {
@@ -176,13 +252,14 @@ export default function RemoteTransfer({
   useEffect(
     () => () => {
       peer.current?.close();
-      void window.jam.call('peer-close');
+      disconnect();
     },
     [],
   );
   return (
     <div className="remote-transfer">
       <h3>{tr('远程直连 \u00B7 连接码配对')}</h3>
+      <p className="notice">{tr('请连接同一局域网（同一 Wi-Fi 或热点）。')}</p>
       <p className="muted">
         {tr(
           '双方打开 Immerse Jam。发起方分享连接码，接收方粘贴后将回应码发回。歌曲通过加密连接直传；部分网络无法打通。',
@@ -206,11 +283,12 @@ export default function RemoteTransfer({
         </button>
         <button
           onClick={() => {
+            disconnect();
             peer.current?.close();
             setConnected(false);
             setLocal('');
             setRemote('');
-            void window.jam.call('peer-close');
+            void jamCall('peer-close');
           }}
         >
           {tr('断开')}
@@ -241,7 +319,8 @@ export default function RemoteTransfer({
           onClick={() =>
             void guard(async () => {
               setBusy(true);
-              const files = await window.jam.call('peer-prepare', { ids });
+              await beforeSend?.();
+              const files = await jamCall('peer-prepare', { ids });
               channel.current!.send(JSON.stringify({ type: 'offer-files', files }));
               setBusy(false);
               setStatus(tr('已发出歌曲清单，等待对方选择接收'));

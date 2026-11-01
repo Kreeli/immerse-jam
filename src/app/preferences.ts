@@ -1,3 +1,4 @@
+import { jamCall } from '../platform/project-call';
 import { useSyncExternalStore } from 'react';
 export type Preferences = {
   language: 'zh-CN' | 'en';
@@ -32,8 +33,7 @@ function apply() {
   document.documentElement.dataset.theme =
     preferences.theme === 'system' ? (system?.matches ? 'light' : 'dark') : preferences.theme;
   document.documentElement.dataset.accent = preferences.accent;
-  if (window.jam)
-    void window.jam.call('ui-language', { language: preferences.language }).catch(() => {});
+  if (window.jam) void jamCall('ui-language', { language: preferences.language }).catch(() => {});
 }
 system?.addEventListener('change', apply);
 apply();

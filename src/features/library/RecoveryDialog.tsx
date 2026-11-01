@@ -1,3 +1,4 @@
+import { jamCall } from '../../platform/project-call';
 import { useState } from 'react';
 import { t as tr } from '../../i18n';
 import type { Project } from '../../shared/types';
@@ -27,7 +28,7 @@ export default function RecoveryDialog({
           {!isAndroid && (
             <button
               onClick={() =>
-                void window.jam.call('reveal', { id: project.id }).catch((e) => onError(e.message))
+                void jamCall('reveal', { id: project.id }).catch((e) => onError(e.message))
               }
             >
               {tr('打开文件夹')}
@@ -38,8 +39,7 @@ export default function RecoveryDialog({
             className="primary"
             onClick={() => {
               setBusy(true);
-              void window.jam
-                .call('project-recover', { id: project.id })
+              void jamCall('project-recover', { id: project.id })
                 .then(onRecovered)
                 .then(onClose)
                 .catch((e) => onError(e.message))
