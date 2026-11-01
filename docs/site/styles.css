@@ -349,6 +349,34 @@ p {
   padding-bottom: 20px;
   border-bottom: 1px solid var(--line);
 }
+.stem-modes {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+.stem-modes button {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  padding: 8px 18px;
+  font: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+.stem-modes button[aria-pressed='true'] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--text);
+}
+.stem-list button:disabled,
+.stem-list input:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
 .stem-play {
   width: 54px;
   height: 54px;

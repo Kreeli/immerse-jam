@@ -168,20 +168,22 @@
 
   /* ---------- 六轨分轨试听 ---------- */
   const TRACKS = ['vocals', 'drums', 'bass', 'guitar', 'piano', 'other'];
+  const ALL_AUDIO = ['original', ...TRACKS];
   const stemRows = [...document.querySelectorAll('#stem-list li')];
   if (stemRows.length && window.Audio) {
     const audios = {};
-    TRACKS.forEach((name) => {
-      const audio = new Audio(`assets/audio/lamp-sugiru-haru-no/${name}.mp3`);
+    ALL_AUDIO.forEach((name) => {
+      const audio = new Audio(`assets/audio/fabulous-rehearsal/${name}.mp3`);
       audio.preload = 'metadata';
       audio.volume = 1;
       audios[name] = audio;
     });
-    const clock = audios[TRACKS[0]];
+    let clock = audios[TRACKS[0]];
     const state = {
       playing: false,
       muted: new Set(),
       solo: new Set(),
+      mode: 'stems',
     };
     const playButton = $('stem-play');
     const seek = $('stem-seek');
@@ -206,30 +208,61 @@
         row.classList.toggle('muted', effectiveMuted(name));
         row.querySelector('.stem-mute').setAttribute('aria-pressed', String(state.muted.has(name)));
         row.querySelector('.stem-solo').setAttribute('aria-pressed', String(state.solo.has(name)));
+        row.querySelectorAll('button, input').forEach((control) => {
+          control.disabled = state.mode === 'original';
+        });
       });
     }
 
     function setPlaying(next) {
       state.playing = next;
       playButton.querySelector('span').textContent = next ? 'Ⅱ' : '▶';
-      playButton.setAttribute('aria-label', next ? '暂停全部声部' : '播放全部声部');
+      playButton.setAttribute(
+        'aria-label',
+        `${next ? '暂停' : '播放'}${state.mode === 'original' ? '原始录音' : '全部声部'}`,
+      );
       if (next) {
-        TRACKS.forEach((name) => {
+        if (clock.ended) clock.currentTime = 0;
+        (state.mode === 'original' ? ['original'] : TRACKS).forEach((name) => {
+          if (
+            Number.isFinite(audios[name].duration) &&
+            Math.abs(audios[name].currentTime - clock.currentTime) > 0.03
+          )
+            audios[name].currentTime = clock.currentTime;
           audios[name].play().catch(() => {});
         });
       } else {
-        TRACKS.forEach((name) => audios[name].pause());
+        ALL_AUDIO.forEach((name) => audios[name].pause());
       }
     }
 
     playButton.addEventListener('click', () => setPlaying(!state.playing));
 
-    clock.addEventListener('loadedmetadata', () => {
-      durationLabel.textContent = formatTime(clock.duration);
+    document.querySelectorAll('[data-audio-mode]').forEach((button) => {
+      button.addEventListener('click', () => {
+        if (button.dataset.audioMode === state.mode) return;
+        const at = clock.currentTime,
+          playing = state.playing;
+        setPlaying(false);
+        state.mode = button.dataset.audioMode;
+        clock = audios[state.mode === 'original' ? 'original' : TRACKS[0]];
+        if (Number.isFinite(clock.duration)) clock.currentTime = Math.min(at, clock.duration);
+        document.querySelectorAll('[data-audio-mode]').forEach((item) => {
+          item.setAttribute('aria-pressed', String(item === button));
+        });
+        durationLabel.textContent = formatTime(clock.duration);
+        refreshMuteState();
+        setPlaying(playing);
+      });
     });
-    clock.addEventListener('ended', () => {
-      state.playing = false;
-      playButton.querySelector('span').textContent = '▶';
+
+    ALL_AUDIO.forEach((name) => {
+      audios[name].addEventListener('loadedmetadata', () => {
+        durationLabel.textContent = formatTime(clock.duration);
+      });
+      audios[name].addEventListener('ended', () => {
+        if (audios[name] === clock) setPlaying(false);
+      });
     });
 
     let seeking = false;
@@ -238,7 +271,7 @@
     });
     seek.addEventListener('change', () => {
       const target = (Number(seek.value) / 1000) * (clock.duration || 0);
-      TRACKS.forEach((name) => {
+      ALL_AUDIO.forEach((name) => {
         if (Number.isFinite(audios[name].duration)) audios[name].currentTime = target;
       });
       seeking = false;
@@ -280,7 +313,7 @@
         currentLabel.textContent = formatTime(clock.currentTime);
       }
       if (!state.playing) return;
-      TRACKS.forEach((name) => {
+      (state.mode === 'original' ? ['original'] : TRACKS).forEach((name) => {
         const audio = audios[name];
         if (audio === clock || audio.paused) return;
         if (Math.abs(audio.currentTime - clock.currentTime) > 0.12) {

@@ -120,10 +120,15 @@
               <h2 id="stems-title">分轨效果，直接听。</h2>
             </div>
             <p>
-              下面是 Lamp《過ぎる春の》，用默认的六轨模型分离，没做任何修音。<br />点播放，然后试试把人声或鼓静音——这就是「关掉你要练的那轨」的效果。
+              下面是我们 10 月 31 日演出前排练的《Fabulous》（BLU-SWING），截取 60
+              秒，用默认的六轨模型分离。<br />可以对比原始录音，再试试把人声或鼓静音，听听伴奏的变化。
             </p>
           </div>
           <div class="stem-player" id="stem-player">
+            <div class="stem-modes" role="group" aria-label="试听内容">
+              <button data-audio-mode="original" aria-pressed="false">原始录音</button>
+              <button data-audio-mode="stems" aria-pressed="true">分轨试听</button>
+            </div>
             <div class="stem-master">
               <button class="stem-play" id="stem-play" aria-label="播放全部声部">
                 <span aria-hidden="true">▶</span>
@@ -139,7 +144,7 @@
                   aria-label="播放进度"
                 />
                 <div class="stem-time">
-                  <span id="stem-current">0:00</span><span id="stem-duration">5:41</span>
+                  <span id="stem-current">0:00</span><span id="stem-duration">1:00</span>
                 </div>
               </div>
               <button class="stem-reset" id="stem-reset">全部恢复</button>
@@ -151,7 +156,14 @@
                   <button class="stem-solo" aria-pressed="false">选听</button>
                   <button class="stem-mute" aria-pressed="false">关闭声音</button>
                 </div>
-                <input type="range" class="stem-volume" min="0" max="100" value="100" aria-label="人声音量" />
+                <input
+                  type="range"
+                  class="stem-volume"
+                  min="0"
+                  max="100"
+                  value="100"
+                  aria-label="人声音量"
+                />
               </li>
               <li data-track="drums" style="--track-color: #f0a13c">
                 <span class="stem-dot" aria-hidden="true"></span><span class="stem-name">鼓</span>
@@ -159,7 +171,14 @@
                   <button class="stem-solo" aria-pressed="false">选听</button>
                   <button class="stem-mute" aria-pressed="false">关闭声音</button>
                 </div>
-                <input type="range" class="stem-volume" min="0" max="100" value="100" aria-label="鼓音量" />
+                <input
+                  type="range"
+                  class="stem-volume"
+                  min="0"
+                  max="100"
+                  value="100"
+                  aria-label="鼓音量"
+                />
               </li>
               <li data-track="bass" style="--track-color: #58c98b">
                 <span class="stem-dot" aria-hidden="true"></span><span class="stem-name">贝斯</span>
@@ -167,7 +186,14 @@
                   <button class="stem-solo" aria-pressed="false">选听</button>
                   <button class="stem-mute" aria-pressed="false">关闭声音</button>
                 </div>
-                <input type="range" class="stem-volume" min="0" max="100" value="100" aria-label="贝斯音量" />
+                <input
+                  type="range"
+                  class="stem-volume"
+                  min="0"
+                  max="100"
+                  value="100"
+                  aria-label="贝斯音量"
+                />
               </li>
               <li data-track="guitar" style="--track-color: #6aa7f0">
                 <span class="stem-dot" aria-hidden="true"></span><span class="stem-name">吉他</span>
@@ -175,7 +201,14 @@
                   <button class="stem-solo" aria-pressed="false">选听</button>
                   <button class="stem-mute" aria-pressed="false">关闭声音</button>
                 </div>
-                <input type="range" class="stem-volume" min="0" max="100" value="100" aria-label="吉他音量" />
+                <input
+                  type="range"
+                  class="stem-volume"
+                  min="0"
+                  max="100"
+                  value="100"
+                  aria-label="吉他音量"
+                />
               </li>
               <li data-track="piano" style="--track-color: #b98cf0">
                 <span class="stem-dot" aria-hidden="true"></span><span class="stem-name">钢琴</span>
@@ -183,7 +216,14 @@
                   <button class="stem-solo" aria-pressed="false">选听</button>
                   <button class="stem-mute" aria-pressed="false">关闭声音</button>
                 </div>
-                <input type="range" class="stem-volume" min="0" max="100" value="100" aria-label="钢琴音量" />
+                <input
+                  type="range"
+                  class="stem-volume"
+                  min="0"
+                  max="100"
+                  value="100"
+                  aria-label="钢琴音量"
+                />
               </li>
               <li data-track="other" style="--track-color: #9aa0aa">
                 <span class="stem-dot" aria-hidden="true"></span><span class="stem-name">其他</span>
@@ -191,12 +231,20 @@
                   <button class="stem-solo" aria-pressed="false">选听</button>
                   <button class="stem-mute" aria-pressed="false">关闭声音</button>
                 </div>
-                <input type="range" class="stem-volume" min="0" max="100" value="100" aria-label="其他音量" />
+                <input
+                  type="range"
+                  class="stem-volume"
+                  min="0"
+                  max="100"
+                  value="100"
+                  aria-label="其他音量"
+                />
               </li>
             </ul>
             <p class="stem-note">
-              六轨会同时加载，每轨约 13MB，网络慢时要等一会儿。演示素材为完整曲目分轨，仅用于展示分离效果，歌曲版权归 Lamp
-              所有。分离结果有轻微残留属于正常，不同歌曲、不同模型效果会有差别。
+              录音由项目作者提供，曲目为 BLU-SWING《Fabulous》。已去掉开头 5 秒，试听取其后 60
+              秒，每个音频约 1.2 MB。
+              原始录音与六轨采用相同音量缩放和首尾淡化，未单独美化声部；分离结果可能有残留，不同素材的效果会有差别。
             </p>
           </div>
         </div>
