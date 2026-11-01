@@ -14,7 +14,11 @@
         <div class="spinner" aria-hidden="true"></div>
         <h1>正在准备 Android（arm64）安装包下载…</h1>
         <p>浏览器应该马上会弹出下载。如果没弹出来，用下面的链接手动下载。</p>
-        <a id="manual-link" class="manual-link" href="https://github.com/Kreeli/immerse-jam/releases/latest"
+        <a
+          data-download-kind="android-arm64"
+          id="manual-link"
+          class="manual-link"
+          href="https://github.com/Kreeli/immerse-jam/releases/download/v0.1.10/Immerse-Jam-Android-0.1.0-preview.2-arm64.apk"
           >没反应？点这里手动下载</a
         >
         <p id="status" class="status" role="status"></p>
@@ -25,8 +29,9 @@
         <noscript>
           <div class="noscript-note">
             这台浏览器禁用了 JavaScript，自动跳转不可用。请手动下载：
-            <a href="https://github.com/Kreeli/immerse-jam/releases/latest">GitHub Releases 最新版本页</a
-            >，到页面里挑带 arm64 的 .apk 即可。
+            <a href="https://github.com/Kreeli/immerse-jam/releases/latest"
+              >GitHub Releases 最新版本页</a
+            >，也可以直接点击上方安装包按钮。
           </div>
         </noscript>
       </div>
@@ -41,7 +46,8 @@
         var manual = document.getElementById('manual-link');
         var status = document.getElementById('status');
         function fail() {
-          status.textContent = '自动跳转失败，点击上方链接继续。';
+          document.querySelector('.spinner').hidden = true;
+          status.textContent = '自动下载未能启动，请点击上方按钮直接下载安装包。';
           status.className = 'status error';
         }
         if (!RF) {
@@ -56,6 +62,8 @@
           }
           // 先把手动链接换成真正的资产地址，再触发下载
           manual.href = found.asset.browser_download_url;
+          status.textContent = '已发送下载请求。如未开始，请点击上方按钮。';
+          document.querySelector('.spinner').hidden = true;
           window.location.replace(found.asset.browser_download_url);
         }, fail);
       })();

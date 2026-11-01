@@ -28,14 +28,16 @@
         <p class="eyebrow"><span class="live-dot"></span> DOWNLOAD</p>
         <h1>下载中心</h1>
         <p>
-          三个包都从 GitHub Releases 直接下载，不经过 GitHub 网页。版本更新后本页会自动指向最新的安装包，地址不用换。
+          三个包都从 GitHub Releases 直接下载，不经过 GitHub
+          网页。版本更新后本页会自动指向最新的安装包，地址不用换。
         </p>
       </div>
 
       <noscript>
         <div class="noscript-note">
-          这台浏览器禁用了 JavaScript，取不到版本信息。下面三个下载按钮会先指向
-          <a href="https://github.com/Kreeli/immerse-jam/releases/latest">GitHub Releases 最新版本页</a
+          这台浏览器禁用了 JavaScript，下面三个按钮仍可直接下载安装包。也可访问
+          <a href="https://github.com/Kreeli/immerse-jam/releases/latest"
+            >GitHub Releases 最新版本页</a
           >，到页面里挑对应的安装包即可；旧版本在
           <a href="https://github.com/Kreeli/immerse-jam/releases">Releases 列表</a>。
         </div>
@@ -63,8 +65,9 @@
           </dl>
           <div class="card-actions">
             <a
+              data-download-kind="windows"
               class="button download-btn"
-              href="https://github.com/Kreeli/immerse-jam/releases/latest"
+              href="https://github.com/Kreeli/immerse-jam/releases/download/v0.1.10/Immerse.Jam.Setup.0.1.10.exe"
               >下载 Windows 安装包</a
             >
             <a class="shasum" href="#" hidden>SHA-256 校验值</a>
@@ -92,8 +95,9 @@
           </dl>
           <div class="card-actions">
             <a
+              data-download-kind="android-arm64"
               class="button download-btn"
-              href="https://github.com/Kreeli/immerse-jam/releases/latest"
+              href="https://github.com/Kreeli/immerse-jam/releases/download/v0.1.10/Immerse-Jam-Android-0.1.0-preview.2-arm64.apk"
               >下载 Android（arm64）安装包</a
             >
             <a class="shasum" href="#" hidden>SHA-256 校验值</a>
@@ -121,8 +125,9 @@
           </dl>
           <div class="card-actions">
             <a
+              data-download-kind="android-x64"
               class="button download-btn"
-              href="https://github.com/Kreeli/immerse-jam/releases/latest"
+              href="https://github.com/Kreeli/immerse-jam/releases/download/v0.1.10/Immerse-Jam-Android-0.1.0-preview.2-x86_64.apk"
               >下载 Android（x86_64）安装包</a
             >
             <a class="shasum" href="#" hidden>SHA-256 校验值</a>
@@ -162,7 +167,9 @@
           } catch (e) {}
           var s = (ua + ' ' + platform).toLowerCase();
           if (s.indexOf('android') !== -1) {
-            return s.indexOf('x86_64') !== -1 || s.indexOf('x64') !== -1 ? 'android-x64' : 'android-arm64';
+            return s.indexOf('x86_64') !== -1 || s.indexOf('x64') !== -1
+              ? 'android-x64'
+              : 'android-arm64';
           }
           if (s.indexOf('win') !== -1) return 'windows';
           return null;
@@ -176,7 +183,8 @@
           var size = card.querySelector('.card-size');
           var btn = card.querySelector('.download-btn');
           var shasum = card.querySelector('.shasum');
-          version.textContent = found.release && found.release.tag_name ? found.release.tag_name : '—';
+          version.textContent =
+            found.release && found.release.tag_name ? found.release.tag_name : '—';
           date.textContent = RF.formatDate(found.release && found.release.published_at);
           size.textContent = RF.formatSize(found.asset.size);
           if (found.asset.browser_download_url) btn.href = found.asset.browser_download_url;
@@ -204,10 +212,9 @@
           function () {
             var note = document.getElementById('data-note');
             if (note) {
-              note.textContent =
-                '这会儿没取到版本信息，下载按钮已指向 GitHub Releases 最新版本页，到那里挑对应的安装包即可。';
+              note.textContent = '暂时无法读取版本信息，上方按钮仍可直接下载安装包。';
             }
-          }
+          },
         );
       })();
     </script>

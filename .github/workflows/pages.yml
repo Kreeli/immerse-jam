@@ -6,6 +6,9 @@ on:
     paths:
       - 'docs/site/**'
       - '.github/workflows/pages.yml'
+      - 'scripts/prepare-website-downloads.cjs'
+  release:
+    types: [published, edited, deleted]
   workflow_dispatch:
 
 permissions:
@@ -17,7 +20,7 @@ concurrency:
 
 jobs:
   deploy:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.event_name == 'release'
     runs-on: ubuntu-latest
     permissions:
       pages: write
@@ -27,6 +30,15 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Refresh direct download links
+        run: node scripts/prepare-website-downloads.cjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload website

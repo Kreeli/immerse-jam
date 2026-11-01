@@ -355,13 +355,10 @@
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
     try {
-      const response = await fetch(
-        'https://api.github.com/repos/Kreeli/immerse-jam/releases?per_page=20',
-        {
-          headers: { Accept: 'application/vnd.github+json' },
-          signal: controller.signal,
-        },
-      );
+      const response = await fetch('download/releases.json', {
+        headers: { Accept: 'application/vnd.github+json' },
+        signal: controller.signal,
+      });
       if (!response.ok) return;
       const releases = await response.json();
       if (!Array.isArray(releases) || !releases.length) return;

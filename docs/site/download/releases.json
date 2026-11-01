@@ -1,0 +1,169 @@
+[
+  {
+    "tag_name": "v0.1.10",
+    "name": "Immerse Jam 0.1.10 - Android Preview 2",
+    "published_at": "2026-11-01T15:34:33Z",
+    "html_url": "https://github.com/Kreeli/immerse-jam/releases/tag/v0.1.10",
+    "body": "Windows v0.1.10 / Android v0.1.0-preview.2\r\n\r\n- Android 调整为外部分轨播放器与练琴/创作工具，移除本地推理；重构紧凑界面、原生录音和延迟校准，支持项目导入导出及设备互传。\r\n- Android 采用有界磁盘音频窗口与连续采样时钟，减少大工程的内存占用；优化常速跳转、波形绘制与页面切换。\r\n- 两端取消单击波形跳转，仅拖动定位；Android 双指缩放，Windows Ctrl＋滚轮缩放。\r\n- Windows 修正大工程解码预算误判、切歌旧缓存占用，新增加载动画与逐轨状态。\r\n- 优化增量保存、工程恢复、共享与导出；提高节拍器、预备拍和延迟测试提示音约 8 dB。\r\n\r\n已完成针对性构建、界面和音频检查及 Android 实机验收。Android APK 仍使用原调试签名，可覆盖之前的预览版并保留工程。Windows 安装前请正常退出旧程序。\r\n\r\n已知限制：变速/变调跳转仍可能短暂停顿；部分设备或首次打开复杂页面仍可能出现短卡顿。更新期间曾出现一次“文件超出范围”，重新打开后恢复，尚未稳定复现。跨网络互传受网络直连条件影响。\r\n\r\n请下载 Windows 安装程序或适合设备的 APK，SHA256SUMS.txt 用于校验。",
+    "prerelease": false,
+    "draft": false,
+    "assets": [
+      {
+        "name": "Immerse-Jam-Android-0.1.0-preview.2-arm64.apk",
+        "size": 11929788,
+        "browser_download_url": "https://github.com/Kreeli/immerse-jam/releases/download/v0.1.10/Immerse-Jam-Android-0.1.0-preview.2-arm64.apk"
+      },
+      {
+        "name": "Immerse-Jam-Android-0.1.0-preview.2-x86_64.apk",
+        "size": 11929788,
+        "browser_download_url": "https://github.com/Kreeli/immerse-jam/releases/download/v0.1.10/Immerse-Jam-Android-0.1.0-preview.2-x86_64.apk"
+      },
+      {
+        "name": "Immerse.Jam.Setup.0.1.10.exe",
+        "size": 141340214,
+        "browser_download_url": "https://github.com/Kreeli/immerse-jam/releases/download/v0.1.10/Immerse.Jam.Setup.0.1.10.exe"
+      },
+      {
+        "name": "SHA256SUMS.txt",
+        "size": 323,
+        "browser_download_url": "https://github.com/Kreeli/immerse-jam/releases/download/v0.1.10/SHA256SUMS.txt"
+      }
+    ]
+  },
+  {
+    "tag_name": "v0.1.9",
+    "name": "Immerse Jam 0.1.9 - Android Preview 1",
+    "published_at": "2026-11-01T07:22:55Z",
+    "html_url": "https://github.com/Kreeli/immerse-jam/releases/tag/v0.1.9",
+    "body": "# Immerse Jam 0.1.9 · Android Preview 1\n\nWindows 0.1.9 与首个 Android 0.1.0-preview.1 预览包。\n\n## 下载\n\n- Windows：`Immerse Jam Setup 0.1.9.exe`，安装向导自动准备本地运行环境和所选模型。\n- Android 手机／平板：`Immerse-Jam-Android-0.1.0-preview.1-arm64-v8a.apk`，Android 9+。这是调试签名预览包，尚未配置正式发行签名。\n- Android 模拟器：`Immerse-Jam-Android-0.1.0-preview.1-x86_64.apk`。\n- `SHA256SUMS-0.1.9.txt` 提供三个安装文件的 SHA-256。\n\n## 本次更新\n\n- Windows 修复暂停后声音通路和恢复播放残留，完善校准取消、界面字号及文字选择行为；完整歌曲互传保留节拍、对齐、附件和录音。\n- Android 提供手机／平板布局、侧栏、层级返回和根页两次返回退出；音乐库、跟练／创作、波形、和弦编辑及本地存储沿用共享界面。\n- 随包提供人声／伴奏分离模型和与电脑同权重的 Beat This!，四轨模型按需下载；有时长、内存、存储和温度保护。\n- 默认保留电脑或朋友分享的节拍与手动校准结果，可明确选择重新识别。36 秒合成样例实际原生推理与电脑得到相同的 72 个节拍、18 个小节首拍。\n- 支持变速／移调录音归一化、中断恢复、MIDI 自动对齐、WAV 混音与完整 `.ijam` 分享。\n- 原生局域网收发、取消和重连；支持扫码入口及粘贴电脑配对地址。修复电脑流式 ZIP 在手机上的兼容问题。\n\n## Android 预览限制\n\n已在 Android 15 x86_64 模拟器运行，不代表实体 ARM64 手机、USB 效果器或长时间温度／性能已验收。相机窗口打开和取消已验证，实际二维码识别仍待真机；真实 WebRTC 网络链路仍待验收。\n\n后台／锁屏长期播放与电话、蓝牙路由尚未完成原生适配。移动端六轨、主奏／节奏吉他、主唱／和声的本机模型适配，以及 `.aum` 本机迁移、自定义模型导入仍待完成；可以从电脑分享已经算好的完整结果。\n\n输入和单次录音最多 44 分钟，长曲多轨播放另受内存预算限制。复杂曲目的节拍、和弦和乐谱对齐仍可能需要手动修正。应用数据保存在应用专用目录，卸载或换签名前请先导出。\n\n按用户要求停止追加检查并直接发布。已有验证和最终未重跑项见 [本地验收记录](https://github.com/Kreeli/immerse-jam/blob/main/docs/ANDROID-DEVICE-VALIDATION-2026-10-30.md)。\n\nWindows installer and debug-signed Android preview APKs are included. Android feature coverage and validation remain limited as described above; this is not a full Windows replacement. Export your projects before uninstalling or changing signing keys.\n",
+    "prerelease": false,
+    "draft": false,
+    "assets": [
+      {
+        "name": "Immerse-Jam-Android-0.1.0-preview.1-arm64-v8a.apk",
+        "size": 194702798,
+        "browser_download_url": "https://github.com/Kreeli/immerse-jam/releases/download/v0.1.9/Immerse-Jam-Android-0.1.0-preview.1-arm64-v8a.apk"
+      },
+      {
+        "name": "Immerse-Jam-Android-0.1.0-preview.1-x86_64.apk",
+        "size": 198526728,
+        "browser_download_url": "https://github.com/Kreeli/immerse-jam/releases/download/v0.1.9/Immerse-Jam-Android-0.1.0-preview.1-x86_64.apk"
+      },
+      {
+        "name": "Immerse.Jam.Setup.0.1.9.exe",
+        "size": 141077061,
+        "browser_download_url": "https://github.com/Kreeli/immerse-jam/releases/download/v0.1.9/Immerse.Jam.Setup.0.1.9.exe"
+      },
+      {
+        "name": "SHA256SUMS-0.1.9.txt",
+        "size": 323,
+        "browser_download_url": "https://github.com/Kreeli/immerse-jam/releases/download/v0.1.9/SHA256SUMS-0.1.9.txt"
+      }
+    ]
+  },
+  {
+    "tag_name": "v0.1.8",
+    "name": "Immerse Jam 0.1.8",
+    "published_at": "2026-10-29T12:47:42Z",
+    "html_url": "https://github.com/Kreeli/immerse-jam/releases/tag/v0.1.8",
+    "body": "# Immerse Jam 0.1.8\n\n- 修复循环回卷／拖动反复重建音频处理节点的问题。循环改为按音频时钟预排，seek 清空旧缓冲并短淡入淡出；快速连续拖动保持播放。\n- 修复录音启动失败清空循环段落；关闭应用时释放播放器及 AudioContext。\n- 修复异常速度导致导出卡死、缺省音轨名中断导出、局域网并发下载复用临时包，以及分块中文进度乱码。\n- 补齐 SCNet XL 权重和配置摘要，内置模型缺少摘要拒绝安装；自定义模型强制受限权重加载，校验 YAML 并在运行前复验权重／配置。\n- 修正 Beat This! 名称。侧栏依次为引擎状态、用户反馈、请作者喝一瓶冰可乐。\n- 新增自制和弦谱删除确认。音乐播放页右上角可“以这首歌创建”跟练／创作并预选当前结果；普通音乐不显示录音按钮，历史录音库仍保留。\n- “练琴模式”更名“跟练/创作”，列表与创建界面直接使用跟练、创作；内置分类更名“默认分类”。\n\nReuses one DSP across seeks and clock-scheduled loops, preserves loops on failed recording, validates playback/export settings and model artifacts, isolates concurrent LAN packages, and decodes UTF-8 progress incrementally. Adds chord-chart deletion and Create from this song, with clearer Practice / Create navigation.\n\n33 项 Node、7 项 Python 测试、静态检查、双语词典、格式、构建及隔离界面回归通过。最终独立程序复测循环、连续定位、录音失败、创建取消、和弦谱删除及释放通过。\n\nWindows 10/11 x64. 私人曲库、录音、模型权重和运行环境不包含在安装包中。原创源码采用 PolyForm Noncommercial 1.0.0，第三方许可保持不变。详细结论见 [源码审查记录](https://github.com/Kreeli/immerse-jam/blob/v0.1.8/docs/REVIEW-0.1.8.md)。\n",
+    "prerelease": false,
+    "draft": false,
+    "assets": [
+      {
+        "name": "Immerse.Jam.Setup.0.1.8.exe",
+        "size": 141063109,
+        "browser_download_url": "https://github.com/Kreeli/immerse-jam/releases/download/v0.1.8/Immerse.Jam.Setup.0.1.8.exe"
+      },
+      {
+        "name": "SHA256SUMS-0.1.8.txt",
+        "size": 94,
+        "browser_download_url": "https://github.com/Kreeli/immerse-jam/releases/download/v0.1.8/SHA256SUMS-0.1.8.txt"
+      }
+    ]
+  },
+  {
+    "tag_name": "v0.1.7",
+    "name": "Immerse Jam 0.1.7",
+    "published_at": "2026-10-29T11:32:30Z",
+    "html_url": "https://github.com/Kreeli/immerse-jam/releases/tag/v0.1.7",
+    "body": "# Immerse Jam 0.1.7\n\n- 放大歌曲标题、艺人、导入提示、底部说明及播放页常用文字；长歌名可显示两行。\n- 修正 Windows 任务栏身份和图标设置，使窗口、启动和安装快捷方式使用同一应用身份与提供的图标。\n- 侧栏改为分类文件夹，可创建、改名，统一收纳分轨、跟练与创作工程。歌曲和工程行可选择分类；删除分类只移回未分类，保留文件。\n- 安装向导新增独立数据目录、加速方式和可选模型。优先非系统固定盘，使用系统盘需明确确认。私有 Python、推理依赖、FFmpeg 和所选模型在完成前自动准备；失败可重试，数据和大型缓存跟随所选目录。\n- 默认选择 BS RoFormer SW 六轨与 Beat This!，另可选 Demucs、SCNet Small、人声和吉他模型；专用模型同时准备所需基础模型。设置中显示实际存储位置。\n- 新增邮件与 GitHub 反馈入口：`meowmeowneko999@gmail.com` 或仓库 Issues。点击只打开对应入口，不自动发送内容。\n- 打赏窗口仅显示原图片的二维码区域和白边，保留原二维码内容。\n\nLarger text, mixed project folders, a consistent Windows taskbar identity, email/GitHub feedback and a cropped original donation QR. Setup now selects storage, acceleration and models, then prepares the private environment before finishing. Large application data and download caches use the chosen data root; Windows installer extraction still uses OS-managed temporary storage.\n\n29 项 Node 测试、6 项新安装 CPU 环境中的 Python 测试与静态、翻译、格式及构建检查通过；分类、连续播放、反馈链接、二维码、录音界面和中英文主题通过隔离验收。全新目录实际完成 CPU 环境及 Demucs／Beat This! 下载校验，并通过原生安装准备执行链及非系统固定盘选择检查。原生向导的人工逐页点击尚未完成。\n\nWindows 10/11 x64: `Immerse.Jam.Setup.0.1.7.exe`, with `SHA256SUMS-0.1.7.txt`. Private music, recordings, runtimes and model weights are not bundled. Original source uses PolyForm Noncommercial 1.0.0; third-party licenses remain unchanged.\n",
+    "prerelease": false,
+    "draft": false,
+    "assets": [
+      {
+        "name": "Immerse.Jam.Setup.0.1.7.exe",
+        "size": 141067047,
+        "browser_download_url": "https://github.com/Kreeli/immerse-jam/releases/download/v0.1.7/Immerse.Jam.Setup.0.1.7.exe"
+      },
+      {
+        "name": "SHA256SUMS-0.1.7.txt",
+        "size": 94,
+        "browser_download_url": "https://github.com/Kreeli/immerse-jam/releases/download/v0.1.7/SHA256SUMS-0.1.7.txt"
+      }
+    ]
+  },
+  {
+    "tag_name": "v0.1.6",
+    "name": "Immerse Jam 0.1.6",
+    "published_at": "2026-10-29T05:42:02Z",
+    "html_url": "https://github.com/Kreeli/immerse-jam/releases/tag/v0.1.6",
+    "body": "# Immerse Jam 0.1.6\n\n- 创作页改为可展开／收起的音轨列表，不再显示一整块总波形。播放中可随时录制新轨，保存后成为独立条目。\n- 从音乐库或外部 `.ijam`／`.aum` 导入的分轨工程保留为一个外层音频分组，展开后调整内部声部。组内选听不影响其他录音；支持按钮和拖入文件两种导入方式。\n- 跟练页上下对齐显示总混音与实时输入／已挂载录音的波形，共用播放位置和滑动时间窗口。\n- 录音按钮移到播放按钮旁；设备设置保存后可直接起录，录音库与设置仍可单独打开。\n- 循环与标记点快捷按钮移到顶部；右侧切换控制台／循环段落／标记点，列表独立滚动，不再挤压波形。\n- 修复节拍器音量滑块的尺寸冲突，恢复鼠标拖动与保存。分组混音支持预设、音频导出和完整工程往返。\n- 新界面支持中英文及现有主题；优化实时波形和分组波形缓存。\n\nCreation now uses collapsible tracks and nested stem groups, with recording beside Play. Practice aligns live/take waveforms with the main mix. Top quick actions and a fixed Mixer/Loops/Markers panel preserve workspace space. Metronome volume dragging is fixed.\n\n27 项 Node 测试及静态／翻译／格式检查通过。界面验收涵盖叠录、分组按钮与拖入导入、组内选听、对齐波形、固定标记列表、真实鼠标滑块拖动及英文浅色布局；声卡输入使用隔离的模拟信号。\n\nWindows 10/11 x64: `Immerse.Jam.Setup.0.1.6.exe`. Compare with `SHA256SUMS-0.1.6.txt`. Grouped creation archives require 0.1.6 or newer; previous music projects remain readable. Private music, recordings and model weights are not bundled. Original source remains under PolyForm Noncommercial 1.0.0; third-party licenses remain unchanged.\n",
+    "prerelease": false,
+    "draft": false,
+    "assets": [
+      {
+        "name": "Immerse.Jam.Setup.0.1.6.exe",
+        "size": 141053668,
+        "browser_download_url": "https://github.com/Kreeli/immerse-jam/releases/download/v0.1.6/Immerse.Jam.Setup.0.1.6.exe"
+      },
+      {
+        "name": "SHA256SUMS-0.1.6.txt",
+        "size": 94,
+        "browser_download_url": "https://github.com/Kreeli/immerse-jam/releases/download/v0.1.6/SHA256SUMS-0.1.6.txt"
+      }
+    ]
+  },
+  {
+    "tag_name": "v0.1.5",
+    "name": "Immerse Jam 0.1.5 — Practice Projects",
+    "published_at": "2026-10-29T02:37:56Z",
+    "html_url": "https://github.com/Kreeli/immerse-jam/releases/tag/v0.1.5",
+    "body": "# Immerse Jam 0.1.5\n\n- 浏览音乐库、收藏、歌单或工程列表时继续播放；底部播放条显示当前工程，可返回完整播放界面，无悬浮小窗。\n- “最近练习”改为“练琴模式”。跟练和创作用独立的行式工程列表管理，可筛选全部／跟练／创作；音乐库只显示源歌曲。\n- 新建工程先填写名称、选择源歌曲和分离结果，确认后才创建；取消不再留下空工程。创作既可空白开始，也可选择音乐库源工程。\n- 跟练工程支持“分轨伴奏／录音含伴奏”一键切换。已混伴奏录音回听默认不重复叠伴奏；录制时仍可控制伴奏分轨。跟练录制时静音旧尝试，创作保留叠录。\n- 源媒体复制成工程自己的文件，设置、录音和文件均独立。删除歌曲或工程需确认，文件移至回收站，其他独立工程保留。\n- 新流程同时提供中英文与现有主题支持。\n\nBrowsing now preserves playback in the integrated transport. Practice/creation projects have a separate filterable list, confirmed source-based creation, safe Recycle Bin deletion and practice-specific capture/review routing. Cancelling project creation writes nothing.\n\n25 项 Node 测试、静态／翻译／格式检查及生产构建通过；最终程序中的工程列表、筛选、创建／取消、独立源文件、两种跟练路由、回收站删除、中英文、录音、循环和乐谱跟随均通过验收。声卡测试使用模拟输入，真实 USB／AUX 设备延迟仍需试听。\n\nWindows 10/11 x64: `Immerse.Jam.Setup.0.1.5.exe`. Compare the download against `SHA256SUMS-0.1.5.txt`. Private music, recordings and model weights are not bundled. Original source remains under PolyForm Noncommercial 1.0.0; third-party licenses remain unchanged.\n",
+    "prerelease": false,
+    "draft": false,
+    "assets": [
+      {
+        "name": "Immerse.Jam.Setup.0.1.5.exe",
+        "size": 141047342,
+        "browser_download_url": "https://github.com/Kreeli/immerse-jam/releases/download/v0.1.5/Immerse.Jam.Setup.0.1.5.exe"
+      },
+      {
+        "name": "SHA256SUMS-0.1.5.txt",
+        "size": 94,
+        "browser_download_url": "https://github.com/Kreeli/immerse-jam/releases/download/v0.1.5/SHA256SUMS-0.1.5.txt"
+      }
+    ]
+  },
+  {
+    "tag_name": "v0.1.4",
+    "name": "Immerse Jam 0.1.4 — Practice & Recording",
+    "published_at": "2026-10-28T22:15:01Z",
+    "html_url": "https://github.com/Kreeli/immerse-jam/releases/tag/v0.1.4",
+    "body": "# Immerse Jam 0.1.4\n\nWindows 本地练琴与多轨录音更新 / Local practice and multitrack recording.\n\n- 恢复跟随实际节拍的智能节拍器，增加音量控制；预备拍吸附最近节拍，和播放共用时钟。\n- 新增输入／输出／声道选择，支持纯乐器输入和声卡已混伴奏两种录制方式，无软件麦克风返听。\n- 录音库保存多次尝试，练习最多挂载两条；创作可从空工程开始多轨叠录、导入和混音导出。\n- 跟拍测延迟、设备组合记忆、逐轨开始位置和偏移；保留原始录音，并处理变速／移调后的时间映射。\n- 录音实时波形、电平、自动保存和中断恢复。完整项目导出保留录音库。\n- 简体中文／English，暗色／浅色／跟随系统及四种强调色。\n- 按曲库、播放、录音、和弦、乐谱等职责整理代码，增加架构、项目格式和开发文档。\n- 修复模型结果切换时可能复用错误音频缓存、批量录音导入报错及预备拍起录相关问题。\n\nThe release adds selectable recording devices/channels, instrument-only or hardware-mixed capture, an unlimited take library with two mounted practice takes, multitrack creation, latency estimation/correction, beat-aware count-in/metronome, bilingual appearance settings and a reorganized source tree.\n\n## Download / 下载\n\n`Immerse.Jam.Setup.0.1.4.exe` is for Windows 10/11 x64. Compare it against the accompanying SHA-256 file. The installer is unsigned. Your existing local library is separate from the installer.\n\nAudio tools download automatically when first needed. AI separation/analysis requires the private environment and selected models to be prepared in Settings & models. Neither model weights nor personal media are bundled.\n\n## Validation and limits / 验证与边界\n\n24 Node tests, 6 Python tests, static checks and production build passed. Packaged-program checks cover recording/import, metronome timing, calibration, language/theme, waveform/multi-model switching, chord editing/following, score playback and local transfers. Detailed evidence is in `docs/VALIDATION.md`.\n\nFollow-along calibration includes human timing bias; it is not a pure hardware latency measurement. Physical effects-unit USB/AUX routing and the best correction value require your own listening check. Cross-carrier WebRTC may fail without relay service. Native Android remains future work.\n\nOriginal source is **PolyForm Noncommercial 1.0.0**, a noncommercial source-available license. Third-party components/models retain their original terms; see LICENSE and `docs/LICENSING.md`.\n",
+    "prerelease": false,
+    "draft": false,
+    "assets": [
+      {
+        "name": "Immerse.Jam.Setup.0.1.4.exe",
+        "size": 141039932,
+        "browser_download_url": "https://github.com/Kreeli/immerse-jam/releases/download/v0.1.4/Immerse.Jam.Setup.0.1.4.exe"
+      },
+      {
+        "name": "SHA256SUMS-0.1.4.txt",
+        "size": 94,
+        "browser_download_url": "https://github.com/Kreeli/immerse-jam/releases/download/v0.1.4/SHA256SUMS-0.1.4.txt"
+      }
+    ]
+  }
+]

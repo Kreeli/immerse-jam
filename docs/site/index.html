@@ -63,9 +63,15 @@
             demo。
           </p>
           <div class="hero-actions">
-            <a class="button" href="download/windows/index.html"
+            <a
+              class="button"
+              data-download-kind="windows"
+              href="https://github.com/Kreeli/immerse-jam/releases/download/v0.1.10/Immerse.Jam.Setup.0.1.10.exe"
               >下载 Windows 版 <span aria-hidden="true">↓</span></a
-            ><a class="button ghost" href="download/android/index.html"
+            ><a
+              class="button ghost"
+              data-download-kind="android-arm64"
+              href="https://github.com/Kreeli/immerse-jam/releases/download/v0.1.10/Immerse-Jam-Android-0.1.0-preview.2-arm64.apk"
               >下载 Android 版 <span aria-hidden="true">↓</span></a
             ><a class="text-link" href="#stems">先听听分轨效果 →</a>
           </div>
@@ -554,8 +560,18 @@
               <li>手机端不做本机分轨和识别，分析在电脑上一次完成</li>
             </ul>
             <div class="android-actions">
-              <a class="button" href="download/android/index.html">下载 Android 版（arm64）</a>
-              <a class="text-link" href="download/android-x64/index.html">模拟器用 x86_64 包 →</a>
+              <a
+                class="button"
+                data-download-kind="android-arm64"
+                href="https://github.com/Kreeli/immerse-jam/releases/download/v0.1.10/Immerse-Jam-Android-0.1.0-preview.2-arm64.apk"
+                >下载 Android 版（arm64）</a
+              >
+              <a
+                class="text-link"
+                data-download-kind="android-x64"
+                href="https://github.com/Kreeli/immerse-jam/releases/download/v0.1.10/Immerse-Jam-Android-0.1.0-preview.2-x86_64.apk"
+                >模拟器用 x86_64 包 →</a
+              >
               <p class="tiny-note">
                 Android 目前是 0.1.0
                 预览版，覆盖播放、跟练、创作与导出，功能还在陆续补齐。升级或卸载前记得先导出重要项目。
@@ -736,7 +752,11 @@
           全部功能免费。点击下载直接拿安装包，不用登录 GitHub。<br />本站会自动指向最新版本。
         </p>
         <div class="download-cards">
-          <a class="download-card" href="download/windows/index.html">
+          <a
+            class="download-card"
+            data-download-kind="windows"
+            href="https://github.com/Kreeli/immerse-jam/releases/download/v0.1.10/Immerse.Jam.Setup.0.1.10.exe"
+          >
             <span class="download-platform">Windows 10 / 11 x64</span>
             <strong>下载 Windows 版</strong>
             <span class="download-meta"
@@ -745,7 +765,11 @@
             >
             <span class="download-go">获取安装包 ↓</span>
           </a>
-          <a class="download-card" href="download/android/index.html">
+          <a
+            class="download-card"
+            data-download-kind="android-arm64"
+            href="https://github.com/Kreeli/immerse-jam/releases/download/v0.1.10/Immerse-Jam-Android-0.1.0-preview.2-arm64.apk"
+          >
             <span class="download-platform">Android 8.0+ · arm64</span>
             <strong>下载 Android 版</strong>
             <span class="download-meta"
@@ -753,7 +777,11 @@
             >
             <span class="download-go">获取 APK ↓</span>
           </a>
-          <a class="download-card secondary" href="download/android-x64/index.html">
+          <a
+            class="download-card secondary"
+            data-download-kind="android-x64"
+            href="https://github.com/Kreeli/immerse-jam/releases/download/v0.1.10/Immerse-Jam-Android-0.1.0-preview.2-x86_64.apk"
+          >
             <span class="download-platform">Android · x86_64</span>
             <strong>模拟器专用包</strong>
             <span class="download-meta">真机请用上面的 arm64 包</span>
