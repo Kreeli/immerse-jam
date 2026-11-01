@@ -1,5 +1,9 @@
 # Immerse Jam 开发说明与交接
 
+## 当前发布状态
+
+用户本轮验收后明确批准发布，v0.1.10（Windows 0.1.10 / Android 0.1.0-preview.2，versionCode 2）已公开：https://github.com/Kreeli/immerse-jam/releases/tag/v0.1.10 。代码提交 c4530c050342c70d7d31209e1cdb092871a57f9a；附件含 Windows 安装包、两种 ABI 的原调试签名 APK 与 SHA256 清单。以下“未发布”均为历史检查记录，不再代表当前状态。发布安装包在 release/publish-v0.1.10，原本地测试入口保留。
+
 最新小调整：Android/Windows 共用节拍提示音峰值从 0.16 调至 0.4（约 +8 dB），同时作用于节拍器、预备拍、延迟测试及其试听；原音量滑块和工程设置保留。未发布 Release。
 
 ## 最新：波形手势、平滑显示与桌面解码预算
