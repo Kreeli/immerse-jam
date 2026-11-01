@@ -1,18 +1,21 @@
 import type { Player } from '../../audio/Player';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { wavePainter } from './WavePainter';
+import { drawWaveMarkers, waveMarkers } from './WaveMarkers';
 import { fixedEnvelope } from '../../audio/envelope';
 import { t as tr } from '../../i18n';
-import { time } from '../../shared/types';
+import { time, type Bookmark } from '../../shared/types';
 import { themeColor } from '../../styles/palette';
+const noMarks: Bookmark[] = [];
 export default function Waveform({
   peaks,
   player,
   position,
   duration,
   windowSeconds,
-  a,
-  b,
+  a = null,
+  b = null,
+  marks = noMarks,
   source,
   onSeek,
   onScrubStart,
@@ -31,8 +34,9 @@ export default function Waveform({
   position: number;
   duration: number;
   windowSeconds: number;
-  a: number | null;
-  b: number | null;
+  a?: number | null;
+  b?: number | null;
+  marks?: Bookmark[];
   source: string;
   onSeek: (seconds: number) => void;
   onScrubStart: () => void;
@@ -129,8 +133,8 @@ export default function Waveform({
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
-  const latest = useRef({ position, duration, a, b, active, windowSeconds });
-  latest.current = { position, duration, a, b, active, windowSeconds };
+  const latest = useRef({ position, duration, a, b, marks, active, windowSeconds });
+  latest.current = { position, duration, a, b, marks, active, windowSeconds };
   useEffect(() => {
     const element = canvas.current;
     if (!element || !waveCanvas.current || !size.width || !size.height) return;
@@ -151,6 +155,7 @@ export default function Waveform({
         '#51425d',
         '#f48da8',
         '#ed96af',
+        '#111114',
       ].map((c) => [c, themeColor(c)]),
     );
     const painter = wavePainter(
@@ -166,11 +171,22 @@ export default function Waveform({
     const center = (height - 30) / 2;
     let last = '',
       frame = 0;
+    let previousMarks: Bookmark[] | undefined,
+      markerWindow = 0,
+      markers: ReturnType<typeof waveMarkers> = [],
+      markerRevision = 0;
     const paint = () => {
       const state = latest.current;
       const windowSeconds = state.windowSeconds;
+      if (state.marks !== previousMarks || markerWindow !== windowSeconds) {
+        ctx.font = '12px "Segoe UI",sans-serif';
+        markers = waveMarkers(ctx, state.marks, width, windowSeconds);
+        previousMarks = state.marks;
+        markerWindow = windowSeconds;
+        markerRevision++;
+      }
       const at = player ? player.displayPosition() : state.position;
-      const stamp = `${at}|${state.a}|${state.b}|${state.duration}|${windowSeconds}`;
+      const stamp = `${at}|${state.a}|${state.b}|${state.duration}|${windowSeconds}|${markerRevision}`;
       if (state.active && stamp !== last) {
         last = stamp;
         const start = at - windowSeconds / 2,
@@ -215,11 +231,27 @@ export default function Waveform({
         }
         ctx.fillStyle = colors['#f48da8'];
         ctx.fillRect(width / 2 - 1, 8, 2, height - 38);
+        drawWaveMarkers(
+          ctx,
+          markers,
+          start,
+          windowSeconds,
+          width,
+          height,
+          { normal: colors['#ed96af'], active: colors['#f48da8'], background: colors['#111114'] },
+          state.a,
+          state.b,
+        );
         for (const [value, label] of [
           [state.a, tr('开始')],
           [state.b, tr('结束')],
         ] as const)
-          if (value !== null && value >= start && value <= end) {
+          if (
+            value !== null &&
+            value >= start &&
+            value <= end &&
+            !markers.some((marker) => Math.abs(marker.seconds - value) < 0.001)
+          ) {
             const x = xAt(value);
             ctx.fillStyle = colors['#ed96af'];
             ctx.fillRect(x, 8, 1, height - 38);
@@ -276,6 +308,7 @@ export default function Waveform({
         data-source={source}
         data-peak-max={scale.max}
         data-peak-count={peaks.length}
+        data-marker-count={marks.length}
         tabIndex={0}
         onPointerDown={(event) => {
           if (disabled || event.button !== 0) return;

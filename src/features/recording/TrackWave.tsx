@@ -2,13 +2,16 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Player } from '../../audio/Player';
 import type { LiveEnvelope } from '../../audio/live-envelope';
 import { t as tr } from '../../i18n';
-import type { SourceGroup } from '../../shared/types';
+import type { Bookmark, SourceGroup } from '../../shared/types';
 import Waveform from '../player/Waveform';
 export interface TimelineProps {
   player: Player;
   position: number;
   duration: number;
   windowSeconds: number;
+  marks?: Bookmark[];
+  a?: number | null;
+  b?: number | null;
   onWindow?: (seconds: number) => void;
   active?: boolean;
   recording: boolean;
@@ -31,8 +34,6 @@ export function LiveWave({ live, ...timeline }: TimelineProps & { live: LiveEnve
       amplitudeScale={0.5}
       preserveBins
       source="live-recording"
-      a={null}
-      b={null}
       disabled
       label={tr('实时录音波形')}
     />
@@ -78,8 +79,6 @@ export default function TrackWave({
         peakDuration={region.duration}
         peakOrigin={region.origin}
         source={source}
-        a={null}
-        b={null}
         disabled={timeline.recording}
         label={tr('音轨波形')}
       />

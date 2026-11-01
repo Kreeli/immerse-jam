@@ -1,5 +1,29 @@
 # Immerse Jam 开发说明与交接
 
+## 2026-11-02：安装迁移错误修复
+
+用户新 Setup 报“环境准备尚未完成”，真实日志在复制旧曲库后退出。原因是 Roaming 旧曲库存在一个只有 assets、从一开始就没有 project.json 的 UUID 残留目录；旧完整性检查错误地要求这类目录也生成 project.json，导致每次重试失败。现在只要求源目录原本存在的主清单必须复制完成；残留目录及其文件照常保留并记录供恢复。升级安装另外从注册表保留之前的数据根路径传给准备程序，避免程序目录被安装器替换后丢失 installation.json 而误回退 Roaming。准备失败的具体堆栈现在会写 installation.log。
+
+对应两项安装/迁移检查通过，含残留目录内容保全与有效项目复制。修复版完整包位于 `release/install-repair/Immerse Jam Setup 0.1.10.exe`。当前失败安装目录的 exe/asar 已按新构建更新并核对哈希，旧文件备份在 `.runtime/installation-repair-backup-20261102`，私人曲库及模型未删除。用户重试后，真实安装日志确认 2026-11-02 02:36:54（Asia/Macau）准备成功，选中 Demucs 六轨 + Beat This!、CUDA 模式；此次只核验已有模型，没有重新下载。安装配置已恢复，修复前后的 16 份既有项目主清单核验保持原样。
+
+## 2026-11-02：安装加速与自有资源源
+
+用户要求保全未来可能停更的模型，并优先利用本地缓存。已从 `.runtime/models` 核验并复制七种模型的全部权重/配置到 `release/model-backup-2026-11-02`，约 2.2 GiB，含来源/大小/SHA 清单，未重下模型。公开镜像只发布已明确 MIT 的 Beat This! 与 uv 原 wheel：`resources-v1` 已作为独立预发布资源公开，非最新应用版本；v0.1.10 应用附件未替换。部分分轨权重的公开再分发声明不明确，保留完整本地归档及原上游下载，详见 `docs/DOWNLOAD_RESOURCES.md`。
+
+Setup 新增 `resources/vendor` 的 uv 与 Beat This!（固定哈希和授权文本），当前约 227 MB，安装免下载这两项。`installer-assets.cjs` 支持包内/指定离线目录复用；`downloadSources` 镜像失败/校验不符回退上游，所有镜像使用相同固定 SHA。普通 Python 依赖探测 PyPI/清华响应并在安装失败时回退官方；PyTorch CPU/CUDA 索引仍官方，未做完整离线运行库包。打包只读本地缓存，不附带私人音乐，也未重新安装私人环境。针对性资源/下载测试通过，含校验失败不接纳、离线复制和镜像恢复，打包内容核验通过。应用仍待用户验收后再发新版。
+
+工作区本轮期间发现另有网站下载相关脚本/清单改动（如 `scripts/prepare-website-downloads.cjs`、`docs/site/download/releases.json`），不是本轮资源功能所写，请保留并与另一个会话协调，不要清理或覆盖。
+
+## 2026-11-02：当前未发布验收改动
+
+原 `Start-Immerse-Jam.cmd` 无法启动是 `release/win-unpacked` 缺少 ICU、资源包等必需文件；目录残缺来自上次在运行目录中打包中断，并非官网提交修改了应用。已恢复完整程序，并用本轮构建更新原入口、保留 `.runtime/data`。`scripts/package.cjs` 改为独立 `release/build-staging` 构建成功后才交换完整目录，检测正在运行的程序，失败保留旧目录；启动脚本也检查必需文件并提供可见错误。
+
+Android/Windows 共用 `WaveMarkers.ts`，将保存的书签、循环段落接入总波形、跟练录音、创作分组/子轨及实时录音波形。点标记为竖线；段落为一对向内短钩括线；顶部时间和备注按宽度省略，标签排布固定在歌曲坐标，平移不重排。不改跳转手势或音频调度。已同签名覆盖平板，真实已有三标记工程可见，无增删私人标记。
+
+Windows 安装准备增加独立进度窗口（`desktop/setup-progress*`），显示步骤、当前文件、百分比、已收大小和速率；未知进度显示活动条，校验阶段不虚构百分比；静默安装保持静默。应用内模型下载也增加数字/速度。此前用户等待的旧安装实际仍在缓慢下载 Beat This!，最后日志确认 2026-11-01 17:59:41 UTC 准备完成，未终止重启其下载。
+
+网页另按用户明确要求已公开：提交 `13d5ccea632d0e1133a29d97c42e1de3247b161f`，用作者排练版 BLU-SWING《Fabulous》替换 Lamp 商业录音。去头 5 秒，取其后 60 秒，用本地默认六轨模型分离；原录音+六轨共约 8.4 MB MP3，新增原始/分轨对比，移除当前站点旧 MP3，未改 Git 历史。Pages 部署成功。应用本轮未发 Release，仍待用户验收；具体检查与验收入口见 `docs/REVIEW-2026-11-02.md`。
+
 ## 当前发布状态
 
 用户本轮验收后明确批准发布，v0.1.10（Windows 0.1.10 / Android 0.1.0-preview.2，versionCode 2）已公开：https://github.com/Kreeli/immerse-jam/releases/tag/v0.1.10 。代码提交 c4530c050342c70d7d31209e1cdb092871a57f9a；附件含 Windows 安装包、两种 ABI 的原调试签名 APK 与 SHA256 清单。以下“未发布”均为历史检查记录，不再代表当前状态。发布安装包在 release/publish-v0.1.10，原本地测试入口保留。

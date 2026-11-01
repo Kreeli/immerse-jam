@@ -49,7 +49,10 @@ export default function ModelManager({
                     value={state.progress ?? undefined}
                   />
                   <span className="model-download-message">
+                    {state.progress !== undefined && `${Math.round(state.progress * 100)}% · `}
                     {translateMessage(state.message || '') || tr('正在准备下载…')}
+                    {state.bytesPerSecond !== undefined &&
+                      ` · ${(state.bytesPerSecond / 1048576).toFixed(1)} MiB/s`}
                   </span>
                 </>
               )}

@@ -7,6 +7,10 @@ export interface ModelDownload {
   status: 'progress' | 'complete' | 'error';
   message?: string;
   progress?: number;
+  file?: string;
+  received?: number;
+  total?: number;
+  bytesPerSecond?: number;
 }
 export interface Track {
   id: string;
@@ -230,6 +234,10 @@ export interface JamEvent {
   type: string;
   message?: string;
   progress?: number;
+  file?: string;
+  received?: number;
+  total?: number;
+  bytesPerSecond?: number;
   jobId?: string;
   projectId?: string;
   operation?: string;

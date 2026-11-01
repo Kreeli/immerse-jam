@@ -4,6 +4,7 @@
 
 !ifndef BUILD_UNINSTALLER
   Var IJData
+  Var IJPreviousData
   Var IJDrive
   Var IJMode
   Var IJModels
@@ -60,6 +61,7 @@
   StrCpy $IJSelected0 ${BST_CHECKED}
   StrCpy $IJSelected5 ${BST_CHECKED}
   ReadRegStr $IJData HKCU "Software\ImmerseJam" "DataRoot"
+  StrCpy $IJPreviousData $IJData
   ReadRegStr $0 HKCU "Software\ImmerseJam" "ProgramRoot"
   ${If} $0 != ""
     StrCpy $INSTDIR $0
@@ -246,7 +248,10 @@
 !macro customInstall
   DetailPrint "$(IJPreparing)"
   ijPrepareAgain:
-  nsExec::ExecToLog /TIMEOUT=3600000 '"$INSTDIR\${APP_EXECUTABLE_FILENAME}" --prepare-installation "--data-root=$IJData" "--install-root=$INSTDIR" --runtime-mode=$IJMode "--models=$IJModels" --allow-system-drive=$IJAllowC'
+  StrCpy $1 ""
+  IfSilent 0 +2
+    StrCpy $1 "--setup-silent"
+  nsExec::ExecToLog /TIMEOUT=3600000 '"$INSTDIR\${APP_EXECUTABLE_FILENAME}" --prepare-installation "--data-root=$IJData" "--install-root=$INSTDIR" "--legacy-root=$IJPreviousData" --runtime-mode=$IJMode "--models=$IJModels" --allow-system-drive=$IJAllowC $1'
   Pop $0
   ${If} $0 != "0"
     MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "$(IJFailed)" IDRETRY ijPrepareAgain

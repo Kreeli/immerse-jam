@@ -285,6 +285,10 @@ export function useWorkspace() {
             message: e.message,
 
             progress: e.progress,
+            file: e.file,
+            received: e.received,
+            total: e.total,
+            bytesPerSecond: e.bytesPerSecond,
           },
         }));
 

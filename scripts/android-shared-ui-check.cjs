@@ -10,6 +10,10 @@ p.tracks[1].mute = true;
 p.analysis.tempoMethod = 'beat-this';
 p.analysis.tempoReviewed = true;
 p.practice.metronome = false;
+p.bookmarks = [
+  { id: 'point', start: 1, title: '这里是很长很长的排练备注需要省略以免占满波形区域' },
+  { id: 'range', start: 2, end: 4, title: '副歌' },
+];
 p.takes = [-0.123456789, 0.23456789].map((start, i) => {
   const id = require('node:crypto').randomUUID(),
     file = `recordings/${id}/audio.wav`;
@@ -168,6 +172,17 @@ let browser;
     },
     { project: p, models },
   );
+  await page.addInitScript(() => {
+    window.__markerLabels = [];
+    const fillText = CanvasRenderingContext2D.prototype.fillText;
+    CanvasRenderingContext2D.prototype.fillText = function (text, ...args) {
+      if (String(text).includes(' · ')) {
+        window.__markerLabels.push(String(text));
+        if (window.__markerLabels.length > 200) window.__markerLabels.splice(0, 100);
+      }
+      return fillText.call(this, text, ...args);
+    };
+  });
   await page.goto('http://127.0.0.1:' + server.address().port);
   await page.locator('.mobile-project-open').waitFor();
   assert.equal(await page.locator('.mobile-chrome, .sidebar, .practice-guide').count(), 0);
@@ -194,6 +209,27 @@ let browser;
   await page.getByRole('button', { name: '关闭窗口', exact: true }).click();
   await page.locator('.mobile-project-open').click();
   await page.waitForFunction(() => !document.querySelector('.play-main').disabled);
+  await page.waitForFunction(
+    () =>
+      window.__markerLabels.some((label) => label.includes('00:02') && label.includes('副歌')) &&
+      window.__markerLabels.some((label) => label.includes('00:04') && label.includes('副歌')),
+  );
+  assert.ok(
+    await page.evaluate(() => window.__markerLabels.some((label) => label.includes('…'))),
+    'long marker notes are shortened',
+  );
+  assert.deepEqual(
+    await page
+      .locator('.practice-wave-comparison .waveform')
+      .evaluateAll((nodes) => nodes.map((n) => Number(n.dataset.markerCount))),
+    [2, 2, 2],
+  );
+  await page.getByRole('button', { name: '添加标记点', exact: true }).click();
+  await page.waitForFunction(() =>
+    [...document.querySelectorAll('.practice-wave-comparison .waveform')].every(
+      (n) => Number(n.dataset.markerCount) === 3,
+    ),
+  );
   assert.equal(await page.getByRole('button', { name: '开始分析', exact: true }).count(), 0);
   await page.evaluate(async () => {
     const context = window.__context;

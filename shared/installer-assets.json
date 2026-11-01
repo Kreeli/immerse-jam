@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "release": "resources-v1",
+  "baseUrl": "https://github.com/Kreeli/immerse-jam/releases/download/resources-v1/",
+  "assets": [
+    {
+      "id": "uv",
+      "file": "uv.exe",
+      "cached": "tools/uv.exe",
+      "sha256": "81ea623608f8c17720c62efd0a380a8ead380c4d365ba6968e9d279a2319c674",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "id": "beat-this",
+      "file": "models/beat-this/final0.ckpt",
+      "cached": "models/beat-this/final0.ckpt",
+      "asset": "beat-this-final0.ckpt",
+      "sha256": "8c328b45f59d8dd3dff219253ff6a8d6482be57d0133a29140e2febbf8eb8331",
+      "url": "https://cloud.cp.jku.at/public.php/dav/files/7ik4RrBKTS273gp/final0.ckpt",
+      "license": "MIT"
+    },
+    {
+      "id": "uv-wheel",
+      "file": "uv-0.13.6-py3-none-win_amd64.whl",
+      "cached": "tools/uv.whl",
+      "asset": "uv-0.13.6-py3-none-win_amd64.whl",
+      "sha256": "7c9bc35ccb65932d8dc10a0669f9c805eaa3c9827ce18ecbecb1bd67944b2cdf",
+      "url": "https://files.pythonhosted.org/packages/7c/9d/714523188aea3054644d8e69ae8089aac70325a3cee2d3d05509d4f23398/uv-0.13.6-py3-none-win_amd64.whl",
+      "license": "MIT OR Apache-2.0"
+    }
+  ]
+}

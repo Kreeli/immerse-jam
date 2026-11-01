@@ -58,6 +58,7 @@ async function prepare(input, services = {}) {
   fs.writeFileSync(probe, '');
   fs.unlinkSync(probe);
   const log = (event) => {
+    services.onEvent?.(event);
     if (event.message) {
       const text = event.message.replace(/\x1b\[[0-9;]*m/g, '');
       console.log(text);
@@ -67,10 +68,18 @@ async function prepare(input, services = {}) {
       );
     }
   };
+  const total = input.models.length + 4;
+  const stage = (index, name, modelName) =>
+    log({ type: 'progress', stage: { index, total, name, modelName } });
+  stage(0, 'data');
   log({ message: 'Data: ' + dataRoot });
+  const sameDataFolder =
+    input.legacyRoot &&
+    fs.existsSync(input.legacyRoot) &&
+    !path.relative(fs.realpathSync(input.legacyRoot), fs.realpathSync(dataRoot));
   if (
     input.legacyRoot &&
-    path.resolve(input.legacyRoot) !== dataRoot &&
+    !sameDataFolder &&
     !fs.existsSync(path.join(dataRoot, 'legacy-imported.json'))
   ) {
     const source = path.resolve(input.legacyRoot);
@@ -94,10 +103,15 @@ async function prepare(input, services = {}) {
       }
       // Environments contain absolute interpreter paths; rebuild them at the destination.
       for (const id of fs.readdirSync(path.join(source, 'library', 'projects'))) {
-        if (
-          /^[a-f0-9-]{36}$/.test(id) &&
-          !fs.existsSync(path.join(dataRoot, 'library', 'projects', id, 'project.json'))
-        )
+        if (!/^[a-f0-9-]{36}$/.test(id)) continue;
+        const sourceManifest = path.join(source, 'library', 'projects', id, 'project.json');
+        if (!fs.existsSync(sourceManifest)) {
+          log({
+            message: 'Preserved an already-incomplete legacy project folder for recovery: ' + id,
+          });
+          continue;
+        }
+        if (!fs.existsSync(path.join(dataRoot, 'library', 'projects', id, 'project.json')))
           throw new Error('旧曲库复制不完整，安装位置配置保持原样');
       }
       const oldModels = path.join(source, 'runtime', 'models');
@@ -114,6 +128,7 @@ async function prepare(input, services = {}) {
     }
   }
   let mode = input.mode;
+  stage(1, 'runtime');
   if (mode === 'auto') {
     try {
       await promisify(execFile)('nvidia-smi', ['--query-gpu=name', '--format=csv,noheader'], {
@@ -140,13 +155,16 @@ async function prepare(input, services = {}) {
       await ensureRuntime(runtime, mode, log);
     }
   }
+  stage(2, 'audio');
   await (services.audio || ensureAudioTools)(runtime, log);
   const models = services.models || new Models(runtime);
-  for (const id of input.models) {
+  for (const [index, id] of input.models.entries()) {
     if (!modelChoices.includes(id) || !catalog.some((model) => model.id === id))
       throw new Error('安装组件选择无效');
+    stage(index + 3, 'model', catalog.find((model) => model.id === id).name);
     await models.ensure(id, log);
   }
+  stage(total - 1, 'finish');
   fs.mkdirSync(path.join(dataRoot, 'library'), { recursive: true });
   fs.mkdirSync(path.join(dataRoot, 'profile'), { recursive: true });
   const result = {
@@ -158,6 +176,7 @@ async function prepare(input, services = {}) {
   };
   atomicJson(path.join(installRoot, 'installation.json'), result);
   log({ message: 'Installation preparation complete' });
+  log({ type: 'complete', stage: { index: total, total, name: 'complete' }, progress: 1 });
   return result;
 }
 async function run(argv) {

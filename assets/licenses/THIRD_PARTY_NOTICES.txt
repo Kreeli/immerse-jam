@@ -177,7 +177,7 @@ Beat This! 1.1.0: backend/vendor/beat_this/LICENSE (MIT)
 Beat This! source: https://github.com/CPJKU/beat_this
 Beat This! pinned PyPI source and checksum: backend/vendor/beat_this/SOURCE.json
 Audio-separator, PyTorch and Python dependencies: installed with their package license files at first use.
-Model weights: downloaded separately; see each model's source and license in model catalog.
+Model weights: Beat This! final0 is bundled with Windows under MIT; other weights are downloaded separately. See the model catalog for sources and terms.
 
 alphaTab 1.8.4 source: https://github.com/CoderLine/alphaTab/tree/022a45c8e42370f9e12e68949d11eada370da83d
 SoundTouchJS 2.1.1 source: https://github.com/cutterbl/SoundTouchJS/tree/v2.1.1

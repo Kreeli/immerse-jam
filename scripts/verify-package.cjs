@@ -3,7 +3,8 @@ const fs = require('node:fs'),
   assert = require('node:assert/strict'),
   crypto = require('node:crypto'),
   asar = require('@electron/asar');
-const resources = path.resolve('release/win-unpacked/resources'),
+const application = path.resolve(process.argv[2] || 'release/win-unpacked'),
+  resources = path.join(application, 'resources'),
   archive = path.join(resources, 'app.asar');
 const entries = asar
   .listPackage(archive)
@@ -12,7 +13,7 @@ const manifest = JSON.parse(asar.extractFile(archive, 'package.json'));
 assert.equal(manifest.version, require('../package.json').version);
 const resedit = require('resedit'),
   executable = resedit.NtExecutable.from(
-    fs.readFileSync(path.resolve('release/win-unpacked/Immerse Jam.exe')),
+    fs.readFileSync(path.join(application, 'Immerse Jam.exe')),
   ),
   resource = resedit.NtExecutableResource.from(executable);
 const actualIcons = resedit.Resource.IconGroupEntry.fromEntries(
@@ -55,8 +56,19 @@ for (const file of [
   'assets/licenses/THIRD_PARTY_NOTICES.txt',
 ])
   assert.ok(fs.existsSync(path.join(resources, file)), file);
-assert.ok(!fs.existsSync(path.join(resources, 'vendor/uv.exe')));
-const installer = path.resolve('release', `Immerse Jam Setup ${manifest.version}.exe`),
+for (const asset of require('../shared/installer-assets.json').assets.filter((asset) =>
+  ['uv', 'beat-this'].includes(asset.id),
+)) {
+  const file = path.join(resources, 'vendor', asset.file);
+  assert.equal(
+    crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex'),
+    asset.sha256,
+  );
+}
+assert.ok(!fs.existsSync(path.join(resources, 'vendor/ffmpeg.exe')));
+const installer = path.resolve(
+    process.argv[3] || path.join('release', `Immerse Jam Setup ${manifest.version}.exe`),
+  ),
   hash = crypto.createHash('sha256');
 hash.update(fs.readFileSync(installer));
 const sha256 = hash.digest('hex');
@@ -73,7 +85,8 @@ console.log(
       sha256,
       archiveEntries: entries.length,
       privateMedia: false,
-      modelWeights: false,
+      bundledModelWeights: ['beat-this'],
+      bundledUv: true,
       bundledFFmpeg: false,
     },
     null,

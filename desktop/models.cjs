@@ -1,7 +1,8 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { downloadModel: download } = require('./runtime.cjs');
+const { downloadSources } = require('./runtime.cjs');
+const { copyBundled, mirrorUrls } = require('./installer-assets.cjs');
 const { contained, atomicJson } = require('./store.cjs');
 const repo =
   'https://github.com/nomadkaraoke/python-audio-separator/releases/download/model-configs/';
@@ -122,7 +123,7 @@ const catalog = [
   {
     id: 'beat-this',
     name: 'Beat This! · 节拍与 BPM',
-    description: '识别节拍与小节首拍，约 77 MB；首次分析自动下载，支持本机显卡和 CPU。',
+    description: '识别节拍与小节首拍，约 77 MB；首次分析自动准备，支持本机显卡和 CPU。',
     adapter: 'BeatThis',
     file: 'final0.ckpt',
     sha256: '8c328b45f59d8dd3dff219253ff6a8d6482be57d0133a29140e2febbf8eb8331',
@@ -244,14 +245,17 @@ class Models {
       ];
       if (files.some((file) => !validHash(file.sha256)))
         throw new Error('模型文件缺少可信的 SHA-256，无法安装');
-      for (const f of files) {
-        onEvent?.({ type: 'progress', message: `准备 ${m.name}：${f.file}` });
-        await (m.adapter === 'BeatThis' ? require('./runtime.cjs').download : download)(
-          f.url,
-          path.join(dir, f.file),
-          f.sha256,
-          onEvent,
-        );
+      for (const [index, f] of files.entries()) {
+        const report = (event) =>
+          onEvent?.({ ...event, file: f.file, fileIndex: index + 1, fileCount: files.length });
+        report({ type: 'progress', message: `准备 ${m.name}：${f.file}` });
+        const destination = path.join(dir, f.file);
+        if (
+          !fs.existsSync(destination) &&
+          (await copyBundled('models/' + m.id + '/' + f.file, destination, f.sha256, report))
+        )
+          continue;
+        await downloadSources(mirrorUrls(f.sha256, f.url), destination, f.sha256, report);
       }
       atomicJson(path.join(dir, 'verified.json'), {
         downloaded: true,

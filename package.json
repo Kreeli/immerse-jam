@@ -79,6 +79,10 @@
       {
         "from": "assets",
         "to": "assets"
+      },
+      {
+        "from": "release/installer-payload",
+        "to": "vendor"
       }
     ],
     "win": {

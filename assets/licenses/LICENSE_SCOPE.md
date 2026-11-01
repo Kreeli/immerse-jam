@@ -8,12 +8,13 @@ This is **source-available software with a noncommercial restriction**, not an O
 
 ## Third-party components
 
-- `backend/vendor/beat_this/`: CPJKU Beat This! 1.1.0, MIT. Its license and pinned source provenance are included in that directory. Model weights are downloaded separately with a pinned checksum.
+- `backend/vendor/beat_this/`: CPJKU Beat This! 1.1.0, MIT. Its license and pinned source provenance are included in that directory. The Windows installer includes the pinned `final0.ckpt` weights under MIT; its license is also included beside the bundled resources. Upstream explicitly applies MIT to both code and published weights: <https://github.com/CPJKU/beat_this#license>.
 - `backend/vendor/scnet/`: retains its included MIT license. This code is not relicensed under PolyForm.
 - alphaTab 1.8.4 and SoundTouchJS 2.1.1: MPL-2.0. They are used without source modifications. Their covered source files remain available under MPL-2.0, including its commercial-use permissions; the noncommercial restriction on Immerse Jam does not apply to those files.
 - React, Tone MIDI, QRCode, compression/transfer libraries and other dependencies: retain their package licenses and notices. See `assets/licenses/THIRD_PARTY_NOTICES.txt` and the adjacent license texts.
 - Electron, Python, PyTorch and other separately installed runtime components: retain their upstream licenses. Python package licenses are installed with the packages in the app's private runtime.
-- Model weights: downloaded separately from the catalog's upstream URLs. Each model's own terms apply. No permission over someone else's model weights is granted by Immerse Jam's license.
+- Model weights: except for the MIT Beat This! model bundled with Windows, weights are downloaded separately from the catalog's upstream URLs. Each model's own terms apply. No permission over someone else's model weights is granted by Immerse Jam's license. The local preservation backup does not assign or expand a redistribution license.
+- The Windows installer also includes uv 0.13.6, retaining its MIT and Apache-2.0 license texts in `resources/vendor/licenses/`.
 
 Android builds embed the designated UVR and converted Beat This! models listed in `platforms/android/model-catalog.json`; see that platform's third-party notices and bundled license texts. The Beat This! conversion uses the same pinned final0 weights as Windows.
 

@@ -2,6 +2,22 @@ const path = require('node:path');
 const { app } = require('electron');
 if (process.argv.includes('--prepare-installation')) {
   app.disableHardwareAcceleration();
+  let failureRoot;
+  const failed = (error) => {
+    const detail = error.stack || error.message || String(error);
+    console.error(detail);
+    if (failureRoot) {
+      try {
+        require('node:fs').appendFileSync(
+          path.join(failureRoot, 'installation.log'),
+          new Date().toISOString() + ' ERROR ' + detail + '\n',
+        );
+      } catch {
+        /* Preserve the original error even if the log folder is unavailable. */
+      }
+    }
+    app.exit(1);
+  };
   try {
     const setup = require('./installation.cjs'),
       input = setup.options(process.argv),
@@ -12,6 +28,7 @@ if (process.argv.includes('--prepare-installation')) {
       input.allowSystemDrive,
     );
     const fs = require('node:fs');
+    failureRoot = dataRoot;
     for (const name of ['setup-profile', 'logs', 'crashes'])
       fs.mkdirSync(path.join(dataRoot, name), { recursive: true });
     app.setPath('userData', path.join(dataRoot, 'setup-profile'));
@@ -20,24 +37,26 @@ if (process.argv.includes('--prepare-installation')) {
     app.setPath('crashDumps', path.join(dataRoot, 'crashes'));
     app
       .whenReady()
-      .then(() =>
-        setup.prepare({
-          ...input,
-          legacyRoot:
-            input.legacyRoot ||
-            (require('node:fs').existsSync(path.join(input.installRoot, 'installation.json'))
-              ? undefined
-              : legacyRoot),
-        }),
-      )
+      .then(async () => {
+        const progress = process.argv.includes('--setup-silent')
+          ? undefined
+          : await require('./setup-progress.cjs').open(app);
+        return setup.prepare(
+          {
+            ...input,
+            legacyRoot:
+              input.legacyRoot ||
+              (require('node:fs').existsSync(path.join(input.installRoot, 'installation.json'))
+                ? undefined
+                : legacyRoot),
+          },
+          { onEvent: (event) => progress?.send(event) },
+        );
+      })
       .then(() => app.exit(0))
-      .catch((error) => {
-        console.error(error.message);
-        app.exit(1);
-      });
+      .catch(failed);
   } catch (error) {
-    console.error(error.message);
-    app.exit(1);
+    failed(error);
   }
 } else {
   const installRoot = path.dirname(process.execPath);

@@ -76,6 +76,7 @@ test('installation validates locations, commits only after dependencies and mode
   assert.throws(() => validateRoot(path.join(app, 'data'), app, true));
   assert.throws(() => options(['--runtime-mode=unknown']));
   const calls = [],
+    events = [],
     input = {
       dataRoot: data,
       installRoot: app,
@@ -84,8 +85,10 @@ test('installation validates locations, commits only after dependencies and mode
       allowSystemDrive: true,
     },
     services = {
-      runtime: async (root, mode) => {
+      onEvent: (event) => events.push(event),
+      runtime: async (root, mode, report) => {
         calls.push(['runtime', root, mode]);
+        report({ type: 'progress', progress: 0.25, message: 'test download' });
       },
       audio: async (root) => calls.push(['audio', root]),
       models: { ensure: async (id) => calls.push(['model', id]) },
@@ -102,7 +105,15 @@ test('installation validates locations, commits only after dependencies and mode
     /offline/,
   );
   assert.ok(!fs.existsSync(path.join(app, 'installation.json')));
+  assert.ok(!events.some((event) => event.type === 'complete'));
+  events.length = 0;
   const result = await prepare(input, services);
+  assert.equal(events.find((event) => event.message === 'test download').progress, 0.25);
+  assert.deepEqual(
+    events.filter((event) => event.stage).map((event) => event.stage.name),
+    ['data', 'runtime', 'audio', 'model', 'finish', 'complete'],
+  );
+  assert.equal(events.at(-1).progress, 1);
   assert.equal(result.dataRoot, data);
   assert.equal(result.runtimeMode, 'cpu');
   assert.deepEqual(calls.at(-1), ['model', 'beat-this']);
@@ -119,4 +130,40 @@ test('installation validates locations, commits only after dependencies and mode
     if (old === undefined) delete process.env[key];
     else process.env[key] = old;
   }
+});
+
+test('same-folder upgrade works after the installer removes its old program configuration', async () => {
+  const area = fs.mkdtempSync(path.resolve('.runtime/upgrade-unit-')),
+    app = path.join(area, 'app'),
+    data = path.join(area, 'existing-data'),
+    project = path.join(data, 'library/projects/12345678-1234-1234-1234-123456789abc/project.json');
+  fs.mkdirSync(app);
+  fs.mkdirSync(path.dirname(project), { recursive: true });
+  fs.mkdirSync(path.join(data, 'profile'), { recursive: true });
+  const original = '{"title":"existing user project"}';
+  fs.writeFileSync(project, original);
+  fs.writeFileSync(path.join(data, 'profile/Preferences'), 'existing preferences');
+  const input = options([
+    '--data-root=' + data,
+    '--install-root=' + app,
+    '--legacy-root=' + data,
+    '--runtime-mode=cpu',
+    '--models=',
+  ]);
+  input.allowSystemDrive = true;
+  const events = [];
+  assert.ok(!fs.existsSync(path.join(app, 'installation.json')));
+  await prepare(input, {
+    runtime: async () => {},
+    audio: async () => {},
+    models: { ensure: async () => {} },
+    onEvent: (event) => events.push(event),
+  });
+  assert.equal(fs.readFileSync(project, 'utf8'), original);
+  assert.equal(
+    fs.readFileSync(path.join(data, 'profile/Preferences'), 'utf8'),
+    'existing preferences',
+  );
+  assert.ok(!events.some((event) => event.message?.startsWith('Copying existing')));
+  assert.equal(JSON.parse(fs.readFileSync(path.join(app, 'installation.json'))).dataRoot, data);
 });

@@ -180,6 +180,10 @@ test('reinstall migration follows the last custom data folder and retains config
   fs.mkdirSync(app);
   fs.mkdirSync(old);
   fs.cpSync(store.projects, path.join(old, 'library/projects'), { recursive: true });
+  const incomplete = require('node:crypto').randomUUID();
+  const retained = path.join(old, 'library/projects', incomplete, 'assets', 'recovery.bin');
+  fs.mkdirSync(path.dirname(retained), { recursive: true });
+  fs.writeFileSync(retained, 'unfinished legacy import must be retained');
   atomicJson(path.join(app, 'installation.json'), { schemaVersion: 1, dataRoot: old });
   const input = {
     dataRoot: next,
@@ -195,6 +199,15 @@ test('reinstall migration follows the last custom data folder and retains config
   });
   assert.ok(fs.existsSync(path.join(next, 'library/projects', p.id, 'project.json')));
   assert.ok(fs.existsSync(path.join(old, 'library/projects', p.id, 'project.json')));
+  assert.equal(
+    fs.readFileSync(
+      path.join(next, 'library/projects', incomplete, 'assets', 'recovery.bin'),
+      'utf8',
+    ),
+    'unfinished legacy import must be retained',
+  );
+  assert.ok(fs.existsSync(retained), 'source remains available for recovery');
+  assert.ok(fs.existsSync(path.join(next, 'legacy-imported.json')));
 });
 
 test('corrupt or inconsistent download range state is rejected for a clean restart', () => {

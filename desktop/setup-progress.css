@@ -1,0 +1,123 @@
+:root {
+  color-scheme: dark;
+  font:
+    14px 'Segoe UI',
+    'Microsoft YaHei UI',
+    sans-serif;
+  color: #eeeef3;
+  background: #151519;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  padding: 26px 32px;
+  user-select: none;
+}
+header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  color: #b7a7c0;
+}
+.pulse {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #e96b86;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+h1 {
+  font-size: 23px;
+  margin: 15px 0 24px;
+  font-weight: 600;
+}
+.step-heading,
+.file-heading,
+.transfer {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+}
+#stage,
+#file {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#steps,
+.transfer {
+  color: #aaa1b2;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+#steps,
+#percent {
+  flex: none;
+}
+progress {
+  display: block;
+  width: 100%;
+  height: 5px;
+  border: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 11px 0;
+  accent-color: #e96b86;
+}
+progress::-webkit-progress-bar {
+  background: #302b36;
+  border-radius: 8px;
+}
+progress::-webkit-progress-value {
+  background: #e96b86;
+  border-radius: 8px;
+  transition: width 0.2s ease;
+}
+progress:not([value]) {
+  background: #302b36;
+}
+progress:not([value])::-webkit-progress-bar {
+  background: linear-gradient(90deg, #302b36 15%, #e96b86 50%, #302b36 85%);
+  background-size: 200% 100%;
+  animation: sweep 1.5s linear infinite;
+}
+section {
+  margin-top: 24px;
+}
+#message {
+  margin: 14px 0;
+  font-size: 12px;
+  line-height: 1.5;
+  height: 36px;
+  color: #aaa1b2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+footer {
+  border-top: 1px solid #302b36;
+  padding-top: 14px;
+  font-size: 12px;
+  color: #858590;
+}
+@keyframes pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+@keyframes sweep {
+  to {
+    background-position: -200% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

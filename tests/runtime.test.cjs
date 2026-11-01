@@ -6,6 +6,36 @@ const http = require('node:http');
 const crypto = require('node:crypto');
 const { downloadModel } = require('../desktop/runtime.cjs');
 
+test('download reports received bytes and a verified completion even for a fast small file', async (t) => {
+  const root = path.resolve('.runtime/test-workspaces');
+  fs.mkdirSync(root, { recursive: true });
+  const directory = fs.mkdtempSync(path.join(root, 'download-progress-'));
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  const body = Buffer.alloc(256 * 1024, 97),
+    events = [];
+  const server = http.createServer((_request, response) => {
+    response.writeHead(200, { 'Content-Length': body.length });
+    response.end(body);
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => {
+    server.closeAllConnections();
+    server.close();
+  });
+  await require('../desktop/runtime.cjs').download(
+    `http://127.0.0.1:${server.address().port}/model`,
+    path.join(directory, 'model.bin'),
+    crypto.createHash('sha256').update(body).digest('hex'),
+    (event) => events.push(event),
+  );
+  assert.equal(events[0].progress, 0);
+  assert.ok(events.some((event) => event.phase === 'verify' && event.progress === undefined));
+  assert.equal(events.at(-1).progress, 1);
+  assert.equal(events.at(-1).received, body.length);
+  assert.equal(events.at(-1).total, body.length);
+  assert.equal(events.at(-1).file, 'model.bin');
+});
+
 test(
   'a failed model range leaves the other ranges resumable without closing their file early',
   { timeout: 30000 },

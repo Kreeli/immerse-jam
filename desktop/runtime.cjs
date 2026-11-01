@@ -37,11 +37,42 @@ function run(exe, args, env, onEvent) {
     );
   });
 }
+function downloadProgress(dest, total, initial, onEvent) {
+  const began = Date.now();
+  let last = 0;
+  return (size, phase = 'download', force = false) => {
+    const now = Date.now();
+    if (!force && now - last < 500) return;
+    last = now;
+    onEvent?.({
+      type: 'progress',
+      file: path.basename(dest),
+      phase,
+      received: size,
+      total: total || undefined,
+      bytesPerSecond:
+        phase === 'download'
+          ? Math.max(0, ((size - initial) * 1000) / Math.max(1, now - began))
+          : undefined,
+      progress: phase === 'verify' ? undefined : total ? Math.min(1, size / total) : undefined,
+      message:
+        phase === 'verify'
+          ? '正在校验下载文件…'
+          : `正在下载 ${Math.round(size / 1048576)} MB${total ? ' / ' + Math.round(total / 1048576) + ' MB' : ''}`,
+    });
+  };
+}
 async function download(url, dest, sha256, onEvent) {
   fs.mkdirSync(path.dirname(dest), { recursive: true });
   const part = dest + '.part';
   if (fs.existsSync(dest)) {
     if (!sha256) return dest;
+    downloadProgress(
+      dest,
+      fs.statSync(dest).size,
+      0,
+      onEvent,
+    )(fs.statSync(dest).size, 'verify', true);
     const current = crypto.createHash('sha256');
     for await (const b of fs.createReadStream(dest)) current.update(b);
     if (current.digest('hex') === sha256) return dest;
@@ -66,39 +97,41 @@ async function download(url, dest, sha256, onEvent) {
   const hash = crypto.createHash('sha256');
   if (resume) for await (const b of fs.createReadStream(part)) hash.update(b);
   const fd = fs.openSync(part, resume ? 'a' : 'w');
-  let size = resume ? existing : 0,
-    last = 0;
+  let size = resume ? existing : 0;
   const total = Number(response.headers.get('content-length')) + (resume ? existing : 0);
+  const report = downloadProgress(dest, total, size, onEvent);
+  report(size, 'download', true);
   try {
     for await (const chunk of response.body) {
       fs.writeSync(fd, chunk);
       hash.update(chunk);
       size += chunk.length;
-      if (Date.now() - last > 700) {
-        onEvent?.({
-          type: 'progress',
-          message: `正在下载 ${Math.round(size / 1048576)} MB${total ? ' / ' + Math.round(total / 1048576) + ' MB' : ''}`,
-          progress: total ? size / total : undefined,
-        });
-        last = Date.now();
-      }
+      report(size);
     }
   } finally {
     fs.closeSync(fd);
   }
+  report(size, 'verify', true);
   if (sha256 && hash.digest('hex') !== sha256) {
     fs.unlinkSync(part);
     throw new Error('下载文件校验失败，请重试');
   }
   fs.renameSync(part, dest);
+  report(size, 'complete', true);
   return dest;
 }
 async function ensureUv(base, onEvent) {
-  const bundled = path.join(process.resourcesPath || root, 'vendor', 'uv.exe');
-  if (fs.existsSync(bundled)) return bundled;
+  const assets = require('./installer-assets.cjs');
   const exe = path.join(base, 'tools', 'uv.exe');
   if (fs.existsSync(exe)) return exe;
-  const wheel = await download(UV.url, path.join(base, 'tools', 'uv.whl'), UV.sha256, onEvent);
+  const pinned = assets.manifest.assets.find((item) => item.id === 'uv');
+  if (await assets.copyBundled(pinned.file, exe, pinned.sha256, onEvent)) return exe;
+  const wheel = await downloadSources(
+    assets.mirrorUrls(UV.sha256, UV.url),
+    path.join(base, 'tools', 'uv.whl'),
+    UV.sha256,
+    onEvent,
+  );
   const Zip = require('adm-zip');
   const zip = new Zip(wheel);
   const entry = zip.getEntries().find((e) => e.entryName.endsWith('/uv.exe'));
@@ -178,7 +211,7 @@ async function ensureRuntime(base, mode = 'cpu', onEvent = () => {}) {
   const backend = fs.existsSync(path.join(root, 'backend'))
     ? path.join(root, 'backend')
     : path.join(process.resourcesPath, 'backend');
-  await run(
+  await require('./package-index.cjs').installPackages(
     uv,
     [
       'pip',
@@ -194,6 +227,7 @@ async function ensureRuntime(base, mode = 'cpu', onEvent = () => {}) {
     ],
     env,
     onEvent,
+    run,
   );
   await run(
     python,
@@ -254,6 +288,9 @@ async function downloadModel(url, dest, sha256, onEvent) {
     atomicJson(stateFile, state);
   }
   const fd = fs.openSync(target, 'r+');
+  const received = () => state.existing + state.ranges.reduce((n, r) => n + r.received, 0);
+  const report = downloadProgress(dest, total, received(), onEvent);
+  report(received(), 'download', true);
   let last = 0;
   try {
     const results = await Promise.allSettled(
@@ -273,15 +310,10 @@ async function downloadModel(url, dest, sha256, onEvent) {
                 throw new Error('下载分块大小错误');
               fs.writeSync(fd, chunk, 0, chunk.length, range.start + range.received);
               range.received += chunk.length;
+              report(received());
               if (Date.now() - last > 1000) {
                 last = Date.now();
                 atomicJson(stateFile, state);
-                const size = state.existing + state.ranges.reduce((n, r) => n + r.received, 0);
-                onEvent?.({
-                  type: 'progress',
-                  message: `正在下载 ${Math.round(size / 1048576)} MB / ${Math.round(total / 1048576)} MB`,
-                  progress: size / total,
-                });
               }
             }
             if (range.start + range.received !== range.end + 1) throw new Error('下载分块不完整');
@@ -300,6 +332,7 @@ async function downloadModel(url, dest, sha256, onEvent) {
     fs.closeSync(fd);
   }
   if (fs.statSync(target).size !== total) throw new Error('下载文件大小错误');
+  report(total, 'verify', true);
   if (sha256) {
     const hash = crypto.createHash('sha256');
     for await (const b of fs.createReadStream(target)) hash.update(b);
@@ -313,9 +346,23 @@ async function downloadModel(url, dest, sha256, onEvent) {
   fs.renameSync(target, dest);
   fs.unlinkSync(stateFile);
   if (fs.existsSync(part)) fs.unlinkSync(part);
+  report(total, 'complete', true);
   return dest;
 }
 module.exports.downloadModel = downloadModel;
+async function downloadSources(urls, dest, sha256, onEvent) {
+  let last;
+  for (const [index, url] of [...new Set(urls)].entries()) {
+    if (index) onEvent?.({ type: 'progress', message: '下载源暂不可用，正在切换备用源…' });
+    try {
+      return await downloadModel(url, dest, sha256, onEvent);
+    } catch (error) {
+      last = error;
+    }
+  }
+  throw last || new Error('没有可用的下载源');
+}
+module.exports.downloadSources = downloadSources;
 function validRanges(state, url, total, size) {
   if (
     !state ||

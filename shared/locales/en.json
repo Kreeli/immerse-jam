@@ -567,7 +567,7 @@
   "吉他手模式第二阶段，约 337 MB。": "Second stage of Guitarist mode, about 337 MB.",
   "公开社区权重，训练来源与分发条件待进一步核实；不随安装包分发": "Public community weights; training sources and redistribution terms need further review; not bundled",
   "Beat This! · 节拍与 BPM": "Beat This! · Beats & BPM",
-  "识别节拍与小节首拍，约 77 MB；首次分析自动下载，支持本机显卡和 CPU。": "Detect beats and downbeats locally, about 77 MB; downloads on first analysis and supports GPU or CPU.",
+  "识别节拍与小节首拍，约 77 MB；首次分析自动准备，支持本机显卡和 CPU。": "Detect beats and downbeats locally, about 77 MB; prepared on first analysis using local resources when available, with GPU or CPU support.",
   "模型清单缺少 file": "Model manifest is missing file",
   "模型片段长度应在 0.25–30 秒之间": "Model chunk size must be 0.25–30 seconds",
   "只支持带清单的 waveform ONNX、SCNet、RoFormer 模型": "Only waveform ONNX, SCNet and RoFormer models with manifests are supported",
@@ -962,5 +962,10 @@
   "拖动波形定位，双指缩放时间窗口；点击倍速调整速度。项目自动保存。": "Drag the waveform to seek, pinch to zoom, and tap the speed to adjust it. Projects save automatically.",
   "拖动波形定位，Ctrl＋滚轮缩放时间窗口。项目自动保存。": "Drag the waveform to seek. Ctrl + wheel zooms the timeline. Projects save automatically.",
   "正在载入音轨 {0}/{1}": "Loading track {0}/{1}",
-  "正在准备波形": "Preparing waveform"
+  "正在准备波形": "Preparing waveform",
+  "正在校验下载文件…": "Verifying downloaded file…",
+  "正在校验本地安装资源…": "Verifying local installation resources…",
+  "已从本地安装资源复制": "Copied from local installation resources",
+  "下载源暂不可用，正在切换备用源…": "Download source unavailable. Switching to a backup…",
+  "镜像安装未完成，正在切回 PyPI 官方源…": "Mirror installation failed. Retrying with official PyPI…"
 }
