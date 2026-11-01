@@ -4,29 +4,75 @@
     "name": "Immerse Jam 0.1.10 - Android Preview 2",
     "published_at": "2026-11-01T15:34:33Z",
     "html_url": "https://github.com/Kreeli/immerse-jam/releases/tag/v0.1.10",
-    "body": "Windows v0.1.10 / Android v0.1.0-preview.2\r\n\r\n- Android 调整为外部分轨播放器与练琴/创作工具，移除本地推理；重构紧凑界面、原生录音和延迟校准，支持项目导入导出及设备互传。\r\n- Android 采用有界磁盘音频窗口与连续采样时钟，减少大工程的内存占用；优化常速跳转、波形绘制与页面切换。\r\n- 两端取消单击波形跳转，仅拖动定位；Android 双指缩放，Windows Ctrl＋滚轮缩放。\r\n- Windows 修正大工程解码预算误判、切歌旧缓存占用，新增加载动画与逐轨状态。\r\n- 优化增量保存、工程恢复、共享与导出；提高节拍器、预备拍和延迟测试提示音约 8 dB。\r\n\r\n已完成针对性构建、界面和音频检查及 Android 实机验收。Android APK 仍使用原调试签名，可覆盖之前的预览版并保留工程。Windows 安装前请正常退出旧程序。\r\n\r\n已知限制：变速/变调跳转仍可能短暂停顿；部分设备或首次打开复杂页面仍可能出现短卡顿。更新期间曾出现一次“文件超出范围”，重新打开后恢复，尚未稳定复现。跨网络互传受网络直连条件影响。\r\n\r\n请下载 Windows 安装程序或适合设备的 APK，SHA256SUMS.txt 用于校验。",
+    "body": "Windows v0.1.10 / Android v0.1.0-preview.2\n\n2026-11-02 修订：本页 Windows 安装包、Android APK 和 SHA256SUMS.txt 已更新，版本号与下载入口保持不变。此前下载过旧包的用户，请重新下载本页附件。源码标签同步到本次修订。\n\n- Windows 修复旧曲库残留目录导致安装反复报错的问题。保留原本不完整的项目目录，继续迁移有效项目；覆盖升级沿用原数据位置，安装异常记录具体原因。\n- Windows 安装增加步骤、下载百分比、大小和速度显示；Setup 内置约 77 MB 的 MIT Beat This! 节拍模型与 uv 工具，减少首次安装的下载。普通 Python 依赖可选择可达镜像并回退官方源，完整 Python/PyTorch 环境仍需联网准备。\n- Windows 和 Android 的总波形、录音及创作音轨显示书签和循环段落：竖线、顶部时间与备注、长文字省略，段落两端带向内短钩。\n- Android 作为外部分轨播放器与练琴/创作工具，提供紧凑界面、原生录音与延迟校准、项目导入导出和设备互传。\n- 优化大工程的内存占用、连续播放、常速定位、波形平滑滚动和页面切换；Windows 增加逐轨加载状态。\n- 两端波形仅拖动定位；Android 双指缩放，Windows Ctrl＋滚轮缩放。提高节拍器、预备拍及延迟测试提示音约 8 dB。\n\n安装检查覆盖首次安装流程、原数据目录升级、切换目录迁移、残留旧目录保全，以及依赖失败时不写入完成配置；本机重试安装成功。已核对内置文件及发布附件校验值，并完成针对性的界面与音频检查。Android 保持原调试签名，可覆盖安装保留工程。Windows 安装前请正常退出应用。\n\n已知限制：变速/变调定位仍可能短暂停顿；部分设备或复杂页面仍可能出现短卡顿。更新期间曾有一次“文件超出范围”，重开后恢复，尚未稳定复现。跨网络互传受网络直连条件影响。\n\n资源备份独立存放于 resources-v1，不是应用新版。请使用 SHA256SUMS.txt 校验下载的安装文件。\r\n",
     "prerelease": false,
     "draft": false,
     "assets": [
       {
         "name": "Immerse-Jam-Android-0.1.0-preview.2-arm64.apk",
-        "size": 11929788,
+        "size": 12517505,
         "browser_download_url": "https://github.com/Kreeli/immerse-jam/releases/download/v0.1.10/Immerse-Jam-Android-0.1.0-preview.2-arm64.apk"
       },
       {
         "name": "Immerse-Jam-Android-0.1.0-preview.2-x86_64.apk",
-        "size": 11929788,
+        "size": 12517505,
         "browser_download_url": "https://github.com/Kreeli/immerse-jam/releases/download/v0.1.10/Immerse-Jam-Android-0.1.0-preview.2-x86_64.apk"
       },
       {
         "name": "Immerse.Jam.Setup.0.1.10.exe",
-        "size": 141340214,
+        "size": 227070474,
         "browser_download_url": "https://github.com/Kreeli/immerse-jam/releases/download/v0.1.10/Immerse.Jam.Setup.0.1.10.exe"
       },
       {
         "name": "SHA256SUMS.txt",
-        "size": 323,
+        "size": 320,
         "browser_download_url": "https://github.com/Kreeli/immerse-jam/releases/download/v0.1.10/SHA256SUMS.txt"
+      }
+    ]
+  },
+  {
+    "tag_name": "resources-v1",
+    "name": "下载资源备份 v1",
+    "published_at": "2026-11-01T18:21:30Z",
+    "html_url": "https://github.com/Kreeli/immerse-jam/releases/tag/resources-v1",
+    "body": "# Immerse Jam 下载资源备份 v1\n\n此版本仅存放安装资源备份，不是应用新版，也不会替换最新应用版本。\n\n- Beat This! final0：原始节拍权重，MIT，SHA-256 固定。\n- uv 0.13.6 Windows x64 wheel：原始环境安装工具包，MIT OR Apache-2.0。\n- 包含上游授权全文、来源 manifest 和 SHA256SUMS.txt。\n\n这些资源不依赖原模型站点持续维护。未放入分轨权重或私人音频；其余现有分轨模型已经完整保存在作者电脑的独立本地归档中。\n\n来源：https://github.com/CPJKU/beat_this 、https://github.com/astral-sh/uv/tree/0.13.6 。下载后的字节必须与附件校验清单一致。\r\n",
+    "prerelease": true,
+    "draft": false,
+    "assets": [
+      {
+        "name": "beat-this-final0.ckpt",
+        "size": 81058141,
+        "browser_download_url": "https://github.com/Kreeli/immerse-jam/releases/download/resources-v1/beat-this-final0.ckpt"
+      },
+      {
+        "name": "BeatThis-MIT.txt",
+        "size": 1113,
+        "browser_download_url": "https://github.com/Kreeli/immerse-jam/releases/download/resources-v1/BeatThis-MIT.txt"
+      },
+      {
+        "name": "manifest.json",
+        "size": 1140,
+        "browser_download_url": "https://github.com/Kreeli/immerse-jam/releases/download/resources-v1/manifest.json"
+      },
+      {
+        "name": "SHA256SUMS.txt",
+        "size": 523,
+        "browser_download_url": "https://github.com/Kreeli/immerse-jam/releases/download/resources-v1/SHA256SUMS.txt"
+      },
+      {
+        "name": "uv-0.13.6-py3-none-win_amd64.whl",
+        "size": 15334118,
+        "browser_download_url": "https://github.com/Kreeli/immerse-jam/releases/download/resources-v1/uv-0.13.6-py3-none-win_amd64.whl"
+      },
+      {
+        "name": "uv-LICENSE-APACHE.txt",
+        "size": 11357,
+        "browser_download_url": "https://github.com/Kreeli/immerse-jam/releases/download/resources-v1/uv-LICENSE-APACHE.txt"
+      },
+      {
+        "name": "uv-LICENSE-MIT.txt",
+        "size": 1077,
+        "browser_download_url": "https://github.com/Kreeli/immerse-jam/releases/download/resources-v1/uv-LICENSE-MIT.txt"
       }
     ]
   },

@@ -98,7 +98,9 @@ p {
   border-radius: 999px;
   font-weight: 600;
   border: 1px solid transparent;
-  transition: background 0.15s ease, transform 0.15s ease;
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease;
 }
 .button:hover {
   background: var(--accent-hover);
@@ -982,7 +984,9 @@ input[type='range']::-moz-range-thumb {
   border-radius: var(--radius);
   padding: 24px;
   color: var(--text);
-  transition: border-color 0.15s ease, transform 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    transform 0.15s ease;
 }
 .download-card:hover {
   border-color: var(--accent);

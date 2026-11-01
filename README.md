@@ -14,7 +14,6 @@ Android 现在专注播放、跟练、创作和导出，不再提供本地分轨
 
 手机播放可切后台或锁屏；录音切后台、被电话或设备切换打断时，会结束并保存已收到的录音。切换耳机后重新校准，先试听校正前后再应用。
 
-
 [English](README.en.md) · [开发交接](DEVELOPMENT_HANDOFF.md) · [开发结构](docs/ARCHITECTURE.md) · [项目格式](docs/DATA_FORMAT.md) · [测试记录](docs/VALIDATION.md)
 
 Windows 10/11 x64 本地分轨、练琴与多轨录音应用。当前版本 **0.1.9**，下载见 [Release](https://github.com/Kreeli/immerse-jam/releases/tag/v0.1.9)。分离、节拍／和弦识别及乐谱对齐在本机运行，无会员和分离次数限制。

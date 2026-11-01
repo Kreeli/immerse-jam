@@ -19,8 +19,19 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  refresh-after-release:
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: Refresh website from the deployment branch
+        run: gh workflow run pages.yml --ref main --repo "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ github.token }}
   deploy:
-    if: github.ref == 'refs/heads/main' || github.event_name == 'release'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'release'
     runs-on: ubuntu-latest
     permissions:
       pages: write
