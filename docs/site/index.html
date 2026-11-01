@@ -1,0 +1,610 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f5f6f2" />
+    <title>Immerse Jam · 把喜欢的歌，练成自己的</title>
+    <meta
+      name="description"
+      content="免费的本地音乐分轨、练琴与多轨录音工具。分离声部、变速移调、循环跟练、录音回听，让喜欢的歌成为你的专属伴奏。"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:title" content="Immerse Jam · 把喜欢的歌，练成自己的" />
+    <meta
+      property="og:description"
+      content="本地分轨，自由跟练，多轨创作。免费使用，无会员与分离次数限制。"
+    />
+    <meta property="og:url" content="https://kreeli.github.io/immerse-jam/" />
+    <meta
+      property="og:image"
+      content="https://kreeli.github.io/immerse-jam/assets/Win_practice.png"
+    />
+    <link rel="canonical" href="https://kreeli.github.io/immerse-jam/" />
+    <link rel="icon" href="assets/app-icon.ico" type="image/x-icon" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">跳到正文</a>
+    <header class="header">
+      <div class="nav wrap">
+        <a class="brand" href="#" aria-label="Immerse Jam 首页"
+          ><img src="assets/app-icon.ico" width="34" height="34" alt="" /><span
+            >Immerse <b>Jam</b><span class="brand-dot">.</span></span
+          ></a
+        >
+        <nav aria-label="主导航">
+          <a href="#guide">如何使用</a><a href="#more">功能一览</a><a href="#limits">使用边界</a
+          ><a href="#faq">常见问题</a>
+        </nav>
+        <div class="nav-actions">
+          <a
+            class="github-link"
+            href="https://github.com/Kreeli/immerse-jam"
+            aria-label="GitHub 源码"
+            ><svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M9 19c-4.3 1.3-4.3-2.2-6-2.7m12 5v-3.4a3 3 0 0 0-.8-2.3c2.7-.3 5.5-1.3 5.5-6A4.7 4.7 0 0 0 18.4 6a4.4 4.4 0 0 0-.1-3.5s-1-.3-3.6 1.3a12.4 12.4 0 0 0-6.5 0C5.7 2.2 4.6 2.5 4.6 2.5A4.4 4.4 0 0 0 4.5 6a4.7 4.7 0 0 0-1.3 3.6c0 4.7 2.8 5.7 5.5 6a3 3 0 0 0-.8 2.3v3.4"
+              /></svg></a
+          ><a class="button small" href="#download">免费下载 <span aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+    </header>
+    <main id="main">
+      <section class="hero wrap" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <div>
+            <p class="eyebrow"><span class="live-dot"></span> YOUR OWN PRACTICE SPACE</p>
+            <h1 id="hero-title">
+              把喜欢的歌，<br />练成<span class="accent-word"
+                >自己的<svg viewBox="0 0 300 18" aria-hidden="true">
+                  <path d="M4 12Q145-2 296 9M25 17Q156 6 270 14" /></svg></span
+              >。
+            </h1>
+          </div>
+          <div class="hero-intro">
+            <p>
+              免费的本地分轨与练琴工具。<br />关掉你要练的声部，让原曲为你伴奏。<br />从第一遍跟练，到属于你的演奏。
+            </p>
+            <div class="hero-actions">
+              <a class="button" href="#download">开始免费练习 <span aria-hidden="true">↗</span></a
+              ><a class="text-link" href="#guide"
+                ><span class="play-icon" aria-hidden="true">▶</span> 看看怎么用</a
+              >
+            </div>
+            <p class="hero-note">本地分轨 · 无会员 · 无分离次数限制</p>
+          </div>
+        </div>
+        <div class="hero-visual">
+          <div class="screen-top">
+            <span><i></i> 你的专属练习室</span><span>WINDOWS · 实际界面</span>
+          </div>
+          <button
+            class="screenshot-button"
+            data-image="assets/Win_practice.png"
+            data-caption="跟练模式：总混音和演奏录音沿同一时间轴显示，右侧可调节各声部、音调与节拍器。"
+            aria-label="放大跟练模式截图"
+          >
+            <img
+              class="hero-shot"
+              src="assets/Win_practice.png"
+              width="1920"
+              height="1022"
+              alt="Immerse Jam 跟练工作台：上下对齐的音乐与录音波形，右侧混音控制台，底部播放和录音按钮"
+              fetchpriority="high"
+            /><span class="zoom-hint">查看完整界面 <span aria-hidden="true">↗</span></span>
+          </button>
+          <div class="visual-caption">
+            <span><span class="caption-line"></span> 一首歌，就是一支随时待命的乐队。</span
+            ><span>01 — PRACTICE</span>
+          </div>
+        </div>
+        <div class="benefits">
+          <div>
+            <span class="benefit-icon">≋</span>
+            <h2>拆出想听的细节</h2>
+            <p>四轨、六轨与专用分离模式<br />人声、鼓、贝斯、吉他，分别掌控。</p>
+          </div>
+          <div>
+            <span class="benefit-icon">↻</span>
+            <h2>按自己的节奏练</h2>
+            <p>变速、移调、段落循环<br />把难点放慢，练熟，再连起来。</p>
+          </div>
+          <div>
+            <span class="benefit-icon">◉</span>
+            <h2>听见每一次进步</h2>
+            <p>录下演奏，对照波形回听<br />从跟练走向多轨叠录与创作。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="guide-section" id="guide" aria-labelledby="guide-title">
+        <div class="wrap">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">START WITH A SONG</p>
+              <h2 id="guide-title">
+                从一首歌开始。<br /><span class="muted-heading">下一步，都很清楚。</span>
+              </h2>
+            </div>
+            <p>无需先学会一套复杂的录音软件。<br />跟着这五步，开始你的第一次练习。</p>
+          </div>
+          <div class="guide-layout">
+            <div class="guide-sidebar">
+              <ol class="steps" aria-label="五步上手导览">
+                <li>
+                  <button class="step active" aria-current="step" data-step="0">
+                    <span class="step-num">01</span
+                    ><span><strong>导入歌曲</strong><small>把喜欢的音乐放进来</small></span
+                    ><span class="step-arrow" aria-hidden="true">↗</span>
+                  </button>
+                </li>
+                <li>
+                  <button class="step" data-step="1">
+                    <span class="step-num">02</span
+                    ><span><strong>开始分析</strong><small>在本机拆出独立声部</small></span
+                    ><span class="step-arrow" aria-hidden="true">↗</span>
+                  </button>
+                </li>
+                <li>
+                  <button class="step" data-step="2">
+                    <span class="step-num">03</span
+                    ><span><strong>关闭练习声部</strong><small>关闭自己要演奏的那一轨</small></span
+                    ><span class="step-arrow" aria-hidden="true">↗</span>
+                  </button>
+                </li>
+                <li>
+                  <button class="step" data-step="3">
+                    <span class="step-num">04</span
+                    ><span><strong>循环慢练</strong><small>设置循环，再调到合适的速度</small></span
+                    ><span class="step-arrow" aria-hidden="true">↗</span>
+                  </button>
+                </li>
+                <li>
+                  <button class="step" data-step="4">
+                    <span class="step-num">05</span
+                    ><span><strong>录音回听</strong><small>对照原曲，回听自己的演奏</small></span
+                    ><span class="step-arrow" aria-hidden="true">↗</span>
+                  </button>
+                </li>
+              </ol>
+              <button class="tour-toggle" id="tour-toggle" aria-pressed="false">
+                <span class="tour-icon" aria-hidden="true">▶</span
+                ><span id="tour-label">自动演示这五步</span>
+              </button>
+              <p class="tour-note">截图导览 · 可随时点击步骤切换</p>
+            </div>
+            <div class="guide-view">
+              <div class="guide-frame">
+                <button
+                  class="screenshot-button guide-image-button"
+                  id="guide-image-button"
+                  data-image="assets/Win_home.png"
+                  data-caption="音乐库：点击右上角「导入音乐」，或直接拖入本地音频。"
+                  aria-label="放大当前步骤截图"
+                >
+                  <img
+                    id="guide-image"
+                    src="assets/Win_home.png"
+                    width="1920"
+                    height="1022"
+                    alt="音乐库右上角的导入音乐按钮"
+                    loading="lazy"
+                  /><span
+                    class="hotspot"
+                    id="guide-hotspot"
+                    style="--x: 94%; --y: 12%"
+                    aria-hidden="true"
+                    >1</span
+                  ><span class="zoom-hint">放大查看 ↗</span>
+                </button>
+              </div>
+              <div class="guide-detail" aria-live="polite" aria-atomic="true">
+                <div>
+                  <span class="step-counter" id="step-counter">01 / 05</span>
+                  <h3 id="guide-heading">拖进来，就从这里开始。</h3>
+                </div>
+                <p id="guide-text">
+                  在「音乐库」点击右上角「导入音乐」，或把本地音频、视频直接拖进窗口。已有 .ijam /
+                  .aum 项目也可以导入。
+                </p>
+              </div>
+              <div class="guide-tip">
+                <span aria-hidden="true">↳</span
+                ><span id="guide-tip">先选一首熟悉的歌，第一次练习更容易找到感觉。</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="creation wrap" id="more" aria-labelledby="creation-title">
+        <div class="creation-copy">
+          <p class="eyebrow">MAKE IT YOURS</p>
+          <h2 id="creation-title">
+            不止跟着弹。<br />也把灵感，<br /><span class="accent">一轨轨留下来。</span>
+          </h2>
+          <p>
+            从原曲开始改编，或者从空白开始创作。<br />加入分轨、导入音频，在播放中叠录新轨，<br />把脑海里的声音慢慢拼成一首歌。
+          </p>
+          <ul class="check-list">
+            <li>多轨叠录，音轨按需展开</li>
+            <li>分组控制伴奏，独立调节音量与声像</li>
+            <li>导出混音 WAV / MP3 或完整 .ijam 工程</li>
+          </ul>
+          <span class="mode-tag">跟练专注打磨 · 创作自由叠录</span>
+        </div>
+        <div class="creation-visual">
+          <div class="section-index">02 — CREATE</div>
+          <button
+            class="screenshot-button"
+            data-image="assets/Win_create.png"
+            data-caption="创作模式：把分轨项目作为分组加入，导入音频或叠录新轨，再混音导出。"
+            aria-label="放大创作模式截图"
+          >
+            <img
+              src="assets/Win_create.png"
+              width="1920"
+              height="1022"
+              alt="创作模式中的分轨项目组、混音录音和添加音频入口"
+              loading="lazy"
+            /><span class="zoom-hint">查看创作工作台 ↗</span>
+          </button>
+          <p class="image-note"><span class="live-dot"></span> 一个人，也能把一首歌慢慢搭起来。</p>
+        </div>
+      </section>
+
+      <section class="details-section">
+        <div class="wrap">
+          <div class="section-head compact">
+            <div>
+              <p class="eyebrow">A LITTLE MORE ROOM</p>
+              <h2>让练习顺手的小事，<br />也都照顾到了。</h2>
+            </div>
+            <p>整理、迁移、读谱、导出。<br />把时间留给音乐。</p>
+          </div>
+          <div class="feature-grid">
+            <article class="feature-card library-card">
+              <div class="card-heading">
+                <span class="card-kicker">KEEP IT ORGANIZED</span><span aria-hidden="true">☆</span>
+              </div>
+              <h3>你的曲库，有条有理。</h3>
+              <p>
+                收藏常练的歌，按分类整理歌曲、跟练与创作。<br />浏览曲库时，底部播放条继续陪着你。
+              </p>
+              <button
+                class="screenshot-button"
+                data-image="assets/Win_star.png"
+                data-caption="分类管理：歌曲与跟练、创作可以放进同一个分类中，各自仍保留独立文件。"
+                aria-label="放大分类管理截图"
+              >
+                <img
+                  src="assets/Win_star.png"
+                  width="1920"
+                  height="1022"
+                  alt="分类文件夹同时收纳歌曲和跟练项目"
+                  loading="lazy"
+                /><span class="zoom-hint">放大查看 ↗</span>
+              </button>
+            </article>
+            <article class="feature-card migration-card">
+              <div class="card-heading">
+                <span class="card-kicker">BRING YOUR MUSIC ALONG</span
+                ><span aria-hidden="true">↗</span>
+              </div>
+              <h3>从 Audio Jam，轻松搬过来。</h3>
+              <p>
+                读取 Windows 本机曲库，或导入 .aum 项目。<br />复制已有内容，保留原文件与原数据库。
+              </p>
+              <button
+                class="screenshot-button"
+                data-image="assets/Win_audiojam.png"
+                data-caption="Audio Jam 迁移：检测本机曲库、选择 AumDb 文件夹，或导入已导出的 .aum 项目。只有云端引用的音频需要先在原应用中下载或导出。"
+                aria-label="放大 Audio Jam 迁移界面"
+              >
+                <img
+                  src="assets/Win_audiojam.png"
+                  width="1920"
+                  height="1022"
+                  alt="Audio Jam 迁移窗口，提供本机曲库检测与 .aum 项目选择"
+                  loading="lazy"
+                /><span class="zoom-hint">放大查看 ↗</span>
+              </button>
+            </article>
+          </div>
+          <div class="small-features">
+            <article>
+              <span class="line-icon" aria-hidden="true">♯</span>
+              <div>
+                <h3>和弦与乐谱，跟着音乐走</h3>
+                <p>和弦谱编辑，Guitar Pro、MusicXML、MIDI 导入与播放对齐。复杂曲目可手动修正。</p>
+              </div>
+            </article>
+            <article>
+              <span class="line-icon" aria-hidden="true">↓</span>
+              <div>
+                <h3>声音与工程，都能带走</h3>
+                <p>导出原曲、独立分轨、当前混音，或用完整 .ijam 工程保留录音、谱面和练习设置。</p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="transfer wrap" aria-labelledby="transfer-title">
+        <div class="transfer-copy">
+          <p class="eyebrow">PRACTICE BEYOND YOUR DESK</p>
+          <h2 id="transfer-title">电脑准备好。<br />换个地方，接着练。</h2>
+          <p>
+            在 Windows 完成分轨，再把项目带到手机或平板。<br />同一 Wi-Fi /
+            热点扫码互传，也可以导出完整 .ijam 文件。
+          </p>
+          <a
+            class="text-link"
+            href="https://github.com/Kreeli/immerse-jam/blob/main/docs/ANDROID.md"
+            >了解 Android 预览版 <span aria-hidden="true">↗</span></a
+          >
+        </div>
+        <div
+          class="transfer-diagram"
+          role="img"
+          aria-label="Windows 电脑完成分析，经同一 Wi-Fi 传送完整项目，Android 手机或平板接收后跟练"
+        >
+          <div class="device desktop-device">
+            <div class="device-screen">
+              <div class="mini-window"><span></span><span></span><span></span></div>
+              <div class="mini-tracks"><i></i><i></i><i></i><i></i></div>
+              <span class="device-label">WINDOWS</span>
+            </div>
+            <div class="device-stand"></div>
+          </div>
+          <div class="transfer-path">
+            <span class="transfer-packet"></span><span class="wifi-label">同一 Wi-Fi</span
+            ><span class="transfer-direction" aria-hidden="true">→</span
+            ><span class="file-label">.ijam</span>
+          </div>
+          <div class="device tablet-device">
+            <div class="device-screen">
+              <span class="mini-note">♫</span>
+              <div class="mini-wave"></div>
+              <div class="mini-transport"><span>▶</span><i></i><span>↻</span></div>
+              <span class="device-label">ANDROID 预览版</span>
+            </div>
+          </div>
+        </div>
+        <p class="transfer-footnote">
+          手机端专注播放、跟练、创作与导出，不提供也不计划提供本机推理，项目也不提供服务器云计算。互传是项目复制，不会自动合并多设备编辑。
+        </p>
+      </section>
+
+      <section class="honesty-section" id="limits" aria-labelledby="limits-title">
+        <div class="wrap">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">AN HONEST NOTE</p>
+              <h2 id="limits-title">喜欢音乐，<br />也把边界说清楚。</h2>
+            </div>
+            <p>这是一款在持续打磨的免费工具。<br />有用的地方尽力做好，做不到的地方坦诚说明。</p>
+          </div>
+          <div class="honesty-grid">
+            <article>
+              <span class="honesty-number">01 / 录音与延迟</span>
+              <h3>校准请戴耳机。<br />外放 + 内置麦克风不适用。</h3>
+              <p>
+                外放的节拍与伴奏会被麦克风再次收进来，产生回声与串音，让延迟估计失真。请使用耳机，并让输入只接收你的演奏或跟拍；声卡的
+                AUX / Loopback 也不要混入校准点击声。
+              </p>
+              <p>
+                跟拍估计包含人的反应误差，不是声卡纯硬件延迟。先试听，再应用；录音仍不齐时，可对单条录音做时间微调。微调只能调整对齐，不能消除已经录进去的回声，也不会降低实际监听延迟。
+              </p>
+            </article>
+            <article>
+              <span class="honesty-number">02 / 自动识别</span>
+              <h3>识别给你起点，<br />最后还要相信耳朵。</h3>
+              <p>
+                复杂和弦、强混响、密集编曲、弱起、自由速度与变拍，都可能让和弦或节拍识别不好用。自动识别结果可能需要修改，甚至不适合直接采用。
+              </p>
+              <p>
+                可以手动修正和弦、小节、BPM
+                与同步点。分轨也可能残留其他乐器的声音，不保证无损、完全干净，或对每首歌都有同样效果。
+              </p>
+            </article>
+            <article>
+              <span class="honesty-number">03 / 移动端与计算</span>
+              <h3>电脑负责分析。<br />手机专注把音乐练好。</h3>
+              <p>
+                手机端不会推出本机分轨、节拍识别或自动对齐推理，也不考虑通过服务器提供云计算。分轨与分析交给
+                Windows 本机，手机接收完整项目，或导入已有伴奏与分轨来使用。
+              </p>
+              <p>
+                移动端仍在迭代，不承诺与桌面端功能完全一致。旧预览包中的移动推理描述是历史能力，不代表后续产品方向。
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="faq-section" id="faq">
+        <div class="wrap faq-layout">
+          <div>
+            <p class="eyebrow">GOOD TO KNOW</p>
+            <h2>开始之前，<br />你可能想知道。</h2>
+            <a class="text-link" href="https://github.com/Kreeli/immerse-jam/issues"
+              >还有问题？聊聊你的想法 ↗</a
+            >
+          </div>
+          <div class="faq-list">
+            <details>
+              <summary>延迟估计和录音微调，怎样用才靠谱？<span aria-hidden="true">+</span></summary>
+              <p>
+                请戴耳机，不要用外放 +
+                设备内置麦克风做跟拍延迟估计。外放声音会再次进入麦克风，形成回声和串音；通过 AUX /
+                Loopback
+                回送的点击声也会影响结果。先听四拍，再跟八拍发出短促扫弦或拍手声，输入应只接收你的跟拍。
+              </p>
+              <p>
+                估计值包含音频路径延迟与人的跟拍偏差，不是硬件测量值。录音偏晚填正数，偏早填负数；先试听校正前后再应用，并按输入
+                /
+                输出组合保存。更换耳机、声卡或路由后重新校准；对已录内容可用单条录音的「时间微调」修正开始时间与偏移。微调不能去掉回声，也不能修好整段忽快忽慢的演奏。
+              </p>
+            </details>
+            <details>
+              <summary>真的免费吗？有没有次数限制？<span aria-hidden="true">+</span></summary>
+              <p>
+                免费使用，没有会员或分离次数限制，也不需要购买云端计算额度。侧栏支持作者为自愿打赏，不影响功能。原创代码采用
+                PolyForm Noncommercial
+                1.0.0，允许协议范围内的非商业使用；商业用途请联系作者。第三方组件与模型遵循各自许可。
+              </p>
+            </details>
+            <details>
+              <summary>
+                需要什么电脑？必须有 NVIDIA 显卡吗？<span aria-hidden="true">+</span>
+              </summary>
+              <p>
+                Windows 10 / 11 x64。支持 CPU 与 NVIDIA 运行方式，没有 NVIDIA
+                显卡也可以使用，处理速度取决于硬件和模型。安装向导会准备运行环境与所选模型，无需自己安装
+                Python 或 Node.js。首次准备需要联网并预留数 GB 空间，完成后可离线处理。
+              </p>
+            </details>
+            <details>
+              <summary>歌曲会上传到服务器吗？<span aria-hidden="true">+</span></summary>
+              <p>
+                Windows
+                的分离、节拍／和弦识别与乐谱对齐在本机运行，曲库、分轨和录音保存在你的数据目录。只有你主动分享项目时，才会进行设备间传输。首次下载运行库与模型需要网络。
+              </p>
+            </details>
+            <details>
+              <summary>练吉他、贝斯或唱歌，应该怎么设置？<span aria-hidden="true">+</span></summary>
+              <p>
+                分析后新建跟练，在右侧控制台关闭要练的声部，保留其他伴奏。点两次循环按钮设置起止，调低速度后练习；需要时独立调整音调。准备录音时选好输入、输出与声道，先做一次短录音确认声音。应用不将麦克风直接返送扬声器，可使用声卡或效果器直接监听。
+              </p>
+            </details>
+            <details>
+              <summary>
+                「只录乐器」和「声卡已混音」怎么选？<span aria-hidden="true">+</span>
+              </summary>
+              <p>
+                输入只有乐器时选「只录乐器」，内部伴奏不会混进录音。如果声卡／效果器已经把伴奏和乐器混合输出，选「声卡已混音」，避免回听时叠加两遍伴奏。切换耳机或设备后可重新校准；跟拍测延迟包含人的跟拍偏差，不是纯硬件延迟。
+              </p>
+            </details>
+            <details>
+              <summary>
+                Android 能用吗？和 Windows 有什么区别？<span aria-hidden="true">+</span>
+              </summary>
+              <p>
+                已有 Android
+                手机／平板预览包。手机端定位是播放、跟练、创作和导出，不提供也不计划提供本机推理，包括分轨、节拍识别与自动对齐；也不考虑提供服务器云计算。请在
+                Windows 本机完成分析，再通过完整 .ijam
+                项目或局域网互传到移动设备，也可导入已有伴奏与分轨。
+              </p>
+              <p>
+                网站截图来自
+                Windows，移动端仍在迭代，不代表已覆盖全部功能。旧版预览包曾包含移动推理，相关历史说明不代表后续方向。下载时请核对对应
+                APK 的版本说明，升级或卸载前先导出重要项目。
+              </p>
+            </details>
+            <details>
+              <summary>
+                设备互传等于云同步吗？跨网一定能连接吗？<span aria-hidden="true">+</span>
+              </summary>
+              <p>
+                互传是项目复制，不是云端自动同步，不会自动合并不同设备的编辑。建议先用同一 Wi-Fi /
+                热点传输；远程直连受
+                NAT、运营商与网络条件影响，不能保证跨网连接成功，也没有保证可达的 TURN
+                中转。连不上时，可以改用局域网或手动传递完整 .ijam 文件。
+              </p>
+            </details>
+            <details>
+              <summary>
+                它能替代专业录音软件吗？什么设备都能录吗？<span aria-hidden="true">+</span>
+              </summary>
+              <p>
+                Immerse Jam 主要服务分轨跟练和轻量多轨创作，不承诺替代完整的专业
+                DAW。录音与监听效果取决于设备、驱动和连接方式；尤其是蓝牙、USB
+                声卡、效果器及手机组合，需要按实际设备验证，不能承诺所有组合都稳定或低延迟。开始长时间录制前，先做一次短录音并回听确认。
+              </p>
+            </details>
+            <details>
+              <summary>分轨、节拍和自动对齐会完全准确吗？<span aria-hidden="true">+</span></summary>
+              <p>
+                效果取决于歌曲、混音与所选模型，可能存在残留或串音。复杂和弦、自由速度、弱起与变拍曲目可能需要手动修正。不同模型的分离结果独立保存，可以切换比较，选择更适合这首歌的结果。
+              </p>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <section class="community wrap" aria-labelledby="community-title">
+        <div>
+          <p class="eyebrow">BUILT TOGETHER, FOR MUSIC</p>
+          <h2 id="community-title">让这间练习室，<br />在大家手里慢慢变好。</h2>
+          <p>
+            欢迎开发者与音乐爱好者一起建设社区。<br />不必会写代码：一次真实的设备测试、一份清楚的问题反馈、<br />一条练习流程建议，都能让它变得更好用。
+          </p>
+        </div>
+        <div class="community-invite">
+          <h3>带着你的经验来。</h3>
+          <ul>
+            <li><b>音乐爱好者</b><span>分享练习方法、操作疑问与真实使用体验。</span></li>
+            <li><b>设备使用者</b><span>反馈系统、声卡 / 耳机型号、连接方式与复现步骤。</span></li>
+            <li><b>开发者</b><span>参与问题讨论、界面改进、文档与代码贡献。</span></li>
+          </ul>
+          <a class="button" href="https://github.com/Kreeli/immerse-jam/issues"
+            >参与 GitHub 社区 <span aria-hidden="true">↗</span></a
+          >
+          <p>
+            提问时请勿附带私人录音、配对码或无权分享的完整歌曲。代码贡献请先阅读仓库的贡献指南与许可。
+          </p>
+        </div>
+      </section>
+
+      <section class="download wrap" id="download" aria-labelledby="download-title">
+        <div class="download-art" aria-hidden="true">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i
+          ><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        </div>
+        <p class="eyebrow">LESS SETUP. MORE MUSIC.</p>
+        <h2 id="download-title">下一首，<br />就练你最喜欢的那首。</h2>
+        <p>免费的本地分轨与练习空间。<br />打开 Immerse Jam，让音乐继续。</p>
+        <div class="download-actions">
+          <a class="button light" href="https://github.com/Kreeli/immerse-jam/releases/latest"
+            >前往 GitHub 免费下载 <span aria-hidden="true">↗</span></a
+          ><a class="download-secondary" href="https://github.com/Kreeli/immerse-jam">查看源码 ↗</a>
+        </div>
+        <p class="download-note">
+          Windows 10 / 11 x64 · Android 预览版<br />安装包、APK 与对应版本说明均在 Releases 页面。
+        </p>
+      </section>
+    </main>
+    <footer class="footer wrap">
+      <a class="brand" href="#"
+        ><img src="assets/app-icon.ico" width="28" height="28" alt="" /><span
+          >Immerse <b>Jam</b><span class="brand-dot">.</span></span
+        ></a
+      >
+      <p>Made for the love of music. <span>by Kreeli</span></p>
+      <div>
+        <a href="https://github.com/Kreeli/immerse-jam/blob/main/LICENSE">使用许可</a
+        ><a href="https://github.com/Kreeli/immerse-jam/issues">反馈</a
+        ><a href="#main">回到顶部 ↑</a>
+      </div>
+    </footer>
+    <dialog id="image-dialog" aria-labelledby="image-caption">
+      <div class="dialog-toolbar">
+        <span>IMMERSE JAM · 界面预览</span
+        ><button id="close-dialog" aria-label="关闭图片预览">
+          关闭 <span aria-hidden="true">×</span>
+        </button>
+      </div>
+      <div class="dialog-image-wrap"><img id="dialog-image" alt="" /></div>
+      <p id="image-caption"></p>
+    </dialog>
+    <noscript
+      ><p class="noscript-note">
+        开启 JavaScript 可切换截图导览和放大图片；下载、介绍与常见问题仍可直接使用。
+      </p></noscript
+    >
+  </body>
+</html>

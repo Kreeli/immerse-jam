@@ -1,5 +1,9 @@
 # Immerse Jam
 
+**[应用介绍与图文上手 →](https://kreeli.github.io/immerse-jam/)** · [免费下载](https://github.com/Kreeli/immerse-jam/releases/latest)
+
+免费的本地音乐分轨、练琴与多轨录音工具。拆开声部，关闭自己要练的那一轨；变速、循环、录音回听，把喜欢的歌练成自己的。无会员与分离次数限制。
+
 [English](README.en.md) · [开发交接](DEVELOPMENT_HANDOFF.md) · [开发结构](docs/ARCHITECTURE.md) · [项目格式](docs/DATA_FORMAT.md) · [测试记录](docs/VALIDATION.md)
 
 Windows 10/11 x64 本地分轨、练琴与多轨录音应用。当前版本 **0.1.9**，下载见 [Release](https://github.com/Kreeli/immerse-jam/releases/tag/v0.1.9)。分离、节拍／和弦识别及乐谱对齐在本机运行，无会员和分离次数限制。
