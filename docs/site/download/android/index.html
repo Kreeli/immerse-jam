@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>正在准备 Android（arm64）安装包下载 · Immerse Jam</title>
+    <link rel="icon" href="../../assets/app-icon.ico" type="image/x-icon" />
+    <link rel="stylesheet" href="../download.css" />
+  </head>
+  <body>
+    <main class="redirect-body">
+      <div class="redirect-card">
+        <div class="spinner" aria-hidden="true"></div>
+        <h1>正在准备 Android（arm64）安装包下载…</h1>
+        <p>浏览器应该马上会弹出下载。如果没弹出来，用下面的链接手动下载。</p>
+        <a id="manual-link" class="manual-link" href="https://github.com/Kreeli/immerse-jam/releases/latest"
+          >没反应？点这里手动下载</a
+        >
+        <p id="status" class="status" role="status"></p>
+        <p class="redirect-foot">
+          这个页面只是下载接口，装完就关掉。历史版本在
+          <a href="https://github.com/Kreeli/immerse-jam/releases">GitHub Releases</a>。
+        </p>
+        <noscript>
+          <div class="noscript-note">
+            这台浏览器禁用了 JavaScript，自动跳转不可用。请手动下载：
+            <a href="https://github.com/Kreeli/immerse-jam/releases/latest">GitHub Releases 最新版本页</a
+            >，到页面里挑带 arm64 的 .apk 即可。
+          </div>
+        </noscript>
+      </div>
+    </main>
+
+    <script src="../release.js"></script>
+    <script>
+      (function () {
+        'use strict';
+        var KIND = 'android-arm64';
+        var RF = window.ReleaseFinder;
+        var manual = document.getElementById('manual-link');
+        var status = document.getElementById('status');
+        function fail() {
+          status.textContent = '自动跳转失败，点击上方链接继续。';
+          status.className = 'status error';
+        }
+        if (!RF) {
+          fail();
+          return;
+        }
+        RF.fetchReleases().then(function (releases) {
+          var found = RF.findAsset(releases, KIND);
+          if (!found || !found.asset || !found.asset.browser_download_url) {
+            fail();
+            return;
+          }
+          // 先把手动链接换成真正的资产地址，再触发下载
+          manual.href = found.asset.browser_download_url;
+          window.location.replace(found.asset.browser_download_url);
+        }, fail);
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>下载中心 · Immerse Jam</title>
+    <meta
+      name="description"
+      content="Immerse Jam 下载中心。Windows 安装包和 Android 安装包都从 GitHub Releases 直接下载，本页自动指向最新版本。"
+    />
+    <link rel="icon" href="../assets/app-icon.ico" type="image/x-icon" />
+    <link rel="stylesheet" href="download.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="wrap">
+        <a class="brand" href="../index.html" aria-label="Immerse Jam 官网首页"
+          ><img src="../assets/app-icon.ico" width="30" height="30" alt="" /><span
+            >Immerse <b>Jam</b><span class="brand-dot">.</span></span
+          ></a
+        >
+        <a class="top-link" href="../index.html">← 返回官网</a>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <div class="page-head">
+        <p class="eyebrow"><span class="live-dot"></span> DOWNLOAD</p>
+        <h1>下载中心</h1>
+        <p>
+          三个包都从 GitHub Releases 直接下载，不经过 GitHub 网页。版本更新后本页会自动指向最新的安装包，地址不用换。
+        </p>
+      </div>
+
+      <noscript>
+        <div class="noscript-note">
+          这台浏览器禁用了 JavaScript，取不到版本信息。下面三个下载按钮会先指向
+          <a href="https://github.com/Kreeli/immerse-jam/releases/latest">GitHub Releases 最新版本页</a
+          >，到页面里挑对应的安装包即可；旧版本在
+          <a href="https://github.com/Kreeli/immerse-jam/releases">Releases 列表</a>。
+        </div>
+      </noscript>
+
+      <section class="cards" aria-label="下载选项">
+        <article class="card" data-kind="windows">
+          <span class="rec-tag">按你的系统推荐</span>
+          <p class="card-kicker">WINDOWS · X64</p>
+          <h2>Windows 安装包</h2>
+          <p>Windows 10 / 11，64 位。下载 .exe 后双击运行安装程序，装完从开始菜单启动。</p>
+          <dl class="meta">
+            <div>
+              <dt>版本</dt>
+              <dd class="card-version">见 Releases 页面</dd>
+            </div>
+            <div>
+              <dt>发布日期</dt>
+              <dd class="card-date">—</dd>
+            </div>
+            <div>
+              <dt>体积</dt>
+              <dd class="card-size">—</dd>
+            </div>
+          </dl>
+          <div class="card-actions">
+            <a
+              class="button download-btn"
+              href="https://github.com/Kreeli/immerse-jam/releases/latest"
+              >下载 Windows 安装包</a
+            >
+            <a class="shasum" href="#" hidden>SHA-256 校验值</a>
+          </div>
+        </article>
+
+        <article class="card" data-kind="android-arm64">
+          <span class="rec-tag">按你的系统推荐</span>
+          <p class="card-kicker">ANDROID · ARM64</p>
+          <h2>Android 安装包（arm64）</h2>
+          <p>现在的安卓手机基本都是 arm64，真机装这个。安装前要在系统里允许安装未知来源应用。</p>
+          <dl class="meta">
+            <div>
+              <dt>版本</dt>
+              <dd class="card-version">见 Releases 页面</dd>
+            </div>
+            <div>
+              <dt>发布日期</dt>
+              <dd class="card-date">—</dd>
+            </div>
+            <div>
+              <dt>体积</dt>
+              <dd class="card-size">—</dd>
+            </div>
+          </dl>
+          <div class="card-actions">
+            <a
+              class="button download-btn"
+              href="https://github.com/Kreeli/immerse-jam/releases/latest"
+              >下载 Android（arm64）安装包</a
+            >
+            <a class="shasum" href="#" hidden>SHA-256 校验值</a>
+          </div>
+        </article>
+
+        <article class="card" data-kind="android-x64">
+          <span class="rec-tag">按你的系统推荐</span>
+          <p class="card-kicker">ANDROID · X86_64</p>
+          <h2>Android 安装包（x86_64）</h2>
+          <p>给 x86_64 安卓模拟器用的包，比如跑在 Windows 上的部分模拟器。真机一般不用装这个。</p>
+          <dl class="meta">
+            <div>
+              <dt>版本</dt>
+              <dd class="card-version">见 Releases 页面</dd>
+            </div>
+            <div>
+              <dt>发布日期</dt>
+              <dd class="card-date">—</dd>
+            </div>
+            <div>
+              <dt>体积</dt>
+              <dd class="card-size">—</dd>
+            </div>
+          </dl>
+          <div class="card-actions">
+            <a
+              class="button download-btn"
+              href="https://github.com/Kreeli/immerse-jam/releases/latest"
+              >下载 Android（x86_64）安装包</a
+            >
+            <a class="shasum" href="#" hidden>SHA-256 校验值</a>
+          </div>
+        </article>
+      </section>
+
+      <div class="foot-note">
+        <p id="data-note">版本信息来自 GitHub Releases。</p>
+        <p>
+          想装旧版本，去
+          <a href="https://github.com/Kreeli/immerse-jam/releases">GitHub Releases 页面</a>
+          挑，每个版本的安装包和 SHA-256 校验值都在里面。
+        </p>
+      </div>
+    </main>
+
+    <script src="release.js"></script>
+    <script>
+      (function () {
+        'use strict';
+        var RF = window.ReleaseFinder;
+        if (!RF) return;
+
+        // 粗略判断访问平台，只高亮推荐卡片，不做跳转
+        function detectKind() {
+          var ua = '';
+          var platform = '';
+          try {
+            ua = String(navigator.userAgent || '');
+          } catch (e) {}
+          try {
+            platform =
+              navigator.userAgentData && navigator.userAgentData.platform
+                ? String(navigator.userAgentData.platform)
+                : String(navigator.platform || '');
+          } catch (e) {}
+          var s = (ua + ' ' + platform).toLowerCase();
+          if (s.indexOf('android') !== -1) {
+            return s.indexOf('x86_64') !== -1 || s.indexOf('x64') !== -1 ? 'android-x64' : 'android-arm64';
+          }
+          if (s.indexOf('win') !== -1) return 'windows';
+          return null;
+        }
+
+        // API 数据一律 textContent 写入，不拼 HTML
+        function fill(card, found) {
+          if (!found || !found.asset) return;
+          var version = card.querySelector('.card-version');
+          var date = card.querySelector('.card-date');
+          var size = card.querySelector('.card-size');
+          var btn = card.querySelector('.download-btn');
+          var shasum = card.querySelector('.shasum');
+          version.textContent = found.release && found.release.tag_name ? found.release.tag_name : '—';
+          date.textContent = RF.formatDate(found.release && found.release.published_at);
+          size.textContent = RF.formatSize(found.asset.size);
+          if (found.asset.browser_download_url) btn.href = found.asset.browser_download_url;
+          if (found.sums && found.sums.browser_download_url) {
+            shasum.href = found.sums.browser_download_url;
+            shasum.hidden = false;
+          }
+        }
+
+        var kind = detectKind();
+        if (kind) {
+          var rec = document.querySelector('.card[data-kind="' + kind + '"]');
+          if (rec) rec.classList.add('recommended');
+        }
+
+        var cards = document.querySelectorAll('.card[data-kind]');
+        RF.fetchReleases().then(
+          function (releases) {
+            for (var i = 0; i < cards.length; i++) {
+              fill(cards[i], RF.findAsset(releases, cards[i].getAttribute('data-kind')));
+            }
+            var note = document.getElementById('data-note');
+            if (note) note.textContent = '版本信息来自 GitHub Releases，自动指向当前最新安装包。';
+          },
+          function () {
+            var note = document.getElementById('data-note');
+            if (note) {
+              note.textContent =
+                '这会儿没取到版本信息，下载按钮已指向 GitHub Releases 最新版本页，到那里挑对应的安装包即可。';
+            }
+          }
+        );
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,375 @@
+@charset "UTF-8";
+/*
+ * download.css — 下载页自带样式，不引用站点 styles.css。
+ * 配色抄自 styles.css 的变量值，保证和官网一个视觉；
+ * 真要换主题（比如深色底）只动下面 :root 这几行。
+ */
+:root {
+  --paper: #131014;
+  --ink: #f3eef1;
+  --body: #a99aa3;
+  --green: #f2536e;
+  --mint: rgba(242, 83, 110, 0.16);
+  --line: rgba(255, 255, 255, 0.09);
+  --quiet: #7e7079;
+  --card: #211b23;
+  --card-line: rgba(255, 255, 255, 0.14);
+  --font: Inter, 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', sans-serif;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  font-size: 15px;
+  line-height: 1.7;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+a:focus-visible {
+  outline: 3px solid #f2536e;
+  outline-offset: 4px;
+}
+.wrap {
+  width: min(1080px, calc(100% - 96px));
+  margin-inline: auto;
+}
+
+/* 顶部一条简单的导航 */
+.topbar {
+  border-bottom: 1px solid var(--line);
+  background: rgba(19, 16, 20, 0.86);
+}
+.topbar .wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 72px;
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  font-weight: 750;
+  letter-spacing: -0.6px;
+  white-space: nowrap;
+}
+.brand img {
+  border-radius: 8px;
+}
+.brand b {
+  font-weight: 400;
+}
+.brand-dot {
+  color: var(--green);
+}
+.top-link {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--body);
+}
+.top-link:hover {
+  color: var(--green);
+}
+
+/* 下载中心 */
+.page-head {
+  padding: 62px 0 40px;
+}
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 2.4px;
+  margin: 0 0 18px;
+  color: var(--quiet);
+}
+.live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  display: inline-block;
+  flex: none;
+  box-shadow: 0 0 0 4px rgba(242, 83, 110, 0.14);
+}
+h1 {
+  font-size: clamp(32px, 3.6vw, 46px);
+  line-height: 1.35;
+  letter-spacing: -1.6px;
+  font-weight: 650;
+  margin: 0 0 14px;
+}
+.page-head p {
+  max-width: 620px;
+  font-size: 13px;
+  line-height: 2;
+  color: var(--body);
+  margin: 0;
+}
+
+/* 三张下载卡片 */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+  padding-bottom: 26px;
+}
+.card {
+  display: flex;
+  flex-direction: column;
+  padding: 26px 24px 24px;
+  border: 1px solid var(--card-line);
+  border-radius: 8px;
+  background: var(--card);
+  position: relative;
+}
+.card.recommended {
+  border-color: var(--green);
+  box-shadow: 0 10px 30px -22px rgba(242, 83, 110, 0.45);
+}
+.rec-tag {
+  display: none;
+  position: absolute;
+  top: -11px;
+  left: 20px;
+  padding: 3px 10px;
+  border-radius: 4px;
+  background: var(--green);
+  color: #fff;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+}
+.card.recommended .rec-tag {
+  display: inline-block;
+}
+.card-kicker {
+  font-size: 9px;
+  letter-spacing: 1.7px;
+  color: var(--quiet);
+  margin-bottom: 10px;
+}
+.card h2 {
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+  margin: 0 0 10px;
+}
+.card > p {
+  font-size: 12px;
+  line-height: 1.95;
+  color: var(--body);
+  margin: 0 0 18px;
+}
+.meta {
+  margin: 0 0 22px;
+  padding: 14px 0 0;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+}
+.meta div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 0;
+  color: var(--quiet);
+}
+.meta dd {
+  margin: 0;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.meta dt {
+  margin: 0;
+}
+.card-actions {
+  margin-top: auto;
+}
+.button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 20px;
+  background: var(--green);
+  border-radius: 6px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  transition:
+    background 0.2s,
+    transform 0.2s;
+}
+.button:hover {
+  background: #ff6b84;
+  transform: translateY(-2px);
+}
+.shasum {
+  display: inline-block;
+  margin-top: 13px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--green);
+}
+.shasum:hover {
+  text-decoration: underline;
+}
+.shasum[hidden] {
+  display: none;
+}
+
+/* 底部说明 */
+.foot-note {
+  border-top: 1px solid var(--line);
+  padding: 26px 0 60px;
+  font-size: 11px;
+  line-height: 2;
+  color: var(--quiet);
+}
+.foot-note p {
+  margin: 0 0 6px;
+}
+.foot-note a {
+  color: var(--green);
+  font-weight: 600;
+}
+.foot-note a:hover {
+  text-decoration: underline;
+}
+.noscript-note {
+  border: 1px solid var(--card-line);
+  border-radius: 8px;
+  background: var(--card);
+  padding: 20px 24px;
+  margin: 0 0 26px;
+  font-size: 12px;
+  line-height: 2;
+  color: var(--body);
+}
+.noscript-note a {
+  color: var(--green);
+  font-weight: 600;
+}
+
+/* 重定向页：整屏居中一张提示卡 */
+.redirect-body {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 40px 20px;
+}
+.redirect-card {
+  width: min(460px, 100%);
+  text-align: center;
+  padding: 46px 38px 40px;
+  border: 1px solid var(--card-line);
+  border-radius: 10px;
+  background: var(--card);
+}
+.spinner {
+  width: 30px;
+  height: 30px;
+  margin: 0 auto 22px;
+  border: 3px solid var(--mint);
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+.redirect-card h1 {
+  font-size: 21px;
+  letter-spacing: -0.5px;
+  margin-bottom: 14px;
+}
+.redirect-card > p {
+  font-size: 12px;
+  line-height: 2;
+  color: var(--body);
+  margin: 0 0 20px;
+}
+.manual-link {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 46px;
+  padding: 11px 24px;
+  background: var(--green);
+  border-radius: 6px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+}
+.manual-link:hover {
+  background: #ff6b84;
+}
+.status {
+  min-height: 20px;
+  margin: 16px 0 0;
+  font-size: 11px;
+  color: var(--quiet);
+}
+.status.error {
+  color: #ff9d8a;
+}
+.redirect-foot {
+  margin: 26px 0 0;
+  font-size: 11px;
+  line-height: 2;
+  color: var(--quiet);
+}
+.redirect-foot a {
+  color: var(--green);
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .wrap {
+    width: calc(100% - 48px);
+  }
+  .cards {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 560px) {
+  .wrap {
+    width: calc(100% - 32px);
+  }
+  .page-head {
+    padding: 40px 0 28px;
+  }
+  h1 {
+    font-size: 30px;
+  }
+  .topbar .wrap {
+    min-height: 62px;
+  }
+  .redirect-card {
+    padding: 34px 22px 30px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .button:hover,
+  .manual-link:hover {
+    transform: none;
+  }
+  .spinner {
+    animation-duration: 2.2s;
+  }
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
