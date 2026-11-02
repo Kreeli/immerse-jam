@@ -7,14 +7,7 @@ const { createInteractionFixture } = require('./fixtures.cjs');
 const { data, store, p, resultA, resultB } = createInteractionFixture();
 let app, page;
 async function range(name, value) {
-  await page.getByRole('slider', { name, exact: true }).evaluate((element, value) => {
-    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(
-      element,
-      String(value),
-    );
-    element.dispatchEvent(new Event('input', { bubbles: true }));
-    element.dispatchEvent(new Event('change', { bubbles: true }));
-  }, value);
+  return require('./ui-gestures.cjs').range(page, name, value);
 }
 async function waitReady() {
   await page.waitForFunction(() => !document.querySelector('.play-main').disabled);
@@ -31,7 +24,7 @@ async function waitReady() {
       IMMERSE_LOCALE: 'zh-CN',
       IMMERSE_DATA_DIR: data,
       IMMERSE_PROFILE_DIR: path.resolve(data, 'ui-profile'),
-      IMMERSE_RUNTIME_DIR: path.resolve('.runtime'),
+      IMMERSE_RUNTIME_DIR: process.env.TEST_RUNTIME_DIR || path.resolve('.runtime'),
     },
   });
   page = await app.firstWindow();
@@ -95,6 +88,11 @@ async function waitReady() {
   await page.mouse.down();
   await page.mouse.move(wave.x + wave.width * 0.25, wave.y + wave.height * 0.5, { steps: 8 });
   await page.mouse.up();
+  await page.waitForFunction(
+    (expected) => Math.abs(Number(document.querySelector('input.seek').value) - expected) < 0.5,
+    at + 5,
+    { timeout: 3000 },
+  );
   const scrubbed = Number(
     await page.getByRole('slider', { name: '播放进度', exact: true }).inputValue(),
   );
@@ -140,6 +138,13 @@ async function waitReady() {
   await page.getByRole('button', { name: '第 3 小节添加空位', exact: true }).click();
   await page.locator('.chart-timing summary').click();
   await page.getByRole('combobox', { name: '第二和弦起拍', exact: true }).selectOption('4');
+  await require('./ui-gestures.cjs').saved(
+    () =>
+      store
+        .get(p.id)
+        .chordCharts.find((chart) => chart.id === store.get(p.id).activeChordChartId)
+        ?.bars.find((bar) => bar.id === 'bar-2')?.splitAt === 0.75,
+  );
   assert.equal(
     store
       .get(p.id)

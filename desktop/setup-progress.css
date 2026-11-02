@@ -103,6 +103,12 @@ footer {
   font-size: 12px;
   color: #858590;
 }
+#estimate {
+  font-size: 12px;
+  color: #aaa1b2;
+  line-height: 1.6;
+  margin: -4px 0 18px;
+}
 @keyframes pulse {
   50% {
     opacity: 0.35;

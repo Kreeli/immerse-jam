@@ -13,6 +13,7 @@ export interface ModelDownload {
   bytesPerSecond?: number;
 }
 export interface Track {
+  quiet?: boolean;
   id: string;
   name: string;
   label?: string;

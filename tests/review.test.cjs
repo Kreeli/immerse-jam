@@ -52,13 +52,14 @@ test('built-in model artifacts require complete pinned hashes and reject unpinne
 });
 test('parallel LAN downloads retain independent valid archives and remove temporary files', async (t) => {
   const { store, p } = createInteractionFixture(2),
-    transfer = new Transfer(store, () => {});
+    transfer = new Transfer(store, () => {}, { host: '127.0.0.1' });
   t.after(() => transfer.stop());
   await transfer.start([p.id]);
-  const url = `http://127.0.0.1:${transfer.server.address().port}/api/download/${p.id}?token=${transfer.token}`;
+  const { origin, headers } = await require('../scripts/fixtures.cjs').pairTransfer(transfer);
+  const url = `${origin}/api/download/${p.id}`;
   const files = await Promise.all(
     Array.from({ length: 4 }, async () => {
-      const r = await fetch(url);
+      const r = await fetch(url, { headers });
       assert.equal(r.status, 200);
       return Buffer.from(await r.arrayBuffer());
     }),

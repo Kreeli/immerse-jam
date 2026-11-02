@@ -24,7 +24,7 @@ let browser, server, slow;
   source.title = 'Android LAN 验收 ' + Date.now();
   store.save(source);
   const incoming = [];
-  server = new Transfer(store, (e) => incoming.push(e));
+  server = new Transfer(store, (e) => incoming.push(e), { host: '127.0.0.1' });
   const pair = await server.start([source.id]);
   const url = new URL(pair.url);
   url.hostname = '10.0.2.2';

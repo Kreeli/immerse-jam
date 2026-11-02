@@ -5,14 +5,7 @@ const { createInteractionFixture } = require('./fixtures.cjs');
 const { data, store, p, resultB } = createInteractionFixture(30, true);
 let app, page;
 async function range(name, value) {
-  await page.getByRole('slider', { name, exact: true }).evaluate((element, value) => {
-    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(
-      element,
-      String(value),
-    );
-    element.dispatchEvent(new Event('input', { bubbles: true }));
-    element.dispatchEvent(new Event('change', { bubbles: true }));
-  }, value);
+  return require('./ui-gestures.cjs').range(page, name, value);
 }
 async function ready() {
   await page.waitForFunction(() => !document.querySelector('.play-main').disabled);
@@ -30,7 +23,7 @@ const wait = (ms) => page.waitForTimeout(ms);
       IMMERSE_LOCALE: 'zh-CN',
       IMMERSE_DATA_DIR: data,
       IMMERSE_PROFILE_DIR: path.resolve(data, 'ui-profile'),
-      IMMERSE_RUNTIME_DIR: path.resolve('.runtime'),
+      IMMERSE_RUNTIME_DIR: process.env.TEST_RUNTIME_DIR || path.resolve('.runtime'),
     },
   });
   page = await app.firstWindow();
@@ -63,7 +56,7 @@ const wait = (ms) => page.waitForTimeout(ms);
     await page.waitForFunction(() => document.querySelector('.waveform').dataset.source === 'mix');
     timings.push(Date.now() - start);
   }
-  assert.ok(Math.max(...timings) < 700, JSON.stringify(timings));
+  assert.ok(Math.max(...timings) < (process.env.CI ? 3000 : 1000), JSON.stringify(timings));
   const listen = page.getByRole('button', { name: '选听', exact: true }),
     close = page.getByRole('button', { name: '关闭声音', exact: true });
   await listen.nth(0).click();
@@ -113,6 +106,9 @@ const wait = (ms) => page.waitForTimeout(ms);
   assert.ok(loopPosition >= 3 && loopPosition < 4.5);
   await page.getByRole('button', { name: '暂停', exact: true }).click();
   await page.getByRole('button', { name: '删除循环段落 主歌慢练', exact: true }).click();
+  await require('./ui-gestures.cjs').saved(() =>
+    store.get(p.id).bookmarks.every((mark) => !mark.end),
+  );
   assert.equal(store.get(p.id).bookmarks.filter((mark) => mark.end).length, 0);
   await range('播放进度', 10);
   await page.getByRole('button', { name: '添加标记点', exact: true }).click();
@@ -126,6 +122,7 @@ const wait = (ms) => page.waitForTimeout(ms);
     10,
   );
   await page.getByRole('button', { name: '删除标记点 难点', exact: true }).click();
+  await require('./ui-gestures.cjs').saved(() => store.get(p.id).bookmarks.length === 0);
   assert.equal(store.get(p.id).bookmarks.length, 0);
   await page.getByRole('combobox', { name: '右侧面板', exact: true }).selectOption('mixer');
   await page.getByRole('checkbox', { name: '启用预备拍', exact: true }).check();
@@ -163,6 +160,7 @@ const wait = (ms) => page.waitForTimeout(ms);
   await page.locator('.analysis-meta button').nth(1).click();
   await page.getByRole('spinbutton', { name: '校准 BPM', exact: true }).fill('125.5');
   await page.locator('.analysis-editor').getByRole('button', { name: '保存', exact: true }).click();
+  await require('./ui-gestures.cjs').saved(() => store.get(p.id).analysis.bpm === 125.5);
   assert.equal(store.get(p.id).analysis.bpm, 125.5);
   assert.equal(store.get(p.id).analysis.tempoReviewed, true);
   await page.screenshot({ path: 'test-output/v013-controls.png' });

@@ -4,6 +4,7 @@ import {
   ChevronRight,
   Mic2,
   Music2,
+  MoreHorizontal,
   Play,
   Plus,
   Search,
@@ -193,12 +194,19 @@ export default function LibraryPage({
                 </button>
 
                 <span>{time(p.duration)}</span>
-                <FolderPicker
-                  project={p}
-                  folders={folders}
-                  onFolders={setFolders}
-                  onError={notify}
-                />
+                <details className="song-more">
+                  <summary aria-label={tr('更多操作')}>
+                    <MoreHorizontal size={17} />
+                  </summary>
+                  <div>
+                    <FolderPicker
+                      project={p}
+                      folders={folders}
+                      onFolders={setFolders}
+                      onError={notify}
+                    />
+                  </div>
+                </details>
                 <button
                   className="icon-button"
                   aria-label={tr('删除歌曲 {0}', [p.title])}

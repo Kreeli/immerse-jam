@@ -10,6 +10,7 @@ import { t as tr } from '../../i18n';
 import type { Project, SourceGroup, Track } from '../../shared/types';
 import TrackControl from '../player/TrackControl';
 import TakeTiming from './TakeTiming';
+import { requestTakeRemoval } from './TakeRemoval';
 import TrackWave, { LiveWave, type TimelineProps } from './TrackWave';
 function AddSource({
   project,
@@ -366,9 +367,7 @@ export default function CreationTracks({
                 creation
                 onChange={(patch) => onTrackChange(take, patch)}
                 onRemove={() => {
-                  void jamCall<Project>('take-delete', { id: project.id, takeId: take.id })
-                    .then(onProject)
-                    .catch((error) => onError(error.message));
+                  requestTakeRemoval(project, take);
                 }}
               />
             </div>

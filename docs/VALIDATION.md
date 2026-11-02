@@ -1,5 +1,29 @@
 # Windows 验证记录
 
+## 当前维护的检查入口（2026-11-02）
+
+以下历史记录按发生日期保留，不能当作当前每个脚本都已通过的承诺。
+
+| 范围                     | 命令 / 前置条件                                                                                                      |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| 日常源码                 | `npm run check`、`npm test`、`npm run build`；Node.js 24、`npm ci`                                                   |
+| 共享桌面界面             | `node scripts/ci-ui-check.cjs`；先 build、`npx playwright install chromium`                                          |
+| 真实 Electron 代理       | `node scripts/network-check.cjs`；本机临时 HTTP 代理，无外网、模型或曲库要求                                         |
+| 真实 Electron 播放与和弦 | `node scripts/controls-check.cjs`、`node scripts/interaction-check.cjs`；先 build，合成 WAV 自动生成；不需要下载模型 |
+| 原生安装下载页           | `node scripts/installer-progress-check.cjs`；先运行一次 package 取得 NSIS 缓存；隔离验收，不安装软件、不写注册表     |
+| 独立准备进度窗口         | `node scripts/setup-progress-check.cjs`；真实 Electron，仅用于直接启动准备程序的备用窗口                             |
+| Android 共享界面         | `npx vite build --mode android` 后 `node scripts/android-shared-ui-check.cjs`；使用有界 PCM 模拟桥，不依赖 SDK       |
+| 真实模型                 | `analysis-check.cjs` 需 Beat This! 与生成的节拍样例；`results-check.cjs` 需真实模型和私有 Python，均为手动验收       |
+| 录音 / Android 实机      | `recording-check.cjs` 使用生成的麦克风 WAV；ADB 脚本另需已授权设备、对应端口、SDK、JDK。不得默认读私人工程           |
+
+Windows CI 串行运行维护中的代理、播放和和弦 Electron 检查。输入滑条的辅助方法已补上焦点和结束编辑的行为；持久化断言等待自动保存完成，避免把测试自身未完成的操作当成产品故障。`revision-check.cjs` 是 interaction 的兼容入口，无需重复跑。
+
+其他历史 Electron 脚本保留为按功能使用的手动工具，不纳入“全部通过”承诺。`TEST_RUNTIME_DIR` 可将上述两个播放检查隔离到空的临时运行目录；未设置时使用本地 `.runtime`。`TEST_PACKAGED=1` 改用 `release/win-unpacked`。本机已有浏览器在别处时设置 `PLAYWRIGHT_BROWSERS_PATH`，无需重复下载。检查生成内容放在被忽略的 `.runtime/test-workspaces` / `test-output`。
+
+本轮按用户要求只做有关检查；完整结论与未验证边界见 [issue #4 修订记录](REVIEW-ISSUE4-2026-11-02.md)。
+
+原生安装下载页为手动验收工具：打开脚本打印的测试 exe，选择模型后进入下载页。它通过本机 HTTP 实际传输小文件，接近一半时等待观察；在打印的 `area` 中创建空文件 `continue` 继续，下载完成后检查下一步可用。关闭测试向导后创建 `stop` 结束本机服务。测试只替换注册表提交为无操作，选择和下载页面使用正式源码；不会安装整套 Python / PyTorch 或读私人音乐。仅在修改安装流程时使用，无须日常重复跑。
+
 ## Android 节拍与分享迁移（2026-10-30）
 
 Windows 已由用户验收，后续 Android 源码迁移见 [独立记录](ANDROID-MIGRATION-2026-10-30.md)。50 项 Node 与 9 项 Java 计算／对照测试通过，新增设备测试源码可编译；本轮没有生成 APK 执行。36 秒合成曲目中，手机 Java 特征／ONNX／后处理与电脑的 72 个节拍、18 个小节首拍时间一致；手机、平板共享界面的保留节拍、明确替换、取消与分享检查通过。

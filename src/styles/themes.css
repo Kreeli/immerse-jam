@@ -3361,9 +3361,7 @@
 }
 
 .appearance-settings {
-  margin-bottom: 24px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--tone-413143);
+  margin-bottom: 18px;
 }
 .appearance-settings > div {
   display: flex;

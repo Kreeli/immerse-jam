@@ -9,6 +9,7 @@ import java.net.*;
 public final class LanAddress {
   public final String host, token;
   public final int port;
+  public final boolean legacy;
 
   public LanAddress(String text) throws IOException {
     try {
@@ -16,7 +17,6 @@ public final class LanAddress {
       String host = uri.getHost();
       if (!"http".equals(uri.getScheme())
           || uri.getUserInfo() != null
-          || uri.getFragment() != null
           || host == null
           || !(uri.getPath().isEmpty() || uri.getPath().equals("/")))
         throw new IOException("配对地址无效");
@@ -31,7 +31,9 @@ public final class LanAddress {
       if (!(ip[0] == 10
           || ip[0] == 192 && ip[1] == 168
           || ip[0] == 172 && ip[1] >= 16 && ip[1] <= 31)) throw new IOException("请使用同一网络中的配对地址");
-      String query = uri.getRawQuery();
+      legacy = uri.getRawFragment() == null;
+      String query = legacy ? uri.getRawQuery() : uri.getRawFragment();
+      if (!legacy && uri.getRawQuery() != null) throw new IOException("配对地址无效");
       if (query == null || !query.matches("token=[a-f0-9]{48}")) throw new IOException("配对码无效或已过期");
       this.host = host;
       port = uri.getPort() == -1 ? 80 : uri.getPort();
@@ -43,6 +45,6 @@ public final class LanAddress {
   }
 
   public URL endpoint(String path) throws MalformedURLException {
-    return new URL("http", host, port, path + "?token=" + token);
+    return new URL("http", host, port, path + (legacy ? "?token=" + token : ""));
   }
 }

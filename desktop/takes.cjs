@@ -341,22 +341,71 @@ class Takes {
     const p = this.store.get(projectId),
       take = (p.takes || []).find((t) => t.id === id);
     if (!take) throw new Error('录音不存在');
+    const selected = (p.selectedTakeIds || []).includes(id);
     p.takes = p.takes.filter((t) => t.id !== id);
     p.selectedTakeIds = (p.selectedTakeIds || []).filter((t) => t !== id);
     const folder = this.store.asset(projectId, `recordings/${id}`);
     const tombstone = this.store.asset(projectId, `recordings/.deleted-${id}`);
     const moved = ID.test(id) && fs.existsSync(folder);
+    if (!moved) throw new Error('录音文件暂时无法访问，已取消删除');
+    if (fs.existsSync(tombstone)) throw new Error('录音回收站存在同名条目，请先恢复');
     if (moved) fs.renameSync(folder, tombstone);
     let committed = false;
     try {
+      atomicJson(path.join(tombstone, 'deleted.json'), {
+        take,
+        selected,
+        deletedAt: new Date().toISOString(),
+      });
       const saved = this.store.save(p);
       committed = true;
-      try {
-        if (moved) fs.rmSync(tombstone, { recursive: true, force: true });
-      } catch {}
       return saved;
     } finally {
       if (!committed && moved) fs.renameSync(tombstone, folder);
+    }
+  }
+  deleted(projectId) {
+    const root = this.store.asset(projectId, 'recordings');
+    if (!fs.existsSync(root)) return [];
+    return fs
+      .readdirSync(root)
+      .filter((entry) => /^\.deleted-[a-f0-9-]{36}$/.test(entry))
+      .flatMap((entry) => {
+        try {
+          const meta = JSON.parse(fs.readFileSync(path.join(root, entry, 'deleted.json'), 'utf8'));
+          validateTakes([meta.take]);
+          return meta.take.id === entry.slice(9)
+            ? [{ ...meta.take, deletedAt: meta.deletedAt }]
+            : [];
+        } catch {
+          return [];
+        }
+      });
+  }
+  restore(projectId, id) {
+    if (!ID.test(id)) throw new Error('录音编号无效');
+    const p = this.store.get(projectId);
+    if ((p.takes || []).some((take) => take.id === id)) throw new Error('录音已存在');
+    const folder = this.store.asset(projectId, `recordings/${id}`);
+    const tombstone = this.store.asset(projectId, `recordings/.deleted-${id}`);
+    const { take, selected } = JSON.parse(
+      fs.readFileSync(path.join(tombstone, 'deleted.json'), 'utf8'),
+    );
+    validateTakes([take]);
+    if (take.id !== id || fs.existsSync(folder)) throw new Error('录音回收站条目无效');
+    fs.renameSync(tombstone, folder);
+    try {
+      p.takes = [...(p.takes || []), take];
+      if (selected && (p.kind === 'creation' || (p.selectedTakeIds || []).length < PRACTICE_SLOTS))
+        p.selectedTakeIds = [...(p.selectedTakeIds || []), id];
+      const saved = this.store.save(p);
+      try {
+        fs.rmSync(path.join(folder, 'deleted.json'), { force: true });
+      } catch {}
+      return saved;
+    } catch (error) {
+      fs.renameSync(folder, tombstone);
+      throw error;
     }
   }
   async recover(projectId) {

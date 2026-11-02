@@ -4,7 +4,7 @@ const { BrowserWindow } = require('electron');
 async function open(app) {
   const window = new BrowserWindow({
     width: 600,
-    height: 408,
+    height: 470,
     resizable: false,
     minimizable: false,
     maximizable: false,

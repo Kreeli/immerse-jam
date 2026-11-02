@@ -185,9 +185,12 @@ def separate(request,emit):
     peak=1.;tracks=[]
     for name,data in outputs.items():
         file=dest/(name+'.wav')
+        energy=0.;samples=0
         with sf.SoundFile(file,mode='w',samplerate=sr,channels=2,subtype='FLOAT',format='RF64' if len(data)*8>0xffffffff-100 else 'WAV') as writer:
-            for begin in range(0,len(data),BLOCK):writer.write(data[begin:begin+BLOCK])
-        tracks.append({'id':name,'name':name,'file':file.relative_to(directory).as_posix(),'gain':1,'pan':0,'mute':False,'solo':False})
+            for begin in range(0,len(data),BLOCK):
+                block=data[begin:begin+BLOCK];writer.write(block)
+                energy+=float(np.sum(np.square(block,dtype=np.float64)));samples+=block.size
+        tracks.append({'id':name,'name':name,'file':file.relative_to(directory).as_posix(),'gain':1,'pan':0,'mute':False,'solo':False,'quiet':energy/max(1,samples)<1e-8})
     import torch
     return {'tracks':tracks,'separation':{'model':model['id'],'mode':mode,'scale':1/peak,'elapsedSeconds':round(time.perf_counter()-started,2),'peakCudaAllocatedMB':round(torch.cuda.max_memory_allocated()/1048576) if torch.cuda.is_available() else 0}}
 

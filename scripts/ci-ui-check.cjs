@@ -58,6 +58,7 @@ let browser;
         if (method === 'library') return [project];
         if (method === 'folders-list' || method === 'models') return [];
         if (method === 'runtime-status') return { ready: true };
+        if (method === 'download-settings') return { source: 'auto' };
         if (method === 'update') return (project = await window.__qaUpdate(data));
         if (method === 'playback-budget') {
           await new Promise((resolve) => (window.__releaseLoad = resolve));

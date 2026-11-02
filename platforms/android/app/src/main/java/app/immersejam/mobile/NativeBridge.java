@@ -17,6 +17,7 @@ public class NativeBridge {
   final MainActivity activity;
   final ProjectStore store;
   final NativeTakes takes;
+  final Updates updates = new Updates();
   final PeerFiles peers;
   final NativeAudio audio;
   final StreamingAudio streaming;
@@ -257,6 +258,11 @@ public class NativeBridge {
         return true;
       case "project-recover":
         return store.recover(d.getString("id"));
+      case "update-check":
+        return updates.check();
+      case "update-download":
+        updates.open(activity);
+        return true;
       case "runtime-status":
         return new JSONObject()
             .put("ready", true)
@@ -394,20 +400,11 @@ public class NativeBridge {
           return store.save(p);
         }
       case "take-delete":
-        {
-          JSONObject p = store.get(d.getString("id"));
-          String id = d.getString("takeId");
-          JSONArray takes = p.getJSONArray("takes"),
-              remaining = new JSONArray(),
-              selected = new JSONArray();
-          for (int i = 0; i < takes.length(); i++)
-            if (!takes.getJSONObject(i).getString("id").equals(id)) remaining.put(takes.get(i));
-          JSONArray ids = p.getJSONArray("selectedTakeIds");
-          for (int i = 0; i < ids.length(); i++)
-            if (!ids.getString(i).equals(id)) selected.put(ids.get(i));
-          p.put("takes", remaining).put("selectedTakeIds", selected);
-          return store.save(p);
-        }
+        return takes.remove(d.getString("id"), d.getString("takeId"));
+      case "take-deleted":
+        return takes.deleted(d.getString("id"));
+      case "take-restore":
+        return takes.restoreDeleted(d.getString("id"), d.getString("takeId"));
       case "take-import":
         {
           JSONObject p = store.get(d.getString("id"));

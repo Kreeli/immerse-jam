@@ -21,6 +21,13 @@ jobs:
       - run: npm run build
       - run: npx playwright install chromium
       - run: node scripts/ci-ui-check.cjs
+      - name: Electron proxy and playback smoke checks
+        env:
+          TEST_RUNTIME_DIR: .runtime/e2e-runtime
+        run: |
+          node scripts/network-check.cjs
+          node scripts/controls-check.cjs
+          node scripts/interaction-check.cjs
       - run: npx vite build --mode android
       - run: node scripts/android-shared-ui-check.cjs
   backend:

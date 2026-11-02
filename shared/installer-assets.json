@@ -4,6 +4,28 @@
   "baseUrl": "https://github.com/Kreeli/immerse-jam/releases/download/resources-v1/",
   "assets": [
     {
+      "id": "roformer-sw",
+      "file": "models/roformer-sw/BS-Roformer-SW.ckpt",
+      "cached": "models/roformer-sw/BS-Roformer-SW.ckpt",
+      "sha256": "24e7d35ee9c64415673d3fd33e06a67cac2c103c5df6267ba1576459c775916e",
+      "mirrors": [
+        "https://hf-mirror.com/Eddycrack864/audio-separator-models/resolve/56fc5c59fe52faeeb3f964067640ce3580b31b09/roformers/BS-Roformer-SW.ckpt",
+        "https://huggingface.co/Eddycrack864/audio-separator-models/resolve/56fc5c59fe52faeeb3f964067640ce3580b31b09/roformers/BS-Roformer-SW.ckpt"
+      ],
+      "license": "Community checkpoint; download only, not bundled or rehosted by this project"
+    },
+    {
+      "id": "roformer-sw-config",
+      "file": "models/roformer-sw/BS-Roformer-SW.yaml",
+      "cached": "models/roformer-sw/BS-Roformer-SW.yaml",
+      "sha256": "b558996f1e25eb48798bd6502505a5de94c4f966d6edfb1a0420f06cc40b501a",
+      "mirrors": [
+        "https://hf-mirror.com/Eddycrack864/audio-separator-models/resolve/56fc5c59fe52faeeb3f964067640ce3580b31b09/roformers/BS-Roformer-SW.yaml",
+        "https://huggingface.co/Eddycrack864/audio-separator-models/resolve/56fc5c59fe52faeeb3f964067640ce3580b31b09/roformers/BS-Roformer-SW.yaml"
+      ],
+      "license": "Community config; download only"
+    },
+    {
       "id": "uv",
       "file": "uv.exe",
       "cached": "tools/uv.exe",

@@ -3,6 +3,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { spawn } = require('node:child_process');
 const { atomicJson } = require('./store.cjs');
+const { fetch: fetchNetwork, chunks, downloadError, proxyEnv } = require('./network.cjs');
 function readState(file) {
   try {
     return JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -15,26 +16,80 @@ const UV = {
   url: 'https://files.pythonhosted.org/packages/7c/9d/714523188aea3054644d8e69ae8089aac70325a3cee2d3d05509d4f23398/uv-0.13.6-py3-none-win_amd64.whl',
   sha256: '7c9bc35ccb65932d8dc10a0669f9c805eaa3c9827ce18ecbecb1bd67944b2cdf',
 };
-function run(exe, args, env, onEvent) {
+function activity(directories) {
+  let size = 0,
+    latest = 0,
+    count = 0;
+  const pending = [...directories];
+  while (pending.length && count < 20000) {
+    const folder = pending.pop();
+    let entries;
+    try {
+      entries = fs.readdirSync(folder, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      if (++count > 20000) break;
+      const file = path.join(folder, entry.name);
+      if (entry.isDirectory()) pending.push(file);
+      else if (entry.isFile()) {
+        try {
+          const stat = fs.statSync(file);
+          size += stat.size;
+          latest = Math.max(latest, stat.mtimeMs);
+        } catch {}
+      }
+    }
+  }
+  return `${count}:${size}:${latest}`;
+}
+function run(exe, args, env, onEvent, options = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(exe, args, {
       windowsHide: true,
       env: { ...process.env, ...env },
       cwd: path.dirname(exe),
     });
-    let tail = '';
+    let tail = '',
+      activeAt = Date.now(),
+      stalled = false;
+    let signature = activity(options.watchDirs || []);
+    const watcher = options.stallMs
+      ? setInterval(
+          () => {
+            const next = activity(options.watchDirs || []);
+            if (next !== signature) {
+              signature = next;
+              activeAt = Date.now();
+            }
+            if (Date.now() - activeAt > options.stallMs) {
+              stalled = true;
+              child.kill();
+            }
+          },
+          Math.min(5000, options.stallMs / 2),
+        )
+      : undefined;
     for (const stream of [child.stdout, child.stderr]) {
       stream.setEncoding('utf8');
       stream.on('data', (b) => {
         const message = b;
+        activeAt = Date.now();
         tail = (tail + message).slice(-6000);
         onEvent?.({ type: 'progress', message: message.trim() });
       });
     }
-    child.on('error', reject);
-    child.on('close', (code) =>
-      code === 0 ? resolve() : reject(new Error(`安装步骤未完成 (${code})：${tail}`)),
-    );
+    child.on('error', (error) => {
+      clearInterval(watcher);
+      reject(error);
+    });
+    child.on('close', (code) => {
+      clearInterval(watcher);
+      if (stalled) reject(new Error('下载连续两分钟没有进展，正在尝试备用源。'));
+      else if (code === 0) resolve();
+      else reject(new Error(`安装步骤未完成 (${code})：${tail}`));
+    });
   });
 }
 function downloadProgress(dest, total, initial, onEvent) {
@@ -62,7 +117,14 @@ function downloadProgress(dest, total, initial, onEvent) {
     });
   };
 }
-async function download(url, dest, sha256, onEvent) {
+async function download(...args) {
+  try {
+    return await downloadFile(...args);
+  } catch (error) {
+    throw downloadError(error);
+  }
+}
+async function downloadFile(url, dest, sha256, onEvent) {
   fs.mkdirSync(path.dirname(dest), { recursive: true });
   const part = dest + '.part';
   if (fs.existsSync(dest)) {
@@ -78,7 +140,7 @@ async function download(url, dest, sha256, onEvent) {
     if (current.digest('hex') === sha256) return dest;
   }
   const existing = fs.existsSync(part) ? fs.statSync(part).size : 0;
-  const response = await fetch(url, {
+  const response = await fetchNetwork(url, {
     headers: existing ? { Range: `bytes=${existing}-` } : {},
     signal: AbortSignal.timeout(30 * 60 * 1000),
   });
@@ -102,7 +164,7 @@ async function download(url, dest, sha256, onEvent) {
   const report = downloadProgress(dest, total, size, onEvent);
   report(size, 'download', true);
   try {
-    for await (const chunk of response.body) {
+    for await (const chunk of chunks(response)) {
       fs.writeSync(fd, chunk);
       hash.update(chunk);
       size += chunk.length;
@@ -145,7 +207,7 @@ async function ensureRuntime(base, mode = 'cpu', onEvent = () => {}) {
   if (fs.existsSync(marker) && fs.existsSync(python)) {
     const state = readState(marker);
     if (
-      state?.recipe === 2 &&
+      state?.recipe === 3 &&
       state.mode === mode &&
       (await require('./runtime-health.cjs').healthy(python))
     )
@@ -166,7 +228,10 @@ async function ensureRuntime(base, mode = 'cpu', onEvent = () => {}) {
     PIP_CACHE_DIR: path.join(base, 'cache', 'pip'),
     PYTHONUSERBASE: path.join(base, 'python-user'),
     PYTHONUTF8: '1',
-    UV_HTTP_TIMEOUT: '180',
+    UV_HTTP_TIMEOUT: '45',
+    UV_HTTP_CONNECT_TIMEOUT: '20',
+    UV_HTTP_RETRIES: '1',
+    UV_SYSTEM_CERTS: 'true',
     UV_CONCURRENT_DOWNLOADS: '4',
     UV_LINK_MODE: 'copy',
     TEMP: temp,
@@ -177,7 +242,12 @@ async function ensureRuntime(base, mode = 'cpu', onEvent = () => {}) {
     const managed = path.join(base, 'python', 'cpython-3.11.18-windows-x86_64-none', 'python.exe');
     if (!fs.existsSync(managed)) {
       try {
-        await run(uv, ['python', 'install', '3.11.18', '--no-bin', '--no-registry'], env, onEvent);
+        await run(
+          uv,
+          ['python', 'install', '3.11.18', '--no-bin', '--no-registry'],
+          { ...env, ...(await proxyEnv('https://github.com')) },
+          onEvent,
+        );
       } catch (error) {
         if (!fs.existsSync(managed)) throw error;
       }
@@ -190,7 +260,9 @@ async function ensureRuntime(base, mode = 'cpu', onEvent = () => {}) {
     );
   }
   onEvent({ message: mode === 'cuda' ? '正在安装 NVIDIA 加速运行库' : '正在安装通用运行库' });
-  await run(
+  const sources = require('./package-index.cjs');
+  const preference = readState(path.join(base, 'downloads.json'))?.source || 'auto';
+  await sources.installTorch(
     uv,
     [
       'pip',
@@ -200,17 +272,19 @@ async function ensureRuntime(base, mode = 'cpu', onEvent = () => {}) {
       'torch==2.8.0',
       'torchaudio==2.8.0',
       'torchvision==0.23.0',
-      '--index-url',
-      mode === 'cuda'
-        ? 'https://download.pytorch.org/whl/cu126'
-        : 'https://download.pytorch.org/whl/cpu',
     ],
     env,
     onEvent,
+    run,
+    mode,
+    preference,
   );
   const backend = fs.existsSync(path.join(root, 'backend'))
     ? path.join(root, 'backend')
     : path.join(process.resourcesPath, 'backend');
+  const site = path.join(base, 'venv', 'Lib', 'site-packages');
+  if (fs.readdirSync(site).some((entry) => /^onnx_weekly-.+\.dist-info$/.test(entry)))
+    await run(uv, ['pip', 'uninstall', '--python', python, 'onnx-weekly'], env, onEvent);
   await require('./package-index.cjs').installPackages(
     uv,
     [
@@ -224,37 +298,35 @@ async function ensureRuntime(base, mode = 'cpu', onEvent = () => {}) {
       path.join(backend, 'constraints.txt'),
       '--override',
       path.join(backend, 'overrides.txt'),
+      '--excludes',
+      path.join(backend, 'excludes.txt'),
+      '--reinstall-package',
+      'onnx',
     ],
     env,
     onEvent,
     run,
+    undefined,
+    preference,
   );
-  await run(
-    python,
-    [
-      '-c',
-      'import torch,librosa,soundfile,pretty_midi; from audio_separator.separator import Separator; print("环境验证完成", torch.cuda.is_available())',
-    ],
-    env,
-    onEvent,
-  );
+  onEvent({ type: 'progress', message: '正在检查环境…' });
   if (!(await require('./runtime-health.cjs').healthy(python, true)))
     throw new Error('本地环境验证失败，请重试安装');
-  atomicJson(marker, { recipe: 2, mode, createdAt: new Date().toISOString() });
+  atomicJson(marker, { recipe: 3, mode, createdAt: new Date().toISOString() });
   onEvent({ type: 'ready', message: '本地环境已就绪' });
   return python;
 }
-module.exports = { ensureRuntime, ensureUv, download };
+module.exports = { ensureRuntime, ensureUv, download, run };
 async function downloadModel(url, dest, sha256, onEvent) {
   if (fs.existsSync(dest)) return download(url, dest, sha256, onEvent);
   let probe;
   try {
-    probe = await fetch(url, {
+    probe = await fetchNetwork(url, {
       headers: { Range: 'bytes=0-0' },
-      signal: AbortSignal.timeout(30000),
+      signal: AbortSignal.timeout(15000),
     });
-  } catch {
-    return download(url, dest, sha256, onEvent);
+  } catch (error) {
+    throw downloadError(error);
   }
   const total = Number(probe.headers.get('content-range')?.split('/')[1]);
   await probe.body?.cancel();
@@ -296,16 +368,16 @@ async function downloadModel(url, dest, sha256, onEvent) {
     const results = await Promise.allSettled(
       state.ranges.map(async (range) => {
         if (range.start + range.received > range.end) return;
-        for (let attempt = 0; attempt < 4; attempt++) {
+        for (let attempt = 0; attempt < 2; attempt++) {
           try {
             const start = range.start + range.received,
-              r = await fetch(url, {
+              r = await fetchNetwork(url, {
                 headers: { Range: `bytes=${start}-${range.end}` },
                 signal: AbortSignal.timeout(30 * 60 * 1000),
               });
             if (r.status !== 206 || !r.headers.get('content-range')?.startsWith(`bytes ${start}-`))
               throw new Error('下载服务器未正确返回分块');
-            for await (const chunk of r.body) {
+            for await (const chunk of chunks(r)) {
               if (range.start + range.received + chunk.length > range.end + 1)
                 throw new Error('下载分块大小错误');
               fs.writeSync(fd, chunk, 0, chunk.length, range.start + range.received);
@@ -320,7 +392,7 @@ async function downloadModel(url, dest, sha256, onEvent) {
             atomicJson(stateFile, state);
             return;
           } catch (error) {
-            if (attempt === 3) throw error;
+            if (attempt === 1) throw error;
             await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
           }
         }
@@ -360,7 +432,7 @@ async function downloadSources(urls, dest, sha256, onEvent) {
       last = error;
     }
   }
-  throw last || new Error('没有可用的下载源');
+  throw downloadError(last || new Error('没有可用的下载源'));
 }
 module.exports.downloadSources = downloadSources;
 function validRanges(state, url, total, size) {

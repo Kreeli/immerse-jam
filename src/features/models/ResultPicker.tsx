@@ -28,6 +28,7 @@ export default function ResultPicker({
       <label>
         {tr('分离结果')}
         <Select
+          title={result?.name}
           aria-label={tr('当前分离结果')}
           disabled={loading}
           value={project.activeResultId || ''}
@@ -43,7 +44,8 @@ export default function ResultPicker({
           <option value="">{tr('原曲')}</option>
           {project.results?.map((item) => (
             <option key={item.id} value={item.id}>
-              {item.name} · {item.tracks.length}
+              {item.name.replace(/ · 六轨(?:兼容)? · 完整六轨$/, ' · 完整六轨')} ·{' '}
+              {item.tracks.length}
               {tr('轨')}
             </option>
           ))}

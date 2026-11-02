@@ -2,7 +2,13 @@
 
 Windows Setup 已包含 uv 0.13.6 和 Beat This! final0 节拍模型，均按固定 SHA-256 校验，保留原授权文件。安装时直接复制，无需另行下载这两项。其余 Python/PyTorch 运行环境及分轨模型仍需要网络或已有本地缓存；这不是完整离线安装包。
 
-普通 Python 依赖安装会探测官方 PyPI 与清华镜像的响应，选择先响应的一项；镜像安装失败时回退官方。探测反映当时的可达性与响应速度，不保证每个大文件都更快。PyTorch CPU/CUDA 包继续用对应的官方索引，保留固定版本与约束。
+issue #4 修订（待验收发布）：普通 Python 依赖对 PyPI / 清华的固定 Windows scipy wheel 做有界实测；PyTorch 对上交 / 官方对应 CPU 或 CUDA 12.6 的固定 torch wheel 做实测。每个来源最多读取约 512 KiB，单源最多八秒；按实际吞吐选择，失败尝试另一个来源。设置支持自动、优先镜像、优先官方。下载连续两分钟没有日志或缓存文件进展会结束当前 uv 尝试，切换并复用缓存，不修改已钉住的运行库版本。
+
+应用及安装器通过 Electron Chromium 网络栈继承系统代理；显式的 HTTP/HTTPS 代理环境变量也受支持。解析到的系统代理会传给 uv 子进程，TLS 校验保留。模型下载等待响应和等待后续数据都设有上限，原始连接错误转换成可操作的提示，设置中可重试。
+
+默认 SW 六轨另增加固定修订的 Hugging Face / hf-mirror 下载地址，LFS 权重指纹和配置内容均核对为原固定 SHA，失败回退原 GitHub 源。这是使用既有社区下载地址，不代表本项目取得了权重再分发授权，也没有上传或随安装包加入该权重。
+
+Python 依赖采用稳定版 `onnx==1.20.1`，通过 uv 的 `--excludes backend/excludes.txt` 排除 audio-separator 上游要求的 `onnx-weekly` 分发名，避免两个分发包互相覆盖同一 `onnx` 模块。稳定模块与 Separator / onnx2torch 的导入已在隔离目录验证；维护时不能只运行裸 `pip install -r requirements.txt` 而忽略排除规则。旧环境可继续使用，执行本轮修复安装时会移除旧 nightly 分发并重装稳定 ONNX。
 
 ## 自有公开下载源
 

@@ -5,6 +5,7 @@ const ordered = new Set([
   'take-start',
   'take-select',
   'take-delete',
+  'take-restore',
   'take-import',
   'creation-add-group',
   'creation-import-group',

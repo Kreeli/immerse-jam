@@ -8,21 +8,24 @@ const QRCode = require('qrcode');
 const { pack } = require('./archive.cjs');
 const { renderTransferPage } = require('./transfer-page.cjs');
 class Transfer {
-  constructor(store, onIncoming) {
+  constructor(store, onIncoming, { host } = {}) {
     this.store = store;
     this.onIncoming = onIncoming;
     this.server = null;
     this.generation = 0;
     this.pending = new Map();
     this.requests = new Set();
+    this.host = host;
+    this.sessions = new Map();
   }
-  async start(ids) {
+  async start(ids, address) {
     if (this.server) this.stop();
     if (!Array.isArray(ids) || !ids.length) throw new Error('请先选择要分享的歌曲');
     this.ids = new Set(ids);
     for (const id of ids) this.store.get(id);
     this.token = crypto.randomBytes(24).toString('hex');
-    this.expires = Date.now() + 30 * 60 * 1000;
+    this.expires = Date.now() + 2 * 60 * 1000;
+    this.sessions.clear();
     this.pending = new Map();
     const hostAddresses = Object.entries(os.networkInterfaces())
       .flatMap(([name, values]) =>
@@ -39,6 +42,8 @@ class Transfer {
             Number(!/^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(b.address)),
       )
       .map((x) => x.address);
+    if (address && !hostAddresses.includes(address)) throw new Error('请选择当前设备的网络地址');
+    const host = this.host || address || hostAddresses[0] || '127.0.0.1';
     this.server = http.createServer((req, res) =>
       this.handle(req, res).catch((e) => {
         if (!res.headersSent) res.writeHead(400);
@@ -47,17 +52,19 @@ class Transfer {
     );
     await new Promise((resolve, reject) => {
       this.server.once('error', reject);
-      this.server.listen(0, '0.0.0.0', resolve);
+      this.server.listen(0, host, resolve);
     });
     const port = this.server.address().port;
-    const urls = (hostAddresses.length ? hostAddresses : ['127.0.0.1']).map(
-      (h) => `http://${h}:${port}/?token=${this.token}`,
+    const urls = [this.server.address().address].map(
+      (h) => `http://${h}:${port}/#token=${this.token}`,
     );
     return {
       url: urls[0],
       urls,
       qr: await QRCode.toDataURL(urls[0], { margin: 2, width: 300 }),
       expires: this.expires,
+      host,
+      interfaces: hostAddresses,
     };
   }
   async handle(req, res) {
@@ -66,13 +73,41 @@ class Transfer {
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'no-referrer');
-    if (url.searchParams.get('token') !== this.token || Date.now() > this.expires) {
+    const origin = req.headers.origin;
+    if (origin && origin !== `http://${req.headers.host}`) {
       res.writeHead(403);
-      return res.end('配对已失效，请重新扫码');
+      return res.end('请从配对页面操作');
     }
     if (req.method === 'GET' && url.pathname === '/') {
       res.setHeader('Content-Type', 'text/html;charset=utf-8');
       return res.end(renderTransferPage(url.searchParams.get('lang')));
+    }
+    const bearer = /^Bearer ([a-f0-9]{48})$/.exec(req.headers.authorization || '')?.[1];
+    if (req.method === 'POST' && url.pathname === '/api/pair') {
+      if (!this.token || bearer !== this.token || Date.now() > this.expires) {
+        res.writeHead(403);
+        return res.end('配对已失效，请重新扫码');
+      }
+      this.token = null; // A QR invitation can establish only one session.
+      const token = crypto.randomBytes(24).toString('hex');
+      this.sessions.set(token, {
+        address: req.socket.remoteAddress,
+        expires: Date.now() + 30 * 60 * 1000,
+      });
+      res.setHeader(
+        'Set-Cookie',
+        `immerse_session=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=1800`,
+      );
+      res.setHeader('Content-Type', 'application/json');
+      return res.end(JSON.stringify({ token }));
+    }
+    const cookie = /(?:^|;\s*)immerse_session=([a-f0-9]{48})(?:;|$)/.exec(
+      req.headers.cookie || '',
+    )?.[1];
+    const session = this.sessions.get(bearer || cookie);
+    if (!session || session.address !== req.socket.remoteAddress || Date.now() > session.expires) {
+      res.writeHead(403);
+      return res.end('配对已失效，请重新扫码');
     }
     if (req.method === 'GET' && url.pathname === '/api/list') {
       res.setHeader('Content-Type', 'application/json');
@@ -138,6 +173,7 @@ class Transfer {
     this.server?.close();
     this.server = null;
     this.token = null;
+    this.sessions.clear();
     return true;
   }
 }

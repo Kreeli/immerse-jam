@@ -9,12 +9,18 @@
   <body>
     <header><span class="pulse"></span><span>Immerse Jam</span></header>
     <h1 id="heading">正在准备安装</h1>
+    <p id="estimate">
+      首次下载：CPU 约 1–2 GB，NVIDIA 约 3–5 GB，另加所选模型。通常需 5–30
+      分钟，慢网络可能更久；已有缓存会复用。
+    </p>
     <div class="step-heading"><span id="stage">准备数据目录</span><span id="steps"></span></div>
     <progress id="overall" max="1" value="0" aria-label="安装步骤"></progress>
     <section aria-live="polite">
       <div class="file-heading"><span id="file">正在准备…</span><strong id="percent"></strong></div>
       <progress id="download" max="1" aria-label="当前步骤进度"></progress>
-      <div class="transfer"><span id="bytes"></span><span id="speed"></span></div>
+      <div class="transfer">
+        <span id="bytes"></span><span id="speed"></span><span id="remaining"></span>
+      </div>
     </section>
     <p id="message"></p>
     <footer id="note">下载完成后会自动校验文件。请保持网络连接。</footer>

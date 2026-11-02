@@ -137,19 +137,26 @@ test('peer close removes pending archives and duplicate starts cannot orphan a r
 });
 test('interrupted LAN upload and unaccepted upload leave no file after stop', async (t) => {
   const { store, p } = createInteractionFixture(1),
-    transfer = new Transfer(store, () => {});
+    transfer = new Transfer(store, () => {}, { host: '127.0.0.1' });
   await transfer.start([p.id]);
   t.after(() => transfer.stop());
-  const url = `http://127.0.0.1:${transfer.server.address().port}/api/upload?token=${transfer.token}&name=test.wav`;
+  const { origin, headers } = await require('../scripts/fixtures.cjs').pairTransfer(transfer);
+  const url = `${origin}/api/upload?name=test.wav`;
   await new Promise((resolve) => {
-    const req = http.request(url, { method: 'POST', headers: { 'Content-Length': 1000000 } });
+    const req = http.request(url, {
+      method: 'POST',
+      headers: { ...headers, 'Content-Length': 1000000 },
+    });
     req.on('error', resolve);
     req.write(Buffer.alloc(1024));
     setTimeout(() => req.destroy(), 25);
   });
   await new Promise((r) => setTimeout(r, 60));
   assert.deepEqual(fs.readdirSync(path.join(store.base, 'incoming-files')), []);
-  assert.equal((await fetch(url, { method: 'POST', body: Buffer.from('content') })).status, 200);
+  assert.equal(
+    (await fetch(url, { method: 'POST', headers, body: Buffer.from('content') })).status,
+    200,
+  );
   const file = [...transfer.pending.values()][0].file;
   transfer.stop();
   assert.ok(!fs.existsSync(file));

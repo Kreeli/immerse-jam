@@ -127,7 +127,7 @@ export default function RemoteTransfer({
     disconnect();
     peer.current?.close();
     setConnected(false);
-    const p = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+    const p = new RTCPeerConnection({ iceServers: [] });
     peer.current = p;
     p.ondatachannel = (e) => bind(e.channel);
     p.onconnectionstatechange = () => {
@@ -258,7 +258,7 @@ export default function RemoteTransfer({
   );
   return (
     <div className="remote-transfer">
-      <h3>{tr('远程直连 \u00B7 连接码配对')}</h3>
+      <h3>{tr('局域网直连 · 连接码配对')}</h3>
       <p className="notice">{tr('请连接同一局域网（同一 Wi-Fi 或热点）。')}</p>
       <p className="muted">
         {tr(
@@ -279,7 +279,7 @@ export default function RemoteTransfer({
             })
           }
         >
-          {tr('发起远程连接')}
+          {tr('发起局域网连接')}
         </button>
         <button
           onClick={() => {

@@ -65,16 +65,6 @@ export default function PracticeHub({
           </div>
           <h2>{tr('开始跟练或创作')}</h2>
           <p>{tr('跟练可选音乐库里的分轨歌曲；创作可从空白或源歌曲开始。')}</p>
-          <div className="header-actions">
-            {filter !== 'creation' && (
-              <button className="primary" onClick={() => onCreate('practice')}>
-                {tr('新建跟练')}
-              </button>
-            )}
-            {filter !== 'practice' && (
-              <button onClick={() => onCreate('creation')}>{tr('新建创作')}</button>
-            )}
-          </div>
         </div>
       ) : (
         <div className="session-list">

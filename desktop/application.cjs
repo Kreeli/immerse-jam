@@ -351,6 +351,29 @@ app.whenReady().then(async () => {
       ready: status.ready && (await require('./runtime-health.cjs').healthy(python)),
     };
   });
+  handle('download-settings', ({ source }) => {
+    const file = path.join(runtimeBase, 'downloads.json');
+    if (source !== undefined) {
+      if (!['auto', 'mirror', 'official'].includes(source) || installing)
+        throw new Error('当前无法切换下载源');
+      atomicJson(file, { source });
+    }
+    try {
+      return JSON.parse(fs.readFileSync(file, 'utf8'));
+    } catch {
+      return { source: 'auto' };
+    }
+  });
+  const updates = new (require('./updates.cjs').Updates)(runtimeBase, app.getVersion());
+  handle('update-check', () => updates.check());
+  handle('update-download', () => updates.download((event) => emit({ ...event, scope: 'update' })));
+  handle('update-install', async () => {
+    if (jobs.active || installing) throw new Error('请等待当前任务完成后再安装更新');
+    const error = await shell.openPath(await updates.verifiedInstaller());
+    if (error) throw new Error(error);
+    win.close();
+    return true;
+  });
   handle('runtime-install', ({ mode }) => {
     if (installing) return runtimeStatus();
     installing = true;
@@ -555,7 +578,7 @@ app.whenReady().then(async () => {
     emit({ type: 'library-changed' });
     return result;
   });
-  handle('pair-start', ({ ids }) => transfer.start(ids));
+  handle('pair-start', ({ ids, host }) => transfer.start(ids, host));
   handle('pair-stop', () => transfer.stop());
   handle('peer-prepare', ({ ids }) => peerFiles.prepare(ids));
   handle('peer-outgoing', () =>

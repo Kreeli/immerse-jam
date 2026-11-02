@@ -525,3 +525,204 @@ small {
 .usage-help small {
   color: var(--muted);
 }
+
+/* Preserve the workspace layout at the supported small desktop size. */
+.view-switch button,
+.save-indicator,
+.player-header > button {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.view-switch {
+  flex-shrink: 0;
+}
+button:disabled,
+button.primary:disabled {
+  opacity: 0.4;
+  filter: saturate(0.3);
+  cursor: default;
+  box-shadow: none;
+}
+.track-slider button.solo {
+  color: var(--pink);
+  background: color-mix(in srgb, var(--pink) 14%, transparent);
+  border-color: var(--pink);
+}
+.model-description strong {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+}
+.model-item {
+  align-items: flex-start;
+}
+.model-actions {
+  flex-shrink: 0;
+}
+.update-check {
+  padding: 0 0 16px;
+  border-bottom: 1px solid var(--line);
+}
+.update-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.update-heading h3 {
+  margin: 0;
+}
+.update-heading button {
+  flex-shrink: 0;
+}
+.update-check progress {
+  width: 100%;
+}
+.update-check p {
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.download-settings {
+  max-width: 370px;
+}
+.song-more {
+  position: relative;
+}
+.song-more summary {
+  list-style: none;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--muted);
+}
+.song-more summary::-webkit-details-marker {
+  display: none;
+}
+.song-more > div {
+  position: absolute;
+  z-index: 4;
+  right: 0;
+  top: 100%;
+  padding: 10px;
+  width: 195px;
+  background: var(--panel, #24232c);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 6px 20px #0004;
+}
+.song .song-more .folder-picker {
+  position: static;
+  width: 100%;
+  max-width: none;
+}
+.song {
+  padding-bottom: 14px;
+}
+.quiet-track-label {
+  color: var(--muted);
+  margin-left: 6px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.setup-estimate {
+  font-size: 12px;
+  line-height: 1.7;
+}
+.separation-dialog .modal-actions {
+  position: sticky;
+  bottom: -28px;
+  background: var(--panel, #1b1a20);
+  padding: 16px 0 0;
+  z-index: 2;
+}
+.take-undo.toast {
+  top: 92px;
+  bottom: auto;
+}
+.take-undo-inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 0 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--pink);
+  font-size: 12px;
+}
+[data-take-undo-host]:has(.take-undo-inline) {
+  flex-basis: 100%;
+}
+html[data-platform='android'] .take-undo.toast {
+  top: 16px;
+  bottom: auto;
+  left: auto;
+  right: 12px;
+  max-width: min(420px, calc(100vw - 24px));
+}
+html:not([data-platform='android']) .toast {
+  top: 16px;
+  bottom: auto;
+  left: auto;
+  right: 20px;
+  transform: none;
+  max-width: min(480px, calc(100vw - 260px));
+  font-size: 12px;
+  padding: 10px 12px;
+}
+html:not([data-platform='android']) .take-undo.toast {
+  top: 65px;
+}
+html:not([data-platform='android']) .practice-wave-comparison {
+  min-height: min-content;
+}
+html:not([data-platform='android']) .practice-recording-waves,
+html:not([data-platform='android']) .practice-recording-waves > .comparison-lane {
+  flex: 1 0 auto;
+  min-height: min-content;
+}
+html:not([data-platform='android']) .practice-wave-comparison .waveform {
+  min-height: 0;
+}
+html:not([data-platform='android']) .result-actions {
+  flex-wrap: wrap;
+}
+html:not([data-platform='android']) .result-actions button {
+  white-space: nowrap;
+  flex: 1 0 auto;
+}
+@media (max-height: 780px) {
+  html:not([data-platform='android']) .wave-window-hint {
+    display: none;
+  }
+}
+@media (max-width: 1330px) {
+  html:not([data-platform='android']) .player-header {
+    gap: 6px;
+    padding-inline: 12px;
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 94px;
+  }
+  html:not([data-platform='android']) .player-header .now-title {
+    flex: 1 1 38%;
+    min-width: 130px;
+  }
+  html:not([data-platform='android']) .player-header .now-cover {
+    display: none;
+  }
+  html:not([data-platform='android']) .player-header .view-switch {
+    order: 2;
+    margin-inline: auto 0;
+  }
+  html:not([data-platform='android']) .player-header .view-switch button {
+    padding: 7px 10px;
+    font-size: 12px;
+  }
+  html:not([data-platform='android']) .save-indicator {
+    font-size: 11px;
+  }
+}

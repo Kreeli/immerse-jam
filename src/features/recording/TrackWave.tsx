@@ -31,7 +31,7 @@ export function LiveWave({ live, ...timeline }: TimelineProps & { live: LiveEnve
       peaks={snapshot.peaks}
       peakOrigin={snapshot.origin}
       peakDuration={snapshot.duration}
-      amplitudeScale={0.5}
+      amplitudeScale={1.08}
       preserveBins
       source="live-recording"
       disabled

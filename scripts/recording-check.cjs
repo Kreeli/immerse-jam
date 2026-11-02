@@ -46,14 +46,7 @@ wav(imported[1], 3);
 let app, page;
 const wait = (ms) => page.waitForTimeout(ms);
 async function range(name, value) {
-  await page.getByRole('slider', { name, exact: true }).evaluate((element, value) => {
-    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(
-      element,
-      String(value),
-    );
-    element.dispatchEvent(new Event('input', { bubbles: true }));
-    element.dispatchEvent(new Event('change', { bubbles: true }));
-  }, value);
+  return require('./ui-gestures.cjs').range(page, name, value);
 }
 async function record(seconds, creation = false) {
   await page.getByRole('button', { name: creation ? '录音' : '练琴录音', exact: true }).click();

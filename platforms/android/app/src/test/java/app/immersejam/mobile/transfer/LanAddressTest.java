@@ -19,6 +19,15 @@ public class LanAddressTest {
   }
 
   @Test
+  public void oneUseInvitationIsKeptOutOfRequestUrls() throws Exception {
+    LanAddress a = new LanAddress("http://192.168.1.2:4567/#token=" + token);
+    assertFalse(a.legacy);
+    assertEquals(token, a.token);
+    assertNull(a.endpoint("/api/list").getQuery());
+    assertNull(a.endpoint("/api/list").getRef());
+  }
+
+  @Test
   public void publicRedirectAmbiguityAndUntrustedUrlsAreRejected() throws Exception {
     for (String url :
         new String[] {
@@ -29,7 +38,8 @@ public class LanAddressTest {
           "http://user@10.0.0.1/?token=" + token,
           "http://10.0.0.1/other?token=" + token,
           "http://010.0.0.1/?token=" + token,
-          "http://10.0.0.1/?token=short"
+          "http://10.0.0.1/?token=short",
+          "http://10.0.0.1/?token=" + token + "#token=" + token
         }) {
       try {
         new LanAddress(url);

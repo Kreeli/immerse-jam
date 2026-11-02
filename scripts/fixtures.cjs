@@ -93,4 +93,14 @@ function createInteractionFixture(seconds = 90, modulated = false) {
   p = store.save(p);
   return { data, store, p, resultA, resultB };
 }
-module.exports = { createInteractionFixture };
+async function pairTransfer(transfer) {
+  const origin = `http://${transfer.server.address().address}:${transfer.server.address().port}`;
+  const response = await fetch(origin + '/api/pair', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + transfer.token },
+  });
+  if (!response.ok) throw new Error('Fixture pairing failed');
+  const { token } = await response.json();
+  return { origin, headers: { Authorization: 'Bearer ' + token } };
+}
+module.exports = { createInteractionFixture, pairTransfer };

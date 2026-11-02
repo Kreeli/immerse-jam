@@ -52,7 +52,13 @@ async function copyBundled(relative, destination, sha256, onEvent) {
   return false;
 }
 function mirrorUrls(sha256, upstream) {
-  const item = manifest.assets.find((item) => item.sha256 === sha256 && item.asset);
-  return [...new Set([item && manifest.baseUrl + item.asset, upstream].filter(Boolean))];
+  const item = manifest.assets.find((item) => item.sha256 === sha256);
+  return [
+    ...new Set(
+      [...(item?.mirrors || []), item?.asset && manifest.baseUrl + item.asset, upstream].filter(
+        Boolean,
+      ),
+    ),
+  ];
 }
 module.exports = { manifest, hash, copyVerified, copyBundled, mirrorUrls };

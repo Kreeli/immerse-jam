@@ -11,6 +11,7 @@ import type { Player } from '../../audio/Player';
 import { t as tr } from '../../i18n';
 import { time, type Project, type RecordingSettings } from '../../shared/types';
 import LatencyCalibration from './LatencyCalibration';
+import { requestTakeRemoval, requestTakeTrash } from './TakeRemoval';
 const defaults: RecordingSettings = {
   mode: 'instrument',
   inputDeviceId: 'default',
@@ -25,6 +26,7 @@ export default function PracticeRecorder({
   project,
   player,
   onProject,
+  onSaved = onProject,
   onError,
   onActive,
   onLive,
@@ -34,6 +36,7 @@ export default function PracticeRecorder({
   project: Project;
   player: Player;
   onProject: (p: Project) => void;
+  onSaved?: (p: Project) => void;
   onError: (message: string) => void;
   onActive: (active: boolean) => void;
   onLive: (live: LiveEnvelope | null) => void;
@@ -61,8 +64,8 @@ export default function PracticeRecorder({
   const lastDialog = useRef(dialog);
   if (dialog) lastDialog.current = dialog;
   const shownDialog = dialog || lastDialog.current;
-  const props = useRef({ project, onProject, onError, onActive });
-  props.current = { project, onProject, onError, onActive };
+  const props = useRef({ project, onProject, onSaved, onError, onActive });
+  props.current = { project, onProject, onSaved, onError, onActive };
   useEffect(() => {
     if (project.kind === 'practice')
       setSettings((previous) => ({ ...previous, mode: project.practiceMode || 'instrument' }));
@@ -146,7 +149,7 @@ export default function PracticeRecorder({
       const id = session.current;
       session.current = null;
       const saved = await jamCall<Project>('take-finish', { sessionId: id });
-      props.current.onProject(saved);
+      props.current.onSaved(saved);
       if (saved.takes?.some((take) => take.id === id))
         props.current.onError(
           saved.kind !== 'creation' && !saved.selectedTakeIds?.includes(id)
@@ -248,7 +251,7 @@ export default function PracticeRecorder({
         id: project.id,
         patch: { recordingSettings: settings },
       });
-      props.current.onProject(updated);
+      props.current.onSaved(updated);
       setSeconds(0);
       setActive(true);
       setDialog(null);
@@ -279,9 +282,14 @@ export default function PracticeRecorder({
   const openLibrary = () => {
     setImportPosition(player.position().toFixed(3));
     setDialog('library');
-    void act(async () =>
-      props.current.onProject(await jamCall<Project>('take-recover', { id: project.id })),
-    );
+    setBusy(true);
+    void act(async () => {
+      try {
+        props.current.onSaved(await jamCall<Project>('take-recover', { id: project.id }));
+      } finally {
+        setBusy(false);
+      }
+    });
   };
   useEffect(() => {
     const action = (event: Event) => {
@@ -293,11 +301,16 @@ export default function PracticeRecorder({
     return () => window.removeEventListener('immerse-recorder-action', action);
   }, [active, busy, disabled, project.id]);
   const selectTake = async (id: string) => {
-    const selected = project.selectedTakeIds || [],
-      next = selected.includes(id) ? selected.filter((t) => t !== id) : [...selected, id];
-    props.current.onProject(
-      await jamCall<Project>('take-select', { id: project.id, takeIds: next }),
-    );
+    setBusy(true);
+    try {
+      const selected = props.current.project.selectedTakeIds || [],
+        next = selected.includes(id) ? selected.filter((t) => t !== id) : [...selected, id];
+      props.current.onSaved(
+        await jamCall<Project>('take-select', { id: project.id, takeIds: next }),
+      );
+    } finally {
+      setBusy(false);
+    }
   };
   return (
     <>
@@ -548,6 +561,11 @@ export default function PracticeRecorder({
                 : tr('可保存多次录音，最多选择两条加入练习音轨。移出音轨会保留录音库中的文件。')}
             </p>
             <div className="take-import-controls">
+              <div data-take-undo-host={project.id} />
+              <button className="small" disabled={busy} onClick={() => requestTakeTrash(project)}>
+                <Trash2 size={13} />
+                {tr('录音回收站')}
+              </button>
               <label>
                 {tr('导入开始位置（秒）')}
                 <input
@@ -572,7 +590,7 @@ export default function PracticeRecorder({
                         position: Number(importPosition),
                         mode: settings.mode,
                       });
-                      if (result) props.current.onProject(result);
+                      if (result) props.current.onSaved(result);
                     } finally {
                       setBusy(false);
                     }
@@ -641,16 +659,7 @@ export default function PracticeRecorder({
                     className="icon-button"
                     aria-label={tr('删除录音 {0}', [take.label || take.name])}
                     disabled={busy}
-                    onClick={() =>
-                      void act(async () =>
-                        props.current.onProject(
-                          await jamCall<Project>('take-delete', {
-                            id: project.id,
-                            takeId: take.id,
-                          }),
-                        ),
-                      )
-                    }
+                    onClick={() => requestTakeRemoval(project, take)}
                   >
                     <Trash2 size={14} />
                   </button>

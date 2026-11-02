@@ -10,6 +10,7 @@ import { transpose } from '../analysis/transposition';
 import ResultPicker from '../models/ResultPicker';
 import PracticeModeControl from '../recording/PracticeModeControl';
 import TakeTiming from '../recording/TakeTiming';
+import { requestTakeRemoval } from '../recording/TakeRemoval';
 import CountInControl from './CountInControl';
 import PresetControls from './PresetControls';
 import TrackControl from './TrackControl';
@@ -154,15 +155,17 @@ export default function Mixer({
                   onChange={(patch) => onTrackChange(t, patch)}
                   onRemove={() =>
                     void act(async () => {
-                      const p = await jamCall<Project>(
-                        project.kind === 'creation' ? 'take-delete' : 'take-select',
-                        project.kind === 'creation'
-                          ? { id: project.id, takeId: t.id }
-                          : {
-                              id: project.id,
-                              takeIds: (project.selectedTakeIds || []).filter((id) => id !== t.id),
-                            },
-                      );
+                      if (project.kind === 'creation') {
+                        requestTakeRemoval(
+                          project,
+                          project.takes!.find((take) => take.id === t.id)!,
+                        );
+                        return;
+                      }
+                      const p = await jamCall<Project>('take-select', {
+                        id: project.id,
+                        takeIds: (project.selectedTakeIds || []).filter((id) => id !== t.id),
+                      });
                       onAdopt(p);
                     })
                   }

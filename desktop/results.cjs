@@ -50,7 +50,7 @@ function materialize(p, tracks, metadata, asset, writeJson) {
   const id = metadata.id || crypto.randomUUID(),
     name =
       metadata.name ||
-      `${metadata.modelName || '已有分离结果'} · ${modes[metadata.mode] || tracks.length + ' 轨'}`;
+      `${(metadata.modelName || '已有分离结果').replace(/ · .*$/, '')} · ${modes[metadata.mode] || tracks.length + ' 轨'}`;
   const directory = relativeFolder(name, id);
   const created = [];
   try {

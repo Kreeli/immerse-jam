@@ -22,6 +22,7 @@ type Props = Pick<
   | 'library'
   | 'project'
   | 'ready'
+  | 'checkingRuntime'
   | 'showPlayer'
   | 'setShowPlayer'
   | 'setPage'
@@ -34,6 +35,7 @@ export default function Sidebar({
   library,
   project,
   ready,
+  checkingRuntime,
   showPlayer,
   setShowPlayer,
   setPage,
@@ -158,7 +160,13 @@ export default function Sidebar({
           <span className={'dot ' + (ready ? 'green-dot' : '')} />
 
           <div>
-            {isAndroid ? tr('随时开始练习') : ready ? tr('本地引擎就绪') : tr('本地引擎待准备')}
+            {isAndroid
+              ? tr('随时开始练习')
+              : checkingRuntime
+                ? tr('正在检查环境…')
+                : ready
+                  ? tr('本地引擎就绪')
+                  : tr('本地引擎待准备')}
 
             <small>{tr('音乐留在你的设备上')}</small>
           </div>

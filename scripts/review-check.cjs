@@ -13,14 +13,7 @@ const practice = createSession(store, { kind: 'practice', sourceId: p.id, title:
 let app, page;
 const wait = (ms) => page.waitForTimeout(ms);
 async function range(value) {
-  await page.getByRole('slider', { name: '播放进度', exact: true }).evaluate((el, value) => {
-    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(
-      el,
-      String(value),
-    );
-    el.dispatchEvent(new Event('input', { bubbles: true }));
-    el.dispatchEvent(new Event('change', { bubbles: true }));
-  }, value);
+  return require('./ui-gestures.cjs').range(page, '播放进度', value);
 }
 (async () => {
   app = await electron.launch({

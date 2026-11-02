@@ -14,6 +14,7 @@ public final class LanClient implements AutoCloseable {
   public final AtomicLong generation = new AtomicLong();
   volatile HttpURLConnection active;
   volatile Thread worker;
+  final Map<String, String> sessions = new LinkedHashMap<>();
 
   public LanClient(ProjectStore store, Consumer<JSONObject> emit) {
     this.store = store;
@@ -36,7 +37,31 @@ public final class LanClient implements AutoCloseable {
   }
 
   HttpURLConnection open(LanAddress address, String path, long version) throws Exception {
-    return open(address.endpoint(path), version);
+    String token = address.legacy ? null : session(address, version);
+    HttpURLConnection connection = open(address.endpoint(path), version);
+    if (token != null) connection.setRequestProperty("Authorization", "Bearer " + token);
+    return connection;
+  }
+
+  String session(LanAddress address, long version) throws Exception {
+    String key = address.host + ":" + address.port + "#" + address.token;
+    if (sessions.containsKey(key)) return sessions.get(key);
+    HttpURLConnection connection = open(address.endpoint("/api/pair"), version);
+    try {
+      connection.setRequestMethod("POST");
+      connection.setRequestProperty("Authorization", "Bearer " + address.token);
+      status(connection);
+      ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+      try (InputStream in = connection.getInputStream()) {
+        byte[] buffer = new byte[1024]; int n;
+        while ((n = in.read(buffer)) != -1) { if (bytes.size() + n > 4096) throw new IOException("配对回应无效"); bytes.write(buffer, 0, n); }
+      }
+      String token = new JSONObject(bytes.toString("UTF-8")).getString("token");
+      if (!token.matches("[a-f0-9]{48}")) throw new IOException("配对回应无效");
+      if (sessions.size() >= 4) sessions.clear();
+      sessions.put(key, token);
+      return token;
+    } finally { connection.disconnect(); }
   }
 
   HttpURLConnection open(URL url, long version) throws Exception {
@@ -145,10 +170,12 @@ public final class LanClient implements AutoCloseable {
       File file = store.pack(id);
       HttpURLConnection connection = null;
       try {
+        String token = address.legacy ? null : session(address, version);
         connection =
             open(
-                new URL(address.endpoint("/api/upload").toString() + "&name=" + id + ".ijam"),
+                new URL(address.endpoint("/api/upload").toString() + (address.legacy ? "&name=" : "?name=") + id + ".ijam"),
                 version);
+        if (token != null) connection.setRequestProperty("Authorization", "Bearer " + token);
         connection.setRequestMethod("POST");
         connection.setDoOutput(true);
         connection.setRequestProperty("Content-Type", "application/zip");

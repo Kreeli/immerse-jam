@@ -61,9 +61,15 @@ async function launch(data) {
   await page.getByRole('button', { name: '生成配对二维码', exact: true }).click();
   await page.waitForSelector('.pair-box img');
   const address = await page.getByRole('textbox', { name: '配对地址' }).inputValue();
-  const list = await fetch(new URL('/api/list' + new URL(address).search, address)).then((r) =>
-    r.json(),
-  );
+  const link = new URL(address);
+  const invitation = new URLSearchParams(link.hash.slice(1)).get('token');
+  const session = await fetch(new URL('/api/pair', address), {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + invitation },
+  }).then((r) => r.json());
+  const list = await fetch(new URL('/api/list', address), {
+    headers: { Authorization: 'Bearer ' + session.token },
+  }).then((r) => r.json());
   assert.equal(list.length, 1);
   const forbidden = await fetch(new URL('/api/list?token=wrong', address));
   assert.equal(forbidden.status, 403);
@@ -72,7 +78,7 @@ async function launch(data) {
   await receiver.waitForSelector('.library-header');
   await receiver.waitForTimeout(500);
   await receiver.getByRole('button', { name: '设备互传', exact: true }).click();
-  await page.getByRole('button', { name: '发起远程连接', exact: true }).click();
+  await page.getByRole('button', { name: '发起局域网连接', exact: true }).click();
   await page.getByRole('textbox', { name: '本机连接码' }).waitFor();
   const offer = await page.getByRole('textbox', { name: '本机连接码' }).inputValue();
   await receiver.getByRole('textbox', { name: '对方连接码' }).fill(offer);

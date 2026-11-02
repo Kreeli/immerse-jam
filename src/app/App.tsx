@@ -53,6 +53,7 @@ import Waveform from '../features/player/Waveform';
 import CreationTracks from '../features/recording/CreationTracks';
 import PracticeHub from '../features/recording/PracticeHub';
 import PracticeRecorder from '../features/recording/PracticeRecorder';
+import TakeRemoval from '../features/recording/TakeRemoval';
 import CreateFromSong from '../features/recording/CreateFromSong';
 import PracticeWaves from '../features/recording/PracticeWaves';
 import SessionCreateDialog from '../features/recording/SessionCreateDialog';
@@ -60,6 +61,8 @@ import Score from '../features/score/Score';
 import AppearanceSettings from '../features/settings/AppearanceSettings';
 import StorageLocations from '../features/settings/StorageLocations';
 import AnalysisNote from '../features/settings/AnalysisNote';
+import UpdateCheck from '../features/settings/UpdateCheck';
+import DownloadSettings from '../features/settings/DownloadSettings';
 import RemoteTransfer from '../features/transfer/RemoteTransfer';
 import { t as tr, message as translateMessage } from '../i18n';
 import { type Model, type Project, type Track } from '../shared/types';
@@ -307,7 +310,7 @@ export default function App() {
                 /\.(ijam|aum)$/i.test(file) ? 'creation-import-group' : 'take-import',
                 { id: project.id, path: file, paths: [file], position: player.current.position() },
               );
-              if (updated) adopt(updated);
+              if (updated) controller.adoptIfCurrent(updated);
             }
           });
         } else void importSongs(files);
@@ -445,7 +448,7 @@ export default function App() {
                       onClick={() => setModal('separate')}
                     >
                       <Sparkles size={15} />
-                      {tr('开始分析')}
+                      {tr('拆分音轨')}
                     </button>
                   )}
                   <button
@@ -685,6 +688,7 @@ export default function App() {
                       libraryOnly={!isAndroid && !project.kind}
                       player={player.current}
                       onProject={save}
+                      onSaved={controller.adoptIfCurrent}
                       onError={notify}
                       onActive={(active) => {
                         setRecording(active);
@@ -782,7 +786,13 @@ export default function App() {
       <ModalFrame
         open={!!modal}
         onClose={() => setModal(null)}
-        className={shownModal === 'separate' || shownModal === 'settings' ? 'wide' : ''}
+        className={
+          shownModal === 'separate'
+            ? 'wide separation-dialog'
+            : shownModal === 'settings'
+              ? 'wide'
+              : ''
+        }
       >
         <div className="modal-heading">
           <div>
@@ -940,6 +950,14 @@ export default function App() {
               </nav>
             )}
             <AppearanceSettings />
+            <UpdateCheck
+              beforeInstall={async () => {
+                if (recording || job) throw new Error(tr('请先停止录音并等待当前任务完成'));
+                await controller.flushEdits();
+                await controller.flushNotes();
+                player.current.pause();
+              }}
+            />
             {!isAndroid && <AnalysisNote />}
             <StorageLocations />
             {!isAndroid && (
@@ -950,28 +968,32 @@ export default function App() {
                   </div>
                   <div>
                     <h3>
-                      {ready ? tr('本地运行环境已准备好') : tr('准备 Immerse Jam 的本地引擎')}
+                      {controller.checkingRuntime
+                        ? tr('正在检查环境…')
+                        : ready
+                          ? tr('本地运行环境已准备好')
+                          : tr('准备 Immerse Jam 的本地引擎')}
                     </h3>
                     <p>
                       {tr('自动下载应用专用运行库，无需预装 Python 或开发工具。模型按需下载。')}
                     </p>
                   </div>
                   <span className={'badge ' + (ready ? 'green' : '')}>
-                    {ready ? tr('就绪') : tr('待安装')}
+                    {controller.checkingRuntime ? tr('检查中') : ready ? tr('就绪') : tr('待安装')}
                   </span>
                 </div>
                 <div className="runtime-controls">
                   <Select
                     value={runtimeMode}
                     onChange={(e) => setRuntimeMode(e.target.value)}
-                    disabled={installing}
+                    disabled={installing || controller.checkingRuntime}
                   >
                     <option value="cuda">{tr('NVIDIA 显卡加速')}</option>
                     <option value="cpu">{tr('CPU 通用兼容')}</option>
                   </Select>
                   <button
                     className="primary"
-                    disabled={installing}
+                    disabled={installing || controller.checkingRuntime}
                     onClick={() =>
                       void act(async () => {
                         setInstalling(true);
@@ -991,6 +1013,12 @@ export default function App() {
                         : tr('自动安装环境')}
                   </button>
                 </div>
+                <DownloadSettings disabled={installing} />
+                <p className="muted setup-estimate">
+                  {tr(
+                    '首次下载：CPU 约 1–2 GB，NVIDIA 约 3–5 GB，另加所选模型。通常需 5–30 分钟，慢网络可能更久；已有缓存会复用。',
+                  )}
+                </p>
                 {runtimeMessage && (
                   <pre className="install-status">
                     {translateMessage(runtimeMessage.slice(-1400))}
@@ -1276,8 +1304,26 @@ export default function App() {
                     <img src={pair.qr} alt={tr('设备互传配对二维码')} />
                     <div>
                       <strong>{tr('手机扫码接收 / 发送歌曲')}</strong>
-                      <p>{tr('配对有效期 30 分钟。')}</p>
+                      <p>{tr('邀请两分钟内有效，仅可配对一次；连接后会话有效 30 分钟。')}</p>
                       <input aria-label={tr('配对地址')} readOnly value={pair.url} />
+                      {pair.interfaces?.length > 1 && (
+                        <Select
+                          aria-label={tr('共享网络地址')}
+                          value={pair.host}
+                          onChange={(event) => {
+                            const host = event.target.value;
+                            void act(async () =>
+                              setPair(await jamCall('pair-start', { ids: selected, host })),
+                            );
+                          }}
+                        >
+                          {pair.interfaces.map((address: string) => (
+                            <option key={address} value={address}>
+                              {address}
+                            </option>
+                          ))}
+                        </Select>
+                      )}
                       <button
                         className="small"
                         onClick={() => {
@@ -1345,6 +1391,7 @@ export default function App() {
           </section>
         </div>
       )}
+      <TakeRemoval onProject={controller.adoptIfCurrent} onError={notify} />
     </div>
   );
 }

@@ -31,6 +31,7 @@ export function useWorkspace() {
     [position, setPosition] = useState(0),
     [playing, setPlaying] = useState(false),
     [ready, setReady] = useState(false),
+    [checkingRuntime, setCheckingRuntime] = useState(!isAndroid),
     [loading, setLoading] = useState(false),
     [loadProgress, setLoadProgress] = useState(''),
     [peaks, setPeaks] = useState<number[]>([]),
@@ -90,6 +91,13 @@ export function useWorkspace() {
 
     setLibrary((list) => [p, ...list.filter((s) => s.id !== p.id)]);
   }, []);
+  const adoptIfCurrent = useCallback(
+    (p: Project) => {
+      if (current.current?.id === p.id) adopt(p);
+      else setLibrary((list) => [p, ...list.filter((item) => item.id !== p.id)]);
+    },
+    [adopt],
+  );
   const flushNotes = useCallback(async () => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     const entries = [...pendingNotes.current];
@@ -228,15 +236,21 @@ export function useWorkspace() {
   useEffect(() => {
     void refresh();
 
-    void jamCall('runtime-status').then((s) => {
-      setReady(s.ready);
+    void jamCall('runtime-status')
+      .then((s) => {
+        setCheckingRuntime(false);
+        setReady(s.ready);
 
-      setInstalling(s.installing);
+        setInstalling(s.installing);
 
-      setRuntimeMode(s.mode || 'cuda');
+        setRuntimeMode(s.mode || 'cuda');
 
-      if (!s.ready) setModal('settings');
-    });
+        // An installed environment still being checked is not an installation failure.
+      })
+      .catch((error) => {
+        setCheckingRuntime(false);
+        notify(error.message);
+      });
 
     void jamCall<Model[]>('models').then((items) => {
       setModels(items);
@@ -555,12 +569,18 @@ export function useWorkspace() {
     await flushEdits();
     if (!project) return;
 
-    if (!ready) {
-      setModal('settings');
+    if (!ready || checkingRuntime) {
+      setCheckingRuntime(true);
+      const status = await act(() => jamCall('runtime-status'));
+      setCheckingRuntime(false);
+      setReady(!!status?.ready);
+      if (!status?.ready) {
+        setModal('settings');
 
-      notify(tr('请先准备应用自己的本地运行环境'));
+        notify(tr('请先准备应用自己的本地运行环境'));
 
-      return;
+        return;
+      }
     }
 
     setJob({ type: 'progress', message: tr('准备本地任务…'), operation, projectId: project.id });
@@ -752,6 +772,8 @@ export function useWorkspace() {
       (p.title + ' ' + p.artist).toLowerCase().includes(query.toLowerCase()),
   );
   return {
+    checkingRuntime,
+    adoptIfCurrent,
     flushEdits,
     saveState,
     saveNotes,

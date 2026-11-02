@@ -1,0 +1,3 @@
+# The stable onnx distribution supplies the same Python module. Do not install
+# the nightly distribution over that module (audio-separator's upstream name).
+onnx-weekly

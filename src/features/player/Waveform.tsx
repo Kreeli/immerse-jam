@@ -87,13 +87,12 @@ export default function Waveform({
       for (const value of peaks) if (Number.isFinite(value)) max = Math.max(max, Math.abs(value));
       return { normal: amplitudeScale, max };
     }
-    const sorted = peaks
-      .filter(Number.isFinite)
-      .map(Math.abs)
-      .sort((a, b) => a - b);
+    let max = 0;
+    for (const value of peaks) if (Number.isFinite(value)) max = Math.max(max, Math.abs(value));
     return {
-      normal: amplitudeScale ?? Math.max(0.01, sorted[Math.floor(sorted.length * 0.98)] || 0),
-      max: sorted.at(-1) || 0,
+      // Preserve peaks rather than flattening the loudest 2% at a percentile.
+      normal: Math.max(0.01, max * 1.08),
+      max,
     };
   }, [peaks, amplitudeScale]);
   // Keep bin boundaries attached to the song, independent of the viewport's

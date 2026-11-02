@@ -55,6 +55,7 @@ const button = (name) => page.getByRole('button', { name, exact: true });
     () => document.querySelector('.song .folder-picker').options.length === 2,
   );
   const id = await page.locator('.song .folder-picker option').last().getAttribute('value');
+  await page.locator('.song-more summary').click();
   await page.locator('.song .folder-picker').selectOption(id);
   await page.locator('.song-info').click();
   await page.waitForFunction(() => !document.querySelector('.play-main').disabled);

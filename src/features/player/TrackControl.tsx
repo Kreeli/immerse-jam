@@ -67,6 +67,7 @@ export default function TrackControl({
         >
           <i style={{ background: color }} />
           {trackLabel(t)}
+          {t.quiet && <small className="quiet-track-label">{tr('几乎无声')}</small>}
         </button>
         <small>{Math.round(t.gain * 100)}%</small>
       </div>

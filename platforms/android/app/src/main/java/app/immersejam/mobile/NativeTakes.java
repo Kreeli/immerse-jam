@@ -243,6 +243,59 @@ final class NativeTakes {
     return restored;
   }
 
+  JSONObject remove(String projectId, String id) throws Exception {
+    synchronized (store) {
+      if (!id.matches("[a-f0-9-]{36}")) throw new IOException("录音编号无效");
+      JSONObject p = store.get(projectId), take = null;
+      JSONArray remaining = new JSONArray(), selected = new JSONArray(), takes = p.getJSONArray("takes");
+      for (int i = 0; i < takes.length(); i++) {
+        JSONObject item = takes.getJSONObject(i);
+        if (item.getString("id").equals(id)) take = item; else remaining.put(item);
+      }
+      if (take == null) throw new IOException("录音不存在");
+      JSONArray ids = p.getJSONArray("selectedTakeIds");
+      boolean wasSelected = false;
+      for (int i = 0; i < ids.length(); i++) if (!ids.getString(i).equals(id)) selected.put(ids.getString(i)); else wasSelected = true;
+      File folder = store.asset(projectId, "recordings/" + id), trash = store.asset(projectId, "recordings/.deleted-" + id);
+      if (trash.exists() || !folder.renameTo(trash)) throw new IOException("录音文件暂时无法访问，已取消删除");
+      try {
+        ProjectStore.write(new File(trash, "deleted.json"), new JSONObject().put("take", take).put("selected", wasSelected).put("deletedAt", ProjectStore.now()));
+        return store.save(p.put("takes", remaining).put("selectedTakeIds", selected));
+      } catch (Exception error) { trash.renameTo(folder); throw error; }
+    }
+  }
+
+  JSONArray deleted(String projectId) throws Exception {
+    JSONArray result = new JSONArray();
+    File[] entries = store.asset(projectId, "recordings").listFiles();
+    if (entries != null) for (File folder : entries) {
+      if (!folder.getName().matches("\\.deleted-[a-f0-9-]{36}")) continue;
+      try {
+        JSONObject metadata = ProjectStore.read(new File(folder, "deleted.json")), take = metadata.getJSONObject("take");
+        if (take.getString("id").equals(folder.getName().substring(9))) result.put(take);
+      } catch (Exception ignored) { }
+    }
+    return result;
+  }
+
+  JSONObject restoreDeleted(String projectId, String id) throws Exception {
+    synchronized (store) {
+      if (!id.matches("[a-f0-9-]{36}")) throw new IOException("录音编号无效");
+      JSONObject p = store.get(projectId);
+      for (int i = 0; i < p.getJSONArray("takes").length(); i++) if (p.getJSONArray("takes").getJSONObject(i).getString("id").equals(id)) throw new IOException("录音已存在");
+      File folder = store.asset(projectId, "recordings/" + id), trash = store.asset(projectId, "recordings/.deleted-" + id);
+      JSONObject metadata = ProjectStore.read(new File(trash, "deleted.json")), take = metadata.getJSONObject("take");
+      if (!take.getString("id").equals(id) || folder.exists() || !trash.renameTo(folder)) throw new IOException("无法恢复录音");
+      try {
+        p.getJSONArray("takes").put(take);
+        if (metadata.optBoolean("selected") && (p.optString("kind").equals("creation") || p.getJSONArray("selectedTakeIds").length() < 2)) p.getJSONArray("selectedTakeIds").put(id);
+        p = store.save(p);
+      } catch (Exception error) { folder.renameTo(trash); throw error; }
+      new File(folder, "deleted.json").delete();
+      return p;
+    }
+  }
+
   JSONObject recover(String projectId) throws Exception {
     JSONArray restored = restore(projectId);
     for (int i = 0; i < restored.length(); i++) finish(restored.getString(i));

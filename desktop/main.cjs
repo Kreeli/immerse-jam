@@ -2,10 +2,15 @@ const path = require('node:path');
 const { app } = require('electron');
 if (process.argv.includes('--prepare-installation')) {
   app.disableHardwareAcceleration();
-  let failureRoot;
+  let failureRoot, status;
   const failed = (error) => {
     const detail = error.stack || error.message || String(error);
     console.error(detail);
+    try {
+      status?.finish(error);
+    } catch {
+      /* Keep the original preparation error. */
+    }
     if (failureRoot) {
       try {
         require('node:fs').appendFileSync(
@@ -22,6 +27,14 @@ if (process.argv.includes('--prepare-installation')) {
     const setup = require('./installation.cjs'),
       input = setup.options(process.argv),
       legacyRoot = app.getPath('userData');
+    const statusFile = process.argv
+      .find((value) => value.startsWith('--setup-status='))
+      ?.slice('--setup-status='.length);
+    if (statusFile)
+      status = require('./setup-status.cjs').create(
+        statusFile,
+        process.argv.includes('--setup-en'),
+      );
     const dataRoot = require('./locations.cjs').validateRoot(
       input.dataRoot,
       input.installRoot,
@@ -50,10 +63,18 @@ if (process.argv.includes('--prepare-installation')) {
                 ? undefined
                 : legacyRoot),
           },
-          { onEvent: (event) => progress?.send(event) },
+          {
+            onEvent: (event) => {
+              progress?.send(event);
+              status?.send(event);
+            },
+          },
         );
       })
-      .then(() => app.exit(0))
+      .then(() => {
+        status?.finish();
+        app.exit(0);
+      })
       .catch(failed);
   } catch (error) {
     failed(error);

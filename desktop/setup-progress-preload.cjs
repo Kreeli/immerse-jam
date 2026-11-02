@@ -27,6 +27,12 @@ window.addEventListener('DOMContentLoaded', () => {
   text('stage', labels.data);
   text('file', zh ? '正在准备…' : 'Preparing…');
   text(
+    'estimate',
+    zh
+      ? '首次下载：CPU 约 1–2 GB，NVIDIA 约 3–5 GB，另加所选模型。通常需 5–30 分钟，慢网络可能更久；已有缓存会复用。'
+      : 'First download: about 1–2 GB for CPU or 3–5 GB for NVIDIA, plus selected models. Usually 5–30 minutes; slow networks take longer. Existing caches are reused.',
+  );
+  text(
     'note',
     zh
       ? '下载完成后会自动校验文件。请保持网络连接。'
@@ -74,4 +80,16 @@ ipcRenderer.on('installation-progress', (_event, event) => {
       : '',
   );
   text('speed', Number.isFinite(event.bytesPerSecond) ? bytes(event.bytesPerSecond) + '/s' : '');
+  const seconds =
+    event.total && event.bytesPerSecond > 0
+      ? (event.total - event.received) / event.bytesPerSecond
+      : 0;
+  text(
+    'remaining',
+    seconds > 3
+      ? (zh ? '此文件约剩 ' : 'This file: ~') +
+          Math.ceil(seconds / 60) +
+          (zh ? ' 分钟' : ' min left')
+      : '',
+  );
 });
