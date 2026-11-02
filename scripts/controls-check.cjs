@@ -117,6 +117,7 @@ const wait = (ms) => page.waitForTimeout(ms);
   await page.getByRole('button', { name: '保存名称', exact: true }).click();
   await range('播放进度', 20);
   await page.getByRole('button', { name: '跳到标记点 难点', exact: true }).click();
+  await page.waitForFunction(() => Number(document.querySelector('.seek').value) === 10);
   assert.equal(
     Number(await page.getByRole('slider', { name: '播放进度', exact: true }).inputValue()),
     10,

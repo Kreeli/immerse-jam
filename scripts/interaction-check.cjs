@@ -160,7 +160,15 @@ async function waitReady() {
   await page.locator('.chart-timing summary').click();
   await range('播放进度', 75);
   await page.getByRole('button', { name: '播放', exact: true }).click();
-  await page.waitForTimeout(1200);
+  // A hosted Windows desktop can deliver animation frames slowly. Wait for
+  // the actual scrolling result instead of assuming a fixed 1.2 second delay.
+  await page.waitForFunction(() => {
+    const element = document.querySelector('.playing-measure');
+    if (!element) return false;
+    const area = element.closest('.practice-area').getBoundingClientRect();
+    const rect = element.getBoundingClientRect();
+    return rect.top >= area.top && rect.bottom <= area.bottom;
+  });
   const visible = await page.locator('.playing-measure').evaluate((element) => {
     const area = element.closest('.practice-area').getBoundingClientRect(),
       rect = element.getBoundingClientRect();

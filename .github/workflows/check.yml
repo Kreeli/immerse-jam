@@ -8,6 +8,8 @@ permissions:
 jobs:
   windows:
     runs-on: windows-latest
+    env:
+      TEST_RUNTIME_DIR: .runtime/e2e-runtime
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -21,13 +23,12 @@ jobs:
       - run: npm run build
       - run: npx playwright install chromium
       - run: node scripts/ci-ui-check.cjs
-      - name: Electron proxy and playback smoke checks
-        env:
-          TEST_RUNTIME_DIR: .runtime/e2e-runtime
-        run: |
-          node scripts/network-check.cjs
-          node scripts/controls-check.cjs
-          node scripts/interaction-check.cjs
+      - name: Electron system proxy
+        run: node scripts/network-check.cjs
+      - name: Electron playback controls
+        run: node scripts/controls-check.cjs
+      - name: Electron chords and interactions
+        run: node scripts/interaction-check.cjs
       - run: npx vite build --mode android
       - run: node scripts/android-shared-ui-check.cjs
   backend:
