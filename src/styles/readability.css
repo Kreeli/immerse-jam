@@ -695,6 +695,9 @@ html:not([data-platform='android']) .result-actions button {
   flex: 1 0 auto;
 }
 @media (max-height: 780px) {
+  html:not([data-platform='android']) .chart-workspace.is-playing .chart-header {
+    position: static;
+  }
   html:not([data-platform='android']) .wave-window-hint {
     display: none;
   }

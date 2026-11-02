@@ -101,12 +101,21 @@ export default function ChordSheet({
     if (focus && host.current?.contains(focus) && focus.matches('input,select,textarea')) return;
     const rect = element.getBoundingClientRect(),
       bounds = container.getBoundingClientRect(),
-      header = host.current?.querySelector('.chart-header')?.getBoundingClientRect().height || 100;
+      toolbar = host.current?.querySelector('.chart-header'),
+      header =
+        toolbar && getComputedStyle(toolbar).position === 'sticky'
+          ? toolbar.getBoundingClientRect().height
+          : 0;
     if (rect.top < bounds.top + header + 8 || rect.bottom > bounds.bottom - 25)
       container.scrollTo({
         top: Math.max(
           0,
-          container.scrollTop + rect.top - bounds.top - header - (bounds.height - header) * 0.35,
+          container.scrollTop +
+            rect.top -
+            bounds.top -
+            header -
+            12 -
+            Math.max(0, bounds.height - header - rect.height - 24) * 0.35,
         ),
         behavior: playing ? 'smooth' : 'instant',
       });
@@ -405,7 +414,7 @@ export default function ChordSheet({
     );
   };
   return (
-    <section className="chord-sheet chart-workspace" ref={host}>
+    <section className={'chord-sheet chart-workspace' + (playing ? ' is-playing' : '')} ref={host}>
       <div className="chart-header">
         {isAndroid && (
           <div className="mobile-chord-bar">
