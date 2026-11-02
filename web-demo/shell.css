@@ -1,0 +1,98 @@
+body {
+  overflow: hidden;
+}
+.demo-banner {
+  position: relative;
+  z-index: 300;
+  height: 46px;
+  min-width: 1000px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 0 18px;
+  background: #261c26;
+  border-bottom: 1px solid #52333f;
+  font-size: 11px;
+  color: #bfaab7;
+}
+.demo-banner > div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.demo-banner b {
+  color: #ff91a8;
+}
+.demo-banner nav {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 12px;
+}
+.demo-banner button {
+  flex: none;
+  width: auto;
+  white-space: nowrap;
+  padding: 3px 8px;
+  font-size: 11px;
+  border-color: #624451;
+  background: transparent;
+  border-radius: 5px;
+}
+.demo-banner a {
+  color: #eeb8c7;
+  text-decoration: none;
+}
+.demo-notice {
+  height: 32px;
+  min-width: 1000px;
+  padding: 6px 20px;
+  background: #1b181d;
+  color: #c3abb8;
+  border-bottom: 1px solid #343039;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.demo-desktop {
+  height: calc(100dvh - 78px);
+  min-width: 1000px;
+}
+.demo-desktop .app {
+  height: 100%;
+  min-height: 560px;
+}
+.demo-help {
+  position: absolute;
+  z-index: 400;
+  right: 22px;
+  top: 52px;
+  max-width: 540px;
+  padding: 24px;
+  background: #211d25;
+  border: 1px solid #694451;
+  border-radius: 14px;
+  box-shadow: 0 20px 70px #0009;
+  line-height: 1.8;
+}
+.demo-help strong {
+  color: #f8c8d4;
+  font-size: 18px;
+}
+.demo-help p {
+  color: #b9a8b3;
+  font-size: 13px;
+}
+@media (max-width: 1000px) {
+  body {
+    overflow-x: auto;
+  }
+  .demo-help {
+    left: 20px;
+    right: auto;
+    width: min(500px, calc(100vw - 40px));
+  }
+}

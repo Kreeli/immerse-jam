@@ -21,4 +21,5 @@ vendor/*.zip
 __pycache__/
 *.pyc
 test-output/
+docs/site/tryout/
 *.log

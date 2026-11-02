@@ -10,6 +10,11 @@ const types = {
   '.js': 'text/javascript; charset=utf-8',
   '.png': 'image/png',
   '.ico': 'image/x-icon',
+  '.json': 'application/json',
+  '.mp3': 'audio/mpeg',
+  '.woff2': 'font/woff2',
+  '.woff': 'font/woff',
+  '.svg': 'image/svg+xml',
 };
 const server = http.createServer((req, res) => {
   let pathname;
@@ -21,6 +26,7 @@ const server = http.createServer((req, res) => {
   }
   // Mirror GitHub Pages' project subpath during local preview.
   pathname = pathname.replace(/^\/immerse-jam(?=\/|$)/, '');
+  if (pathname.endsWith('/')) pathname += 'index.html';
   const filename = path.resolve(
     root,
     '.' + (pathname === '' || pathname === '/' ? '/index.html' : pathname),
@@ -46,6 +52,8 @@ const server = http.createServer((req, res) => {
     else fs.createReadStream(filename).pipe(res);
   });
 });
-server.listen(port, '127.0.0.1', () =>
-  console.log(`Immerse Jam website: http://127.0.0.1:${port}/immerse-jam/`),
-);
+module.exports = { server };
+if (require.main === module)
+  server.listen(port, '127.0.0.1', () =>
+    console.log(`Immerse Jam website: http://127.0.0.1:${port}/immerse-jam/`),
+  );

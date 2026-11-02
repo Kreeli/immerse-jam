@@ -7,6 +7,13 @@ on:
       - 'docs/site/**'
       - '.github/workflows/pages.yml'
       - 'scripts/prepare-website-downloads.cjs'
+      - 'scripts/test-website-demo.cjs'
+      - 'scripts/preview-website.cjs'
+      - 'web-demo/**'
+      - 'src/**'
+      - 'shared/**'
+      - 'package.json'
+      - 'package-lock.json'
   release:
     types: [published, edited, deleted]
   workflow_dispatch:
@@ -52,7 +59,15 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
       - name: Configure Pages
         uses: actions/configure-pages@v5
-      - name: Upload website
+      - name: Install frontend dependencies
+        run: npm ci --ignore-scripts
+      - name: Build interactive PC demo
+        run: node node_modules/vite/bin/vite.js build --config web-demo/vite.config.mjs
+      - name: Install demo test browser
+        run: npx playwright install --with-deps chromium
+      - name: Verify interactive demo
+        run: node scripts/test-website-demo.cjs
+      - name: Upload verified website
         uses: actions/upload-pages-artifact@v4
         with:
           path: docs/site

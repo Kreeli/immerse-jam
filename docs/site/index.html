@@ -25,6 +25,7 @@
     <link rel="icon" href="assets/app-icon.ico" type="image/x-icon" />
     <link rel="stylesheet" href="styles.css" />
     <script src="app.js" defer></script>
+    <script src="tryout-launcher.js" defer></script>
   </head>
   <body>
     <a class="skip-link" href="#main">跳到正文</a>
@@ -36,6 +37,7 @@
           ></a
         >
         <nav aria-label="主导航">
+          <a href="#tryout">在线试用</a>
           <a href="#stems">分轨试听</a><a href="#practice">练琴</a><a href="#create">创作录音</a
           ><a href="#models">模型</a><a href="#android">Android</a><a href="#faq">常见问题</a>
         </nav>
@@ -63,6 +65,9 @@
             demo。
           </p>
           <div class="hero-actions">
+            <a class="button ghost" href="#tryout"
+              >在线试用 PC 工作台 <span aria-hidden="true">↗</span></a
+            >
             <a
               class="button"
               data-download-kind="windows"
@@ -117,6 +122,51 @@
         <div>
           <h2>Android 便携版</h2>
           <p>手机和平板上播放、跟练、录音。项目通过 Wi-Fi 互传，电脑分轨，手机接着练。</p>
+        </div>
+      </section>
+
+      <section class="tryout-section" id="tryout" aria-labelledby="tryout-title">
+        <div class="wrap">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">TRY BEFORE YOU DOWNLOAD</p>
+              <h2 id="tryout-title">先点几下，<br />再决定要不要下载。</h2>
+            </div>
+            <p>
+              直接操作 PC 端工作台。已导入 Fabulous 排练片段，<br />选模型、模拟分析，再关闭你想练的那一轨。
+            </p>
+          </div>
+          <div class="tryout-frame" id="tryout-frame">
+            <div class="tryout-toolbar">
+              <span><i></i> IMMERSE JAM · 可交互桌面演示</span>
+              <div>
+                <button type="button" id="tryout-fullscreen" hidden>全屏体验 ↗</button
+                ><a href="tryout/index.html" target="_blank" rel="noopener">单独打开 ↗</a
+                ><button type="button" id="tryout-close" hidden>收起试用</button>
+              </div>
+            </div>
+            <div class="tryout-launch" id="tryout-launch">
+              <img
+                src="assets/Win_practice.png"
+                width="1920"
+                height="1022"
+                alt="即将进入的 Immerse Jam PC 工作台"
+                loading="lazy"
+              />
+              <div>
+                <span class="tryout-pill">PC 原版界面 · 预置六轨 · 无需安装</span>
+                <h3>这一遍，让你来操作。</h3>
+                <p>已载入排练片段 → 开始分析 → 创建跟练</p>
+                <button class="button" type="button" id="tryout-start">
+                  启动在线试用 <span aria-hidden="true">▶</span></button
+                ><small>点击后加载工作台和演示音频，不运行模型。</small>
+              </div>
+            </div>
+            <div id="tryout-mount"></div>
+          </div>
+          <p class="tryout-note">
+            播放、混音、变速移调、循环与编辑可实际操作；分析使用预置结果，录音载入预置吉他片段，不使用麦克风。和弦／节拍／谱例仅作流程示意。导出、互传和本机文件操作展示入口；修改仅在本页会话中保留。手机可横向滑动桌面界面，建议电脑或横屏体验。
+          </p>
         </div>
       </section>
 

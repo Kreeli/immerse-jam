@@ -1,5 +1,28 @@
 # 应用介绍网站
 
+## PC 界面在线试用
+
+官网新增「在线试用」入口与按点击加载的工作台。`web-demo/` 复用 `src/` 中的 PC 端 React 组件、样式与播放器，通过独立的浏览器适配层替代桌面接口，不修改 PC 端代码。可单独打开 `tryout/index.html`，或在官网内嵌／全屏体验。关闭内嵌试用会卸载工作台并停止播放。
+
+首次本地构建：
+
+```powershell
+node node_modules/vite/bin/vite.js build --config web-demo/vite.config.mjs
+node scripts/preview-website.cjs
+```
+
+直接访问 http://127.0.0.1:4178/immerse-jam/tryout/index.html 。已有项目依赖即可构建；干净环境需先 `npm ci --ignore-scripts`。构建产物 `docs/site/tryout/` 不提交，由 Pages 工作流构建后发布。网页部署会使用提交到 GitHub 的 PC 源码，不包含工作区其他未提交修改。
+
+播放、声部混音、变速移调、段落／标记、和弦编辑、跟练与创作使用真实前端交互。模拟分析只显示进度并载入现有 Fabulous 六轨，不运行模型，也不比较不同模型效果。节拍、和弦、谱例与对齐点为流程示意，不应当作歌曲的准确识别结果。录音使用模拟输入与预置吉他片段，不请求麦克风。导出／互传／本机文件操作展示入口，不生成真实工程或建立设备连接。修改只保留在当前页面会话中，重置即可恢复。
+
+`web-demo/bridge.ts` 管理演示数据与事件，`capture.ts` 和 `devices.ts` 保证不访问录音硬件。Vite 插件只在网页构建中转换音频资源地址，保留 PC 代码不变。`scripts/test-website-demo.cjs` 验证端到端体验，Windows 使用已安装 Edge，其他系统使用 Playwright Chromium：
+
+```powershell
+node scripts/test-website-demo.cjs
+```
+
+如需验证与已提交源码一致的构建，可以将该版本的 `src/`、`shared/`、`assets/` 和 `package.json` 导出到独立目录，并将 `IMMERSE_DEMO_APP_ROOT` 指向该目录。工作流每次构建都会跟随已提交 PC 界面；改动相关组件后应重新运行上述检查。
+
 ## 直接下载与版本更新
 
 首页、下载中心和下载跳转页的按钮，在发布前由 `scripts/prepare-website-downloads.cjs` 写入真实安装包地址；访客不必请求 GitHub API，也不需要 JavaScript 才能下载。Windows、Android ARM64 与 x86_64 分别选取最近的可用安装文件，允许不同平台来自不同 Release。
@@ -8,7 +31,7 @@
 
 发布、编辑或删除 Release 会触发刷新；请先上传完所需安装包再正式发布。如果只是给已经发布的 Release 补传资产，手动运行 **Deploy introduction website** 刷新下载地址。构建未能取得完整有效的下载目录时会停止发布，保留上一次已部署的网站。
 
-网站源文件在 `docs/site/`，是一个独立的静态网站，不依赖应用构建、不需要安装额外依赖，也不包含曲库或音频文件。
+官网源文件在 `docs/site/`；介绍页是静态 HTML，PC 在线试用通过 `web-demo/` 单独构建。只使用网站中已有的公开排练片段，不读取个人曲库。
 
 ## 本地预览
 

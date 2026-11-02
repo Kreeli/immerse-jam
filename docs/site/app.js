@@ -237,6 +237,7 @@
     }
 
     playButton.addEventListener('click', () => setPlaying(!state.playing));
+    window.addEventListener('immerse-demo-start', () => setPlaying(false));
 
     document.querySelectorAll('[data-audio-mode]').forEach((button) => {
       button.addEventListener('click', () => {
