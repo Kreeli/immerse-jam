@@ -1,10 +1,10 @@
 # Immerse Jam 开发说明与交接
 
-## 当前：0.1.11 / Android preview.3 发布候选
+## 当前公开版本：0.1.11 / Android preview.3
 
 2026-11-02 用户已验收整体功能，并明确授权修正设置页空白、整理代码和文档后发布新 Release，同时更新网站重定向。因此本轮使用新标签 v0.1.11，不覆盖 v0.1.10。Windows 版本为 0.1.11；Android versionName 为 0.1.0-preview.3、versionCode 为 3，原签名不变。设置区去掉叠加的分隔线与间距，让更新标题使用独立紧凑样式；两端实际间距均 18 px，无横向溢出，README 与网站静态版本同步更新。新公开说明为 `docs/RELEASE-0.1.11.md`。
 
-已完成一次最终类型 / 文案 / 格式 / 80 项自动检查、双端构建及设置布局核对。原生安装下载页、小窗口和真实平板功能验收沿用本轮此前的有关结果，不重复长时间播放或整套依赖下载。Windows 包内容与 Android 签名、versionCode、文件内容均核对；发布附件在 `release/publish-v0.1.11`，含 Setup、两种 APK、SHA256SUMS.txt。发布与网站部署结果将在本节补充。下文的“尚未发布”是之前的验收阶段记录。
+已完成一次最终类型 / 文案 / 格式 / 80 项自动检查、双端构建及设置布局核对。原生安装下载页、小窗口和真实平板功能验收沿用本轮此前的有关结果，不重复长时间播放或整套依赖下载。Windows 包内容与 Android 签名、versionCode、文件内容均核对；发布附件在 `release/publish-v0.1.11`，含 Setup、两种 APK、SHA256SUMS.txt。v0.1.11 已公开，Release ID 431507617，源码标签对应 97bdbaeae78d8bc0c1b2475285c3885f988ed3f7。仓库 Source checks 41457566922 的 Windows 与 backend 均通过；之前两次失败保留，分别定位脚本读取时机与真实矮窗口和弦遮挡，修正后通过。设置 / 原生下载页和小窗口修复均已纳入发行包。Windows Setup 227080760 字节，SHA-256 99dc03b2c4c9720c2352433f93dba3a912cfefc0056e11c5dc67c3158c46a715；两种 Android APK 每包 12535370 字节，SHA-256 e97c1ad22f6b843d47b9deb21ab1a4354ceea7921800e59ef4f827c27df753f1。网站发布后 main 调度部署 41458189984 成功，线上 download/releases.json 已是 v0.1.11；浏览器实际验证 Windows、Android arm64、x86_64 三个自动跳转均命中新附件，未重新下载二进制。Release 地址：https://github.com/Kreeli/immerse-jam/releases/tag/v0.1.11 。最终附件和公开状态已核对，旧 v0.1.10 与资源备份保持原样。下文的“尚未发布”是之前的验收阶段记录。
 
 ## 最新补充：Setup 下载步骤改为原生向导页面
 

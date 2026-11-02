@@ -2,26 +2,26 @@
   {
     "tag_name": "v0.1.11",
     "name": "Immerse Jam 0.1.11 - Android Preview 3",
-    "published_at": "2026-11-02T13:37:41.877Z",
+    "published_at": "2026-11-02T14:02:15Z",
     "html_url": "https://github.com/Kreeli/immerse-jam/releases/tag/v0.1.11",
-    "body": "# Immerse Jam 0.1.11 / Android 0.1.0-preview.3\n\n本版集中修复首次安装与录音数据保护，并补上检查更新。Windows 和 Android 保持原有页面结构。\n\n- Windows 安装向导先选择模型，再进入同一窗口中的下载页面，显示组件、文件、大小、速度和文件百分比；失败可重试并复用下载。修正原模型列表底部被裁掉的问题。校验和未知大小的依赖安装使用活动条。\n- 文件下载接入系统代理，并将代理用于环境安装；PyTorch 和普通 Python 依赖比较实际传输速度，支持备用来源及停滞重试。默认六轨模型增加固定指纹备用源，所有来源继续校验 SHA-256。\n- 冷启动环境检查放宽到 120 秒，只缓存成功结果，界面显示检查状态；使用稳定 ONNX，排除 nightly 依赖。\n- 两端删除录音前确认，保留项目内录音回收站，支持立即撤销和以后恢复；修复已保存的录音状态回复触发重复保存的问题。\n- 设置加入手动检查更新。Windows 下载校验后的 Setup，由用户选择退出安装；Android 打开匹配 APK。GitHub 接口受限时回退官网清单。\n- 两端设置页移除多余空白与重复分隔线；Windows 改善小窗口排版、分离按钮可见性与底部录音波形。波形采用全曲峰值余量，修正视觉上的截平。\n- 局域网分享使用短时一次性邀请与会话认证，绑定单个可选网卡，配对凭据不放入新接口 URL。\n- 重写中英文 README，统一版本信息，补充首次下载量、数据位置、安装与检查说明。\n\nAndroid 仍为外部音轨播放器、练琴与创作工具，不提供本地推理。APK 沿用原签名，versionCode 从 2 增至 3，可覆盖升级并保留数据。Windows 继续使用原数据目录。\n\n本版经过类型、文案、格式、80 项自动检查和两端设置布局检查；已核对 Android 新旧签名一致及安装包内容。此前针对本轮功能完成了平板录音恢复、波形和局域网配对验收；这次设置间距调整不重复进行长时间实机音频测试。没有为发布重新下载整套 3–5 GB 运行库。变速 / 变调跳转在部分设备仍可能短暂停顿。\n\n下载安装后可按附件 `SHA256SUMS.txt` 校验文件。官网下载与自动跳转入口同步到本版本，旧 Release 保留供回退。\n",
+    "body": "# Immerse Jam 0.1.11 / Android 0.1.0-preview.3\n\n本版集中修复首次安装与录音数据保护，并补上检查更新。Windows 和 Android 保持原有页面结构。\n\n- Windows 安装向导先选择模型，再进入同一窗口中的下载页面，显示组件、文件、大小、速度和文件百分比；失败可重试并复用下载。修正原模型列表底部被裁掉的问题。校验和未知大小的依赖安装使用活动条。\n- 文件下载接入系统代理，并将代理用于环境安装；PyTorch 和普通 Python 依赖比较实际传输速度，支持备用来源及停滞重试。默认六轨模型增加固定指纹备用源，所有来源继续校验 SHA-256。\n- 冷启动环境检查放宽到 120 秒，只缓存成功结果，界面显示检查状态；使用稳定 ONNX，排除 nightly 依赖。\n- 两端删除录音前确认，保留项目内录音回收站，支持立即撤销和以后恢复；修复已保存的录音状态回复触发重复保存的问题。\n- 设置加入手动检查更新。Windows 下载校验后的 Setup，由用户选择退出安装；Android 打开匹配 APK。GitHub 接口受限时回退官网清单。\n- 两端设置页移除多余空白与重复分隔线；Windows 改善小窗口排版、分离按钮可见性与底部录音波形。波形采用全曲峰值余量，修正视觉上的截平。\n- 矮窗口播放时，和弦工具栏随内容滚动，为小节留出空间；跟随定位按实际可用高度与小节大小计算，避免当前小节落到屏幕外，编辑时保留工具栏。\n- 局域网分享使用短时一次性邀请与会话认证，绑定单个可选网卡，配对凭据不放入新接口 URL。\n- 重写中英文 README，统一版本信息，补充首次下载量、数据位置、安装与检查说明。\n\nAndroid 仍为外部音轨播放器、练琴与创作工具，不提供本地推理。APK 沿用原签名，versionCode 从 2 增至 3，可覆盖升级并保留数据。Windows 继续使用原数据目录。\n\n本版经过类型、文案、格式、80 项自动检查和两端设置布局检查；已核对 Android 新旧签名一致及安装包内容。此前针对本轮功能完成了平板录音恢复、波形和局域网配对验收；这次设置间距调整不重复进行长时间实机音频测试。没有为发布重新下载整套 3–5 GB 运行库。变速 / 变调跳转在部分设备仍可能短暂停顿。\n\n下载安装后可按附件 `SHA256SUMS.txt` 校验文件。官网下载与自动跳转入口同步到本版本，旧 Release 保留供回退。\n",
     "prerelease": false,
     "draft": false,
     "assets": [
       {
-        "name": "Immerse.Jam.Setup.0.1.11.exe",
-        "size": 227080733,
-        "browser_download_url": "https://github.com/Kreeli/immerse-jam/releases/download/v0.1.11/Immerse.Jam.Setup.0.1.11.exe"
-      },
-      {
         "name": "Immerse-Jam-Android-0.1.0-preview.3-arm64.apk",
-        "size": 11944016,
+        "size": 12535370,
         "browser_download_url": "https://github.com/Kreeli/immerse-jam/releases/download/v0.1.11/Immerse-Jam-Android-0.1.0-preview.3-arm64.apk"
       },
       {
         "name": "Immerse-Jam-Android-0.1.0-preview.3-x86_64.apk",
-        "size": 11944016,
+        "size": 12535370,
         "browser_download_url": "https://github.com/Kreeli/immerse-jam/releases/download/v0.1.11/Immerse-Jam-Android-0.1.0-preview.3-x86_64.apk"
+      },
+      {
+        "name": "Immerse.Jam.Setup.0.1.11.exe",
+        "size": 227080760,
+        "browser_download_url": "https://github.com/Kreeli/immerse-jam/releases/download/v0.1.11/Immerse.Jam.Setup.0.1.11.exe"
       },
       {
         "name": "SHA256SUMS.txt",
