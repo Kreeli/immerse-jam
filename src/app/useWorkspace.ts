@@ -300,10 +300,10 @@ export function useWorkspace() {
 
             message: e.message,
 
-            progress: e.progress,
-            file: e.file,
-            received: e.received,
-            total: e.total,
+            progress: e.progress ?? (e.type === 'error' ? list[id]?.progress : undefined),
+            file: e.file ?? (e.type === 'error' ? list[id]?.file : undefined),
+            received: e.received ?? (e.type === 'error' ? list[id]?.received : undefined),
+            total: e.total ?? (e.type === 'error' ? list[id]?.total : undefined),
             bytesPerSecond: e.bytesPerSecond,
           },
         }));

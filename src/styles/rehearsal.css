@@ -2022,3 +2022,33 @@ html:not([data-platform='android']) .nr-nav-foot .nr-ver {
   font-size: 10px;
   letter-spacing: 0.08em;
 }
+
+/* Keep the analysis actions floating without a full-width footer surface. */
+.separation-dialog .modal-actions {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  pointer-events: none;
+}
+.separation-dialog .modal-actions > button {
+  pointer-events: auto;
+  box-shadow: 0 4px 14px #0003;
+}
+.model-source-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 10px;
+}
+.model-source-links a {
+  color: var(--accent);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.model-import-hint {
+  display: block;
+  margin: 8px 0 0;
+  color: var(--text-3);
+  font-size: 12px;
+}

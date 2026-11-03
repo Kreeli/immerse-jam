@@ -1,3 +1,5 @@
+import { jamCall } from '../../platform/project-call';
+import { isDesktop } from '../../platform/environment';
 import { Download, LoaderCircle, RefreshCw } from 'lucide-react';
 import { t as tr, message as translateMessage } from '../../i18n';
 import type { Model, ModelDownload } from '../../shared/types';
@@ -6,10 +8,12 @@ export default function ModelManager({
   models,
   downloads,
   onDownload,
+  onError,
 }: {
   models: Model[];
   downloads: Record<string, ModelDownload>;
   onDownload: (id: string) => void;
+  onError?: (message: string) => void;
 }) {
   const names: Record<string, string> = {
     vocals: tr('人声'),
@@ -25,6 +29,9 @@ export default function ModelManager({
   };
   return (
     <div className="model-list">
+      <p className="model-import-hint">
+        {tr('下载较慢时，可使用各模型的原始发布源链接手动下载，再导入本地文件夹。')}
+      </p>
       {models.map((model) => {
         const state = downloads[model.id],
           loading = state?.status === 'progress';
@@ -41,6 +48,35 @@ export default function ModelManager({
                   ? tr('节拍 \u00B7 小节首拍 \u00B7 BPM')
                   : model.stems.map((stem) => names[stem] || stem).join(' · ')}
               </small>
+              {!!model.sourceFiles?.length && (
+                <>
+                  <small className="model-import-hint">{tr('原始发布源下载')}</small>
+                  <div className="model-source-links" aria-label={tr('原始发布源下载')}>
+                    {model.sourceFiles.map((source) => (
+                      <a
+                        key={source.file}
+                        href={source.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(event) => {
+                          if (isDesktop) {
+                            event.preventDefault();
+                            void jamCall('model-source-open', {
+                              id: model.id,
+                              file: source.file,
+                            }).catch((error) => onError?.(error.message));
+                          }
+                        }}
+                      >
+                        {source.file} ↗
+                      </a>
+                    ))}
+                  </div>
+                  <p className="model-import-hint">
+                    {tr('手动下载时，请将以上全部文件放在同一文件夹，再点击“导入本地模型”。')}
+                  </p>
+                </>
+              )}
               {loading && (
                 <>
                   <progress
@@ -59,7 +95,9 @@ export default function ModelManager({
               {state?.status === 'error' && (
                 <span className="model-download-error">
                   {translateMessage(state.message)}
-                  {tr('，可点击重试继续下载。')}
+                  {state.received !== undefined &&
+                    ` · ${(state.received / 1048576).toFixed(1)} MiB`}
+                  {tr('，已下载部分已保留，可从断点重试。')}
                 </span>
               )}
             </div>
@@ -70,7 +108,7 @@ export default function ModelManager({
               {!model.custom && (
                 <button
                   className={'small ' + (model.installed ? '' : 'primary')}
-                  aria-label={`${translateMessage(model.name)}${model.installed ? tr('校验模型') : tr('下载模型')}`}
+                  aria-label={`${translateMessage(model.name)}${state?.status === 'error' ? tr('从断点重试') : model.installed ? tr('校验模型') : tr('下载模型')}`}
                   disabled={loading}
                   onClick={() => onDownload(model.id)}
                 >
@@ -84,7 +122,7 @@ export default function ModelManager({
                   {loading
                     ? tr('下载 / 校验中…')
                     : state?.status === 'error'
-                      ? tr('重试')
+                      ? tr('从断点重试')
                       : model.installed
                         ? tr('校验模型')
                         : tr('下载模型')}

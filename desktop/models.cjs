@@ -174,6 +174,13 @@ function validateManifest(m) {
   if (m.adapter !== 'onnx-waveform' && !m.config) throw new Error('此模型需要 YAML 配置');
   return m;
 }
+function modelFiles(m) {
+  return [
+    { file: m.file, url: m.modelUrl, sha256: m.sha256 },
+    ...(m.config ? [{ file: m.config, url: m.configUrl, sha256: m.configSha256 }] : []),
+    ...(m.extraFiles || []),
+  ];
+}
 class Models {
   constructor(base) {
     this.base = path.join(base, 'models');
@@ -193,6 +200,7 @@ class Models {
       });
     return [...catalog, ...custom].map((m) => ({
       ...m,
+      sourceFiles: m.custom ? [] : modelFiles(m).map(({ file, url }) => ({ file, url })),
       installed:
         fs.existsSync(path.join(this.base, m.id, 'verified.json')) &&
         [m.file, m.config, ...(m.extraFiles || []).map((file) => file.file)]
@@ -265,6 +273,30 @@ class Models {
     return { ...m, directory: dir };
   }
   import(folder) {
+    if (!fs.existsSync(path.join(folder, 'manifest.json'))) {
+      const m = catalog.find((m) => fs.existsSync(contained(folder, m.file)));
+      if (!m) throw new Error('未找到内置模型文件或 manifest.json');
+      if (this.inflight.has(m.id)) throw new Error('模型正在下载，请完成后再导入');
+      const files = modelFiles(m);
+      for (const file of files) {
+        const source = contained(folder, file.file);
+        if (!fs.existsSync(source)) throw new Error('缺少模型文件：' + file.file);
+        if (!validHash(file.sha256) || fileHash(source) !== file.sha256)
+          throw new Error('模型校验值不匹配：' + file.file);
+      }
+      const dir = path.join(this.base, m.id);
+      fs.mkdirSync(dir, { recursive: true });
+      for (const file of files) {
+        const source = contained(folder, file.file),
+          target = path.join(dir, file.file);
+        if (path.resolve(source) !== path.resolve(target)) fs.copyFileSync(source, target);
+      }
+      atomicJson(path.join(dir, 'verified.json'), {
+        source: 'local',
+        verifiedAt: new Date().toISOString(),
+      });
+      return { ...m, directory: dir };
+    }
     const m = validateManifest(
         JSON.parse(fs.readFileSync(path.join(folder, 'manifest.json'), 'utf8')),
       ),
@@ -286,7 +318,7 @@ class Models {
     return manifest;
   }
 }
-module.exports = { Models, validateManifest, catalog };
+module.exports = { Models, validateManifest, catalog, modelFiles };
 function validHash(value) {
   return typeof value === 'string' && /^[a-f0-9]{64}$/i.test(value);
 }

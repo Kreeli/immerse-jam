@@ -40,9 +40,9 @@ Function IJDownloadPage
   Pop $IJTransferLabel
   ${NSD_CreateLabel} 0 96u 100% 24u ""
   Pop $IJMessageLabel
-  ${NSD_CreateLabel} 0 122u 76% 18u "$(IJDownloadNote)"
+  ${NSD_CreateLabel} 0 122u 66% 22u "$(IJDownloadNote)"
   Pop $0
-  ${NSD_CreateButton} 80% 122u 20% 18u "$(IJRetry)"
+  ${NSD_CreateButton} 70% 122u 30% 18u "$(IJRetry)"
   Pop $IJRetryButton
   ${NSD_OnClick} $IJRetryButton IJDownloadStart
   StrCpy $IJStatusFile "$PLUGINSDIR\immerse-download.ini"

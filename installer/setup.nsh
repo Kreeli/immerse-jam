@@ -46,8 +46,8 @@
   LangString IJComponents ${LANG_SIMPCHINESE} "安装完成前会自动准备所有依赖。请选择运行方式及可选模型，需要联网下载。"
   LangString IJAutoText ${LANG_ENGLISH} "Automatic NVIDIA detection (CPU otherwise)"
   LangString IJAutoText ${LANG_SIMPCHINESE} "自动检测 NVIDIA 显卡（其他设备使用 CPU）"
-  LangString IJModelNote ${LANG_ENGLISH} "Default: six stems and beats. Vocal/guitar add-ons also install the six-stem base. More models can be downloaded later."
-  LangString IJModelNote ${LANG_SIMPCHINESE} "默认安装六轨与节拍模型。专用人声／吉他选项会同时安装六轨基础模型，其他模型可稍后下载。"
+  LangString IJModelNote ${LANG_ENGLISH} "Model downloads may be slow. We recommend installing the app first, then downloading models in Settings. Vocal/guitar add-ons also need the six-stem base."
+  LangString IJModelNote ${LANG_SIMPCHINESE} "模型下载可能很慢，建议先取消模型勾选，安装应用后再到设置中下载。专用人声／吉他同时需要六轨基础模型。"
   LangString IJPreparing ${LANG_ENGLISH} "Preparing the private environment and selected models..."
   LangString IJPreparing ${LANG_SIMPCHINESE} "正在准备专用环境和所选模型…"
   LangString IJFailed ${LANG_ENGLISH} "Preparation did not finish. Check the connection and data-folder permissions, then Retry. Downloads can resume. Details: installation.log in the selected data folder. Cancel stops installation without deleting your data."
@@ -60,14 +60,14 @@
   LangString IJDownloadSelected ${LANG_SIMPCHINESE} "所选模型："
   LangString IJDownloadStarting ${LANG_ENGLISH} "Starting preparation; existing downloads will be reused."
   LangString IJDownloadStarting ${LANG_SIMPCHINESE} "正在开始准备，已有模型和下载缓存会复用。"
-  LangString IJDownloadNote ${LANG_ENGLISH} "The first bar shows completed steps, the second the current file. Verification and dependency installation may show activity without a percentage."
-  LangString IJDownloadNote ${LANG_SIMPCHINESE} "上方为步骤进度，下方为当前文件进度。校验或安装依赖时显示活动条，不虚报百分比。"
+  LangString IJDownloadNote ${LANG_ENGLISH} "If interrupted, resume from saved progress. Completed files are reused. Verification and dependency installation may show activity without a percentage."
+  LangString IJDownloadNote ${LANG_SIMPCHINESE} "下载中断后可从断点重试；已完成的文件会复用。校验或安装依赖时显示活动条。"
   LangString IJDownloadComplete ${LANG_ENGLISH} "All selected components are ready"
   LangString IJDownloadComplete ${LANG_SIMPCHINESE} "所选组件已全部准备完成"
   LangString IJDownloadDone ${LANG_ENGLISH} "Click Next to finish. Your data folder is retained."
   LangString IJDownloadDone ${LANG_SIMPCHINESE} "点击下一步完成安装。原有曲库与录音保留。"
-  LangString IJRetry ${LANG_ENGLISH} "Retry"
-  LangString IJRetry ${LANG_SIMPCHINESE} "重试"
+  LangString IJRetry ${LANG_ENGLISH} "Resume download"
+  LangString IJRetry ${LANG_SIMPCHINESE} "从断点重试"
   LangString IJNoModels ${LANG_ENGLISH} "Runtime only; models can be added in Settings later."
   LangString IJNoModels ${LANG_SIMPCHINESE} "仅准备运行环境，模型可稍后在设置中下载。"
   LangString IJSelectModelsTitle ${LANG_ENGLISH} "Choose models"
@@ -210,24 +210,24 @@
     ${Else}
       ${NSD_Check} $IJAuto
     ${EndIf}
-    ${NSD_CreateLabel} 0 55u 100% 16u "$(IJModelNote)"
+    ${NSD_CreateLabel} 0 55u 100% 28u "$(IJModelNote)"
     Pop $0
-    ${NSD_CreateCheckbox} 0 74u 100% 11u "BS RoFormer SW - 6 stems (~667 MiB)"
+    ${NSD_CreateCheckbox} 0 86u 100% 11u "BS RoFormer SW - 6 stems (~667 MiB)"
     Pop $IJModel0
     ${NSD_SetState} $IJModel0 $IJSelected0
-    ${NSD_CreateCheckbox} 0 85u 100% 11u "HT Demucs - 6 stems (~52 MB)"
+    ${NSD_CreateCheckbox} 0 97u 100% 11u "HT Demucs - 6 stems (~52 MB)"
     Pop $IJModel1
     ${NSD_SetState} $IJModel1 $IJSelected1
-    ${NSD_CreateCheckbox} 0 96u 100% 11u "SCNet Small - 4 stems"
+    ${NSD_CreateCheckbox} 0 108u 100% 11u "SCNet Small - 4 stems"
     Pop $IJModel2
     ${NSD_SetState} $IJModel2 $IJSelected2
-    ${NSD_CreateCheckbox} 0 107u 100% 11u "Lead / backing vocals"
+    ${NSD_CreateCheckbox} 0 119u 100% 11u "Lead / backing vocals"
     Pop $IJModel3
     ${NSD_SetState} $IJModel3 $IJSelected3
-    ${NSD_CreateCheckbox} 0 118u 100% 11u "Lead / rhythm guitar (~337 MB)"
+    ${NSD_CreateCheckbox} 0 130u 100% 11u "Lead / rhythm guitar (~337 MB)"
     Pop $IJModel4
     ${NSD_SetState} $IJModel4 $IJSelected4
-    ${NSD_CreateCheckbox} 0 129u 100% 11u "Beat This! - BPM (~77 MB)"
+    ${NSD_CreateCheckbox} 0 141u 100% 11u "Beat This! - BPM (~77 MB)"
     Pop $IJModel5
     ${NSD_SetState} $IJModel5 $IJSelected5
     nsDialogs::Show

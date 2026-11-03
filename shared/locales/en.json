@@ -1077,5 +1077,13 @@
   "永久删除附件“{0}”？只删除项目内的副本，不影响导入前的原文件。": "Permanently delete “{0}”? Only the project copy is deleted; the original imported file is kept.",
   "管理分类 {0}": "Manage category {0}",
   "使用帮助": "Help",
-  "请作者喝冰可乐": "Buy me a cola"
+  "请作者喝冰可乐": "Buy me a cola",
+  "原始发布源下载": "Original source downloads",
+  "手动下载时，请将以上全部文件放在同一文件夹，再点击“导入本地模型”。": "Download all files above into the same folder, then choose Import local model.",
+  "导入本地模型": "Import local model",
+  "选择模型文件夹（内置模型文件或 manifest.json）": "Choose model folder (built-in model files or manifest.json)",
+  "下载较慢时，可使用各模型的原始发布源链接手动下载，再导入本地文件夹。": "If downloads are slow, download from the original source links below and import the local folder.",
+  "从断点重试": "Resume download",
+  "，已下载部分已保留，可从断点重试。": ". Downloaded data is kept; resume from the saved progress.",
+  "连接中断，正在从断点继续下载…": "Connection interrupted. Resuming from saved progress…"
 }

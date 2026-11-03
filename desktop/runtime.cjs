@@ -142,7 +142,6 @@ async function downloadFile(url, dest, sha256, onEvent) {
   const existing = fs.existsSync(part) ? fs.statSync(part).size : 0;
   const response = await fetchNetwork(url, {
     headers: existing ? { Range: `bytes=${existing}-` } : {},
-    signal: AbortSignal.timeout(30 * 60 * 1000),
   });
   if (response.status === 416 && existing) {
     const hash = crypto.createHash('sha256');
@@ -339,7 +338,7 @@ async function downloadModel(url, dest, sha256, onEvent) {
   let state;
   if (fs.existsSync(stateFile) && fs.existsSync(target)) {
     state = readState(stateFile);
-    if (!validRanges(state, url, total, fs.statSync(target).size)) state = null;
+    if (!validRanges(state, url, total, fs.statSync(target).size, sha256)) state = null;
   }
   if (!state) {
     const existing =
@@ -349,6 +348,7 @@ async function downloadModel(url, dest, sha256, onEvent) {
     const chunk = Math.ceil((total - existing) / 8);
     state = {
       url,
+      sha256,
       total,
       existing,
       ranges: Array.from({ length: 8 }, (_, i) => ({
@@ -359,6 +359,8 @@ async function downloadModel(url, dest, sha256, onEvent) {
     };
     atomicJson(stateFile, state);
   }
+  state.url = url;
+  atomicJson(stateFile, state);
   const fd = fs.openSync(target, 'r+');
   const received = () => state.existing + state.ranges.reduce((n, r) => n + r.received, 0);
   const report = downloadProgress(dest, total, received(), onEvent);
@@ -368,12 +370,13 @@ async function downloadModel(url, dest, sha256, onEvent) {
     const results = await Promise.allSettled(
       state.ranges.map(async (range) => {
         if (range.start + range.received > range.end) return;
-        for (let attempt = 0; attempt < 2; attempt++) {
+        let failures = 0;
+        for (;;) {
+          const before = range.received;
           try {
             const start = range.start + range.received,
               r = await fetchNetwork(url, {
                 headers: { Range: `bytes=${start}-${range.end}` },
-                signal: AbortSignal.timeout(30 * 60 * 1000),
               });
             if (r.status !== 206 || !r.headers.get('content-range')?.startsWith(`bytes ${start}-`))
               throw new Error('下载服务器未正确返回分块');
@@ -392,8 +395,18 @@ async function downloadModel(url, dest, sha256, onEvent) {
             atomicJson(stateFile, state);
             return;
           } catch (error) {
-            if (attempt === 1) throw error;
-            await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+            atomicJson(stateFile, state);
+            if (range.start + range.received === range.end + 1) return;
+            failures = range.received > before ? 0 : failures + 1;
+            if (failures >= 3) throw error;
+            onEvent?.({
+              type: 'progress',
+              message: '连接中断，正在从断点继续下载…',
+              file: path.basename(dest),
+              received: received(),
+              total,
+            });
+            await new Promise((r) => setTimeout(r, 500 * (failures + 1)));
           }
         }
       }),
@@ -435,10 +448,10 @@ async function downloadSources(urls, dest, sha256, onEvent) {
   throw downloadError(last || new Error('没有可用的下载源'));
 }
 module.exports.downloadSources = downloadSources;
-function validRanges(state, url, total, size) {
+function validRanges(state, url, total, size, sha256) {
   if (
     !state ||
-    state.url !== url ||
+    (state.url !== url && (!sha256 || state.sha256 !== sha256)) ||
     state.total !== total ||
     !Number.isSafeInteger(state.existing) ||
     state.existing < 0 ||

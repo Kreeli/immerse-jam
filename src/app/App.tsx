@@ -1085,10 +1085,11 @@ export default function App() {
                   <h3>{tr('模型管理')}</h3>
                   <button className="small" onClick={() => void act(() => jamCall('model-import'))}>
                     <Plus size={14} />
-                    {tr('导入自定义模型')}
+                    {tr('导入本地模型')}
                   </button>
                 </div>
                 <ModelManager
+                  onError={notify}
                   models={models}
                   downloads={modelDownloads}
                   onDownload={(id) => {
@@ -1101,7 +1102,7 @@ export default function App() {
                       .catch((e) => {
                         setModelDownloads((list) => ({
                           ...list,
-                          [id]: { status: 'error', message: e.message },
+                          [id]: { ...list[id], status: 'error', message: e.message },
                         }));
                         notify(tr('模型下载未完成，可重试继续下载'));
                       });

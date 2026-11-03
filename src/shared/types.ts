@@ -225,6 +225,7 @@ export interface Project {
   playlist?: string;
 }
 export interface Model {
+  sourceFiles?: { file: string; url: string }[];
   id: string;
   name: string;
   description: string;

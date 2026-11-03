@@ -1,3 +1,4 @@
+const responseControllers = new WeakMap();
 // Chromium inherits Windows proxy settings; Node fetch does not. CLI/tests
 // retain the Node transport, while both Electron installation paths use this.
 function createNetwork(electron, env = process.env) {
@@ -43,9 +44,11 @@ function createNetwork(electron, env = process.env) {
         ...(options.signal ? [options.signal] : []),
       ]);
       try {
-        return await (target
+        const response = await (target
           ? target.fetch(url, { ...options, signal })
           : globalThis.fetch(url, { ...options, signal }));
+        responseControllers.set(response, controller);
+        return response;
       } finally {
         clearTimeout(timer);
       }
@@ -86,7 +89,12 @@ async function* chunks(response, idleMs = 45000) {
       }
     }
   } finally {
-    await reader.cancel().catch(() => {});
+    responseControllers.get(response)?.abort();
+    responseControllers.delete(response);
+    // Some transports never settle cancel() on a broken connection. Cleanup
+    // must not prevent the idle timeout from reaching retry/error handling.
+    void reader.cancel().catch(() => {});
+    reader.releaseLock();
   }
 }
 function downloadError(error) {

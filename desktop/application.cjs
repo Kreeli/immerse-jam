@@ -443,11 +443,21 @@ app.whenReady().then(async () => {
       throw error;
     }
   });
+  handle('model-source-open', ({ id, file }) => {
+    const model = require('./models.cjs').catalog.find((m) => m.id === id);
+    const source =
+      model &&
+      require('./models.cjs')
+        .modelFiles(model)
+        .find((f) => f.file === file);
+    if (!source?.url?.startsWith('https://')) throw new Error('模型下载链接不存在');
+    return shell.openExternal(source.url);
+  });
   handle('model-import', async () => {
     if (!runtimeStatus().ready) throw new Error('请先准备本地运行环境');
     const s = await nativeDialogs.showOpenDialog(win, {
       properties: ['openDirectory'],
-      title: '选择包含 manifest.json 的模型文件夹',
+      title: '选择模型文件夹（内置模型文件或 manifest.json）',
     });
     if (s.canceled) return null;
     const model = models.import(s.filePaths[0]);
