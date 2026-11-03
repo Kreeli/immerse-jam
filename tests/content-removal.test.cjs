@@ -5,6 +5,7 @@ const fs = require('node:fs'),
   crypto = require('node:crypto');
 const { Store } = require('../desktop/store.cjs');
 const { removeContent } = require('../desktop/content-removal.cjs');
+fs.mkdirSync(path.resolve('.runtime/test-workspaces'), { recursive: true });
 function fixture(t) {
   const root = fs.mkdtempSync(path.resolve('.runtime/test-workspaces/content-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
