@@ -61,13 +61,16 @@ async function waitReady() {
     ) < 0.2,
     'result switch preserves position',
   );
-  await page.getByTitle('重命名分离结果', { exact: true }).click();
+  await page.getByRole('button', { name: '当前分离结果', exact: true }).click();
+  await page
+    .locator('.result-menu-row')
+    .filter({ has: page.locator(`[data-result-id="${resultB}"]`) })
+    .getByTitle('重命名', { exact: true })
+    .click();
   await page.getByRole('textbox', { name: '分离结果名称', exact: true }).fill('六轨练习版本');
   await page.getByRole('button', { name: '保存名称', exact: true }).click();
   await page.waitForFunction(() =>
-    document
-      .querySelector('[aria-label="当前分离结果"]')
-      .selectedOptions[0].textContent.includes('六轨练习版本'),
+    document.querySelector('[aria-label="当前分离结果"]').textContent.includes('六轨练习版本'),
   );
   await waitReady();
   await page.getByRole('button', { name: '播放', exact: true }).click();

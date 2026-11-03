@@ -589,6 +589,56 @@ public class ProjectStore {
     Files.move(source.toPath(), trash.toPath());
   }
 
+  public synchronized JSONObject deleteResult(String id, String resultId) throws Exception {
+    JSONObject p = get(id), before = new JSONObject(p.toString()), result = null;
+    JSONArray results = p.getJSONArray("results"), remaining = new JSONArray();
+    for (int i = 0; i < results.length(); i++) {
+      JSONObject item = results.getJSONObject(i);
+      if (item.getString("id").equals(resultId)) result = item;
+      else remaining.put(item);
+    }
+    if (result == null) throw new IOException("分离结果不存在");
+    p.put("results", remaining);
+    if (resultId.equals(p.optString("activeResultId")))
+      p.put("activeResultId", JSONObject.NULL).put("tracks", new JSONArray());
+    Set<String> removed = new LinkedHashSet<>();
+    JSONArray tracks = result.getJSONArray("tracks");
+    for (int i = 0; i < tracks.length(); i++) removed.add(tracks.getJSONObject(i).getString("file"));
+    JSONArray presets = p.getJSONArray("presets");
+    for (int i = 0; i < presets.length(); i++) {
+      JSONObject preset = presets.getJSONObject(i);
+      JSONArray old = preset.optJSONArray("tracks"), kept = new JSONArray();
+      if (old != null) for (int j = 0; j < old.length(); j++)
+        if (!removed.contains(old.getJSONObject(j).getString("file"))) kept.put(old.get(j));
+      preset.put("tracks", kept);
+    }
+    Set<String> retained = media(p);
+    File trash = new File(root, "trash/results/" + UUID.randomUUID());
+    write(new File(trash, "deleted.json"), new JSONObject().put("projectId", id)
+        .put("result", result).put("project", before).put("deletedAt", now()));
+    List<File[]> moved = new ArrayList<>();
+    try {
+      for (String file : removed) {
+        if (retained.contains(file)) continue;
+        File source = asset(id, file);
+        if (!source.exists()) continue;
+        if (!source.isFile()) throw new IOException("无效文件路径");
+        File destination = contained(trash, "files/" + file);
+        destination.getParentFile().mkdirs();
+        Files.move(source.toPath(), destination.toPath());
+        moved.add(new File[]{source, destination});
+      }
+      JSONObject saved = save(p);
+      write(new File(dir(id), "project.previous.json"), saved);
+      return saved;
+    } catch (Exception error) {
+      Collections.reverse(moved);
+      for (File[] pair : moved) Files.move(pair[1].toPath(), pair[0].toPath());
+      write(new File(dir(id), "project.json"), before);
+      throw error;
+    }
+  }
+
   public static void remove(File file) throws IOException {
     if (file.isDirectory()) {
       File[] children = file.listFiles();

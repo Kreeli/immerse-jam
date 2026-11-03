@@ -348,6 +348,15 @@ async function call(method: string, data: Data = {}): Promise<any> {
       );
       return save(p);
     }
+    case 'result-delete': {
+      const p = get(data.id);
+      p.results = p.results.filter((r: Data) => r.id !== data.resultId);
+      if (p.activeResultId === data.resultId) {
+        p.activeResultId = null;
+        p.tracks = [];
+      }
+      return save(p);
+    }
     case 'session-create': {
       const source = data.sourceId ? get(data.sourceId) : initial();
       const p = {

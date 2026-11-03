@@ -2,6 +2,7 @@ let prepare: (() => Promise<void>) | undefined;
 const ordered = new Set([
   'result-select',
   'result-rename',
+  'result-delete',
   'take-start',
   'take-select',
   'take-delete',

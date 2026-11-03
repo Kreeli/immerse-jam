@@ -321,6 +321,10 @@ public class NativeBridge {
       case "result-rename":
         {
           JSONObject p = store.get(d.getString("id"));
+          if (method.equals("result-select") && (d.isNull("resultId") || d.optString("resultId").isEmpty()))
+            return store.save(p.put("tracks", new JSONArray()).put("activeResultId", JSONObject.NULL));
+          if (method.equals("result-rename") && (d.optString("name").trim().isEmpty() || d.optString("name").length() > 120))
+            throw new IOException("请输入 1–120 字的结果名称");
           JSONArray results = p.getJSONArray("results");
           boolean found = false;
           for (int i = 0; i < results.length(); i++) {
@@ -330,12 +334,14 @@ public class NativeBridge {
               if (method.equals("result-select"))
                 p.put("tracks", result.getJSONArray("tracks"))
                     .put("activeResultId", result.getString("id"));
-              else result.put("name", d.getString("name"));
+              else result.put("name", d.getString("name").trim());
             }
           }
           if (!found) throw new IOException("分离结果不存在");
           return store.save(p);
         }
+      case "result-delete":
+        return store.deleteResult(d.getString("id"), d.getString("resultId"));
       case "result-open":
       case "reveal":
         return true;

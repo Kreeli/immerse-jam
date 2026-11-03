@@ -21,6 +21,12 @@ async function saved(predicate) {
   }
 }
 async function choose(page, name, value) {
+  const menu = page.getByRole('button', { name, exact: true });
+  if (name === '当前分离结果' && (await menu.count())) {
+    await menu.click();
+    await page.locator(`[data-result-id=${JSON.stringify(String(value || ''))}]`).click();
+    return;
+  }
   const control = page.getByRole('combobox', { name, exact: true });
   if (await control.evaluate((el) => el.tagName === 'SELECT')) return control.selectOption(value);
   const label = await page.locator('select').evaluateAll(

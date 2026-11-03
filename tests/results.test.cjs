@@ -134,3 +134,47 @@ test('a chart containing three chords in a measure cannot be committed', (t) => 
   );
   assert.equal(store.get(p.id).chordCharts, undefined);
 });
+
+test('deleting a separation result preserves originals and shared media and rolls back failed saves', (t) => {
+  const root = fixture(t),
+    store = new Store(root),
+    original = path.join(root, 'source.wav');
+  fs.writeFileSync(original, 'original');
+  let p = store.create(original);
+  p = store.addResult(p.id, { tracks: tracks(store, p.id, ['vocals'], 'first') }, { name: 'A' });
+  const first = p.results[0];
+  p = store.addResult(p.id, { tracks: tracks(store, p.id, ['drums'], 'second') }, { name: 'B' });
+  const second = p.results[1];
+  p.presets = [
+    { name: 'saved', tracks: [...first.tracks, ...second.tracks], practice: p.practice },
+  ];
+  store.save(p);
+  p = store.deleteResult(p.id, first.id);
+  assert.equal(p.activeResultId, second.id);
+  assert.equal(p.results.length, 1);
+  assert.equal(p.presets[0].tracks.length, 1);
+  assert.ok(fs.existsSync(store.asset(p.id, p.original)));
+  assert.ok(!fs.existsSync(store.asset(p.id, first.tracks[0].file)));
+  const deleted = fs.readdirSync(path.join(root, 'trash/results'))[0];
+  assert.deepEqual(
+    fs.readFileSync(path.join(root, 'trash/results', deleted, 'files', first.tracks[0].file)),
+    Buffer.alloc(1024, 9),
+  );
+  const save = store.save.bind(store);
+  store.save = () => {
+    throw new Error('simulated save failure');
+  };
+  assert.throws(() => store.deleteResult(p.id, second.id), /simulated/);
+  store.save = save;
+  assert.equal(store.get(p.id).activeResultId, second.id);
+  assert.ok(fs.existsSync(store.asset(p.id, second.tracks[0].file)));
+  p = store.get(p.id);
+  p.attachments.push({ id: crypto.randomUUID(), name: 'shared.wav', file: second.tracks[0].file });
+  store.save(p);
+  p = store.deleteResult(p.id, second.id);
+  assert.equal(p.activeResultId, null);
+  assert.equal(p.results.length, 0);
+  assert.equal(p.tracks.length, 0);
+  assert.ok(fs.existsSync(store.asset(p.id, second.tracks[0].file)));
+  assert.throws(() => store.deleteResult(p.id, 'missing'), /分离结果不存在/);
+});

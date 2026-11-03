@@ -399,6 +399,11 @@ app.whenReady().then(async () => {
   });
   handle('result-select', ({ id, resultId }) => store.selectResult(id, resultId));
   handle('result-rename', ({ id, resultId, name }) => store.renameResult(id, resultId, name));
+  handle('result-delete', ({ id, resultId }) => {
+    if (jobs.active || [...takes.sessions.values()].some((session) => session.projectId === id))
+      throw new Error('请先结束当前处理或录音，再删除分离结果');
+    return store.deleteResult(id, resultId);
+  });
   handle('result-open', async ({ id, resultId }) => {
     const p = store.get(id);
     const result = resultId ? p.results.find((item) => item.id === resultId) : null;

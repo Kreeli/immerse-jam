@@ -317,6 +317,54 @@ class Store {
     p.tracks = result?.tracks || [];
     return this.save(p);
   }
+  deleteResult(id, resultId) {
+    const p = this.get(id),
+      before = structuredClone(p),
+      result = p.results.find((item) => item.id === resultId);
+    if (!result) throw new Error('分离结果不存在');
+    p.results = p.results.filter((item) => item.id !== resultId);
+    if (p.activeResultId === resultId) {
+      p.activeResultId = null;
+      p.tracks = [];
+    }
+    const removed = new Set(result.tracks.map((track) => track.file));
+    for (const preset of p.presets || [])
+      preset.tracks = preset.tracks.filter((track) => !removed.has(track.file));
+    const retained = new Set(require('../shared/project-validation.cjs').referencedFiles(p));
+    const trash = path.join(this.base, 'trash', 'results', crypto.randomUUID()),
+      moved = [];
+    atomicJson(path.join(trash, 'deleted.json'), {
+      projectId: id,
+      result,
+      project: before,
+      deletedAt: new Date().toISOString(),
+    });
+    try {
+      for (const file of removed) {
+        if (retained.has(file)) continue;
+        const source = this.asset(id, file);
+        if (!fs.existsSync(source)) continue;
+        const relative = path.relative(fs.realpathSync(this.dir(id)), fs.realpathSync(source));
+        if (
+          relative.startsWith('..') ||
+          path.isAbsolute(relative) ||
+          !fs.lstatSync(source).isFile()
+        )
+          throw new Error('文件超出项目范围');
+        const dest = contained(trash, 'files/' + file);
+        fs.mkdirSync(path.dirname(dest), { recursive: true });
+        fs.renameSync(source, dest);
+        moved.push([source, dest]);
+      }
+      const saved = this.save(p);
+      atomicJson(path.join(this.dir(id), 'project.previous.json'), saved);
+      return saved;
+    } catch (error) {
+      for (const [source, dest] of moved.reverse()) fs.renameSync(dest, source);
+      atomicJson(path.join(this.dir(id), 'project.json'), before);
+      throw error;
+    }
+  }
   renameResult(id, resultId, name) {
     if (typeof name !== 'string' || !name.trim() || name.length > 120)
       throw new Error('请输入 1–120 字的结果名称');

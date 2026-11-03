@@ -37,6 +37,7 @@
   "recording-import",
   "result-open",
   "result-rename",
+  "result-delete",
   "result-select",
   "reveal",
   "run",

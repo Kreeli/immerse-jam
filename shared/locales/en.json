@@ -1061,5 +1061,10 @@
   "无法打开录音设备，请检查设备连接，或关闭正在独占设备的其他软件。": "Cannot open the recording device. Check its connection or close other software using it exclusively.",
   "重命名和弦谱": "Rename chord chart",
   "重命名和弦谱 {0}": "Rename chord chart {0}",
-  "小节校准": "Bar timing"
+  "小节校准": "Bar timing",
+  "删除分离结果": "Delete separation result",
+  "重命名分离结果 {0}": "Rename separation result {0}",
+  "删除分离结果 {0}": "Delete separation result {0}",
+  "确定删除分离结果“{0}”吗？原曲、录音和已创建的工程会保留。": "Delete separation result “{0}”? The original audio, recordings and existing projects will be kept.",
+  "请先结束当前处理或录音，再删除分离结果": "Finish processing or recording before deleting a separation result."
 }

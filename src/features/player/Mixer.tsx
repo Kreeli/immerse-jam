@@ -53,9 +53,8 @@ export default function Mixer({
   };
   return (
     <aside className="mixer nr-console-body">
-      {!isAndroid && project.kind !== 'creation' && (
+      {project.kind !== 'creation' && (
         <ResultPicker
-          compact
           project={project}
           onProject={onAdopt}
           onError={onError}
@@ -194,14 +193,6 @@ export default function Mixer({
             <ChevronRight size={16} />
             <span>{tr('伴奏与录音设置')}</span>
           </summary>
-          {project.kind !== 'creation' && (
-            <ResultPicker
-              project={project}
-              onProject={onAdopt}
-              onError={onError}
-              loading={loading}
-            />
-          )}
           <PracticeModeControl
             project={project}
             onProject={onProject}
