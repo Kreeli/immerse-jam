@@ -1,6 +1,6 @@
 import { jamCall } from '../../platform/project-call';
 import { isAndroid } from '../../platform/environment';
-import { FileMusic, RefreshCw, SlidersHorizontal, Volume2 } from 'lucide-react';
+import { ChevronRight, RefreshCw, SlidersHorizontal, Volume2 } from 'lucide-react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { Player } from '../../audio/Player';
 import { sourceTracks } from '../../audio/performance';
@@ -53,6 +53,15 @@ export default function Mixer({
   };
   return (
     <aside className="mixer nr-console-body">
+      {!isAndroid && project.kind !== 'creation' && (
+        <ResultPicker
+          compact
+          project={project}
+          onProject={onAdopt}
+          onError={onError}
+          loading={loading || recording}
+        />
+      )}
       <div className="panel-heading">
         <h3>
           <SlidersHorizontal size={16} />
@@ -181,7 +190,10 @@ export default function Mixer({
       )}
       {isAndroid && (
         <details className="mobile-advanced-mix">
-          <summary>{tr('伴奏与录音设置')}</summary>
+          <summary>
+            <ChevronRight size={16} />
+            <span>{tr('伴奏与录音设置')}</span>
+          </summary>
           {project.kind !== 'creation' && (
             <ResultPicker
               project={project}
@@ -227,16 +239,6 @@ export default function Mixer({
           bpm={project.analysis?.bpm || 120}
           onChange={onPractice}
         />
-        <label>
-          <FileMusic size={16} />
-          {tr('MIDI 同步发声')}
-          <input
-            type="checkbox"
-            checked={!!project.practice.midi}
-            onChange={(e) => onPractice({ midi: e.target.checked })}
-          />
-        </label>
-        <small>{tr('导入乐谱 / MIDI 并自动对齐后生效')}</small>
       </div>
     </aside>
   );

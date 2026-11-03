@@ -82,7 +82,17 @@ export default function Score({
           scriptFile: './alphatab/alphaTab.js',
           fontDirectory: './alphatab/font/',
         },
-        display: { scale: 1.05 },
+        display: {
+          scale: 1.05,
+          resources: {
+            mainGlyphColor: '#25232a',
+            secondaryGlyphColor: '#6d6573',
+            scoreInfoColor: '#25232a',
+            staffLineColor: '#5b5861',
+            barSeparatorColor: '#4a4652',
+            barNumberColor: '#706878',
+          },
+        },
         player: {
           playerMode: alphaTab.PlayerMode.EnabledExternalMedia,
           enableCursor: true,
@@ -202,7 +212,7 @@ export default function Score({
           </div>
           <svg viewBox="0 0 1000 420" preserveAspectRatio="none">
             {Array.from({ length: 12 }, (_, i) => (
-              <line key={i} x1={0} x2={1000} y1={i * 35} y2={i * 35} stroke="#303039" />
+              <line key={i} x1={0} x2={1000} y1={i * 35} y2={i * 35} stroke="var(--line)" />
             ))}
             {notes
               .filter((n) => n.start >= scoreTime - 3 && n.start <= scoreTime + 12)
@@ -217,7 +227,7 @@ export default function Score({
                   fill={n.start <= scoreTime && n.end > scoreTime ? '#f8bd71' : '#f06b83'}
                 />
               ))}
-            <line x1={200} x2={200} y1={0} y2={420} stroke="#fff" strokeWidth={2} />
+            <line x1={200} x2={200} y1={0} y2={420} stroke="var(--text)" strokeWidth={2} />
           </svg>
         </div>
       )}

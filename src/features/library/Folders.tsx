@@ -205,7 +205,7 @@ export default function FolderPage({
                 <RehearsalCover
                   id={project.id}
                   cover={project.cover}
-                  size={libraryLayout === 'grid' ? 56 : 40}
+                  size={libraryLayout === 'grid' ? 64 : 44}
                 />
                 <span>
                   <strong>{project.title}</strong>

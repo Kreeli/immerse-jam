@@ -4,7 +4,7 @@ import { StreamingAudio } from '../platform/android/StreamingAudio';
 import { SoundTouchNode } from '@soundtouchjs/audio-worklet';
 import processorUrl from './playback-processor.js?worker&url';
 import { t as tr } from '../i18n';
-import { asset, interpolate, type Project, type SourceGroup, type Track } from '../shared/types';
+import { asset, type Project, type SourceGroup, type Track } from '../shared/types';
 import { placeEnvelope } from './envelope';
 import { WaveHistory, waveHistoryKey } from './wave-history';
 import { beatGrid, localInterval, nearestBeat, strongBeat } from './metronome';
@@ -238,8 +238,6 @@ export class Player {
   mixWarmTimer: ReturnType<typeof setTimeout> | null = null;
   countInInterval = 0;
   countInBeats = 0;
-  notesScheduled = new Set<string>();
-  midiGain: GainNode | null = null;
   voices = new Set<AudioScheduledSourceNode>();
   onUpdate: (position: number, playing: boolean) => void = () => {};
   async init() {
@@ -280,8 +278,6 @@ export class Player {
     this.countInGain.connect(this.mix);
     this.master = ctx.createGain();
     this.master.gain.value = 0.8;
-    this.midiGain = ctx.createGain();
-    this.midiGain.gain.value = 0.3;
     // Stateless peak protection, identical to desktop and Android exports.
     // A compressor's lookahead retains old samples across pause/seek/resume.
     this.limiter = ctx.createWaveShaper();
@@ -290,7 +286,6 @@ export class Player {
     );
     this.transportGain = ctx.createGain();
     this.transportGain.gain.value = 0;
-    this.midiGain.connect(this.transportGain);
     this.transportGain.connect(this.master);
     this.master.connect(this.limiter);
     this.limiter.connect(ctx.destination);
@@ -750,7 +745,6 @@ export class Player {
     }
     this.playing = true;
     this.scheduleSources();
-    this.notesScheduled.clear();
     this.schedule();
     this.timer = setInterval(() => this.schedule(), 25);
     let lastPaint = 0;
@@ -950,7 +944,6 @@ export class Player {
     this.streamFillAt = -Infinity;
     this.scheduledCycles.clear();
     this.metroScheduled.clear();
-    this.notesScheduled.clear();
     for (const channel of this.channels)
       channel.stream?.play(
         frame,
@@ -1210,66 +1203,9 @@ export class Player {
           }
         }
       }
-      const alignment = this.project.alignment;
-      if (this.project.practice.midi && alignment) {
-        alignment.notes.forEach((n, i) => {
-          const key = epoch + ':' + i;
-          if (this.notesScheduled.has(key)) return;
-          const start = interpolate(alignment.points, n.start),
-            stop = interpolate(alignment.points, n.end);
-          const at = origin + (start - offset) / this.tempo;
-          if (start >= offset - 0.002 && start < end && at >= now && at < now + this.horizon) {
-            this.notesScheduled.add(key);
-            const duration = Math.max(0.02, (Math.min(stop, end) - start) / this.tempo);
-            if (at >= this.context!.currentTime)
-              this.note(n.pitch, n.velocity, n.program, n.drum, at, duration);
-          }
-        });
-      }
     }
-    for (const set of [this.metroScheduled, this.notesScheduled])
-      for (const key of set) if (Number(key.split(':')[0]) < cycle - 1) set.delete(key);
-  }
-  note(
-    pitch: number,
-    velocity: number,
-    program: number,
-    drum: boolean,
-    at: number,
-    duration: number,
-  ) {
-    const ctx = this.context!,
-      gain = ctx.createGain();
-    gain.gain.setValueAtTime(0, at);
-    gain.gain.linearRampToValueAtTime((velocity / 127) * 0.16, at + 0.006);
-    gain.gain.exponentialRampToValueAtTime(0.0001, at + Math.min(duration, 60) + 0.08);
-    gain.connect(this.midiGain!);
-    let source: AudioScheduledSourceNode;
-    if (drum) {
-      const buffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.14), ctx.sampleRate);
-      const d = buffer.getChannelData(0);
-      for (let i = 0; i < d.length; i++)
-        d[i] = (Math.random() * 2 - 1) * Math.exp((-i / d.length) * 7);
-      const noise = ctx.createBufferSource();
-      noise.buffer = buffer;
-      noise.connect(gain);
-      source = noise;
-    } else {
-      const osc = ctx.createOscillator();
-      osc.type = program >= 24 && program < 40 ? 'triangle' : program >= 80 ? 'sawtooth' : 'sine';
-      osc.frequency.value =
-        440 * 2 ** ((pitch + this.pitch + (this.project?.alignment?.transpose || 0) - 69) / 12);
-      osc.connect(gain);
-      source = osc;
-    }
-    source.start(at);
-    source.stop(at + Math.min(duration, 60) + 0.1);
-    this.voices.add(source);
-    source.onended = () => {
-      this.voices.delete(source);
-      source.disconnect();
-      gain.disconnect();
-    };
+    for (const key of this.metroScheduled)
+      if (Number(key.split(':')[0]) < cycle - 1) this.metroScheduled.delete(key);
   }
   click(at: number, strong = false, countIn = false) {
     const ctx = this.context!,
@@ -1576,7 +1512,6 @@ export class Player {
     this.transportGain = null;
     this.metronomeGain = null;
     this.countInGain = null;
-    this.midiGain = null;
     this.limiter = null;
     this.channels = [];
     this.peakCache.clear();

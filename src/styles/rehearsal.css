@@ -200,17 +200,9 @@ html[data-platform='android'] .mobile-dialog.metadata-dialog {
 .folder-view-tools > .select-button {
   min-width: 110px;
 }
-.layout-switch {
-  display: flex;
-  gap: 2px;
-  padding: 3px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-m);
-  background: var(--surface-2);
-}
-.layout-switch button[aria-pressed='true'] {
-  color: var(--accent);
-  background: var(--accent-soft);
+.layout-picker {
+  min-width: 118px;
+  flex: none;
 }
 .nr-lib-grid[data-layout='list'] {
   grid-template-columns: minmax(0, 1fr);
@@ -655,6 +647,8 @@ textarea {
   min-height: 46px;
   flex: none;
   overflow: visible;
+  flex-wrap: wrap;
+  padding-block: 6px;
 }
 .desktop-toolbar-actions {
   margin-left: auto;
@@ -662,10 +656,25 @@ textarea {
   align-items: center;
   gap: 4px;
 }
-.desktop-toolbar-actions button {
+.desktop-toolbar-actions > .icon-button {
   width: 32px;
   height: 32px;
   padding: 7px;
+}
+.desktop-toolbar-actions {
+  flex: none;
+}
+.desktop-toolbar-actions .save-indicator {
+  padding: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  color: var(--text-3);
+}
+.desktop-toolbar-actions .create-from-song > button {
+  height: 32px;
+}
+.desktop-toolbar-actions > .primary {
+  height: 32px;
 }
 .desktop-toolbar-actions button.pressed {
   color: var(--accent);
@@ -1021,16 +1030,158 @@ textarea {
 .nr-result-picker {
   min-width: 0;
 }
-.nr-ph .nr-result-picker {
+.chart-header {
+  padding: 10px 0;
+  margin-bottom: 12px;
+  background: var(--ground);
+}
+.chart-toolbar {
+  flex-wrap: nowrap;
+  gap: 8px;
+  min-width: 0;
+}
+.chart-picker {
+  width: auto;
+  max-width: 240px;
+  min-width: 100px;
+  flex: 1;
+}
+.chart-picker > span:first-child {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.chart-toolbar > .chart-picker {
+  padding: 8px 10px;
+  font-size: 13px;
+}
+.chart-row-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  color: var(--text-2);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.chart-row-label > span {
+  flex: none;
+}
+.chart-row-label .nr-choice-trigger {
+  min-width: 70px;
+  font-size: 12px;
+  padding: 7px;
+}
+.chart-toolbar .chart-timing {
+  flex: none;
+  font-size: 12px;
+  color: var(--text-2);
+}
+.chart-timing summary {
+  white-space: nowrap;
+}
+.chart-toolbar > .icon-button {
+  padding: 7px;
+  width: 32px;
+  height: 32px;
+  flex: none;
+}
+.chart-toolbar .follow-active {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+  color: var(--accent);
+}
+.chart-picker-menu {
+  width: min(360px, calc(100vw - 24px));
+  max-height: 55dvh;
+  overflow-y: auto;
+}
+.chart-picker-choice {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 32px 32px;
+  align-items: stretch;
+}
+.chart-picker-choice .nr-choice-option {
+  min-width: 0;
+  gap: 6px;
+}
+.chart-picker-choice .nr-choice-option > span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  position: static;
+}
+.chart-picker-choice .nr-choice-option svg {
+  flex: none;
+  margin-left: auto;
+}
+.chart-picker-action {
+  display: grid;
+  place-items: center;
+  color: var(--text-3);
+  border-radius: var(--r-s);
+  outline: none;
+  cursor: pointer;
+}
+.chart-picker-action[data-highlighted] {
+  color: var(--text);
+  background: var(--surface-3);
+}
+.chart-picker-delete[data-highlighted] {
+  color: var(--rec);
+  background: color-mix(in srgb, var(--rec) 12%, transparent);
+}
+.chart-picker-new {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent);
+}
+.chart-slots .mobile-chord-input {
+  width: 100%;
+  min-width: 0;
+  padding: 4px 6px;
+  text-align: center;
+  font: inherit;
+}
+.chart-slots .chord-token {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+html[data-platform='android'] .chart-toolbar .chart-picker {
+  max-width: none;
+}
+html[data-platform='android'] .chart-toolbar > .icon-button {
+  width: 36px;
+  height: 36px;
+}
+.score-panel .notation {
+  background: #faf9f6;
+  color: #25232a;
+  color-scheme: light;
+}
+.score-panel .notation .at-surface svg {
+  color: #25232a;
+  fill: #25232a;
+}
+@media (max-width: 1120px) {
+  .chart-row-label > span,
+  .chart-timing-caption {
+    display: none;
+  }
+}
+.nr-console-body > .nr-result-picker {
   display: flex;
   align-items: center;
   gap: 5px;
   padding: 5px 8px;
-  margin: 0;
-  width: 270px;
-  flex: 0 1 270px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-m);
+  margin: 0 0 12px;
+  width: 100%;
+  flex: none;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
   background: var(--surface-2);
   position: relative;
 }
@@ -1050,21 +1201,21 @@ textarea {
   font-size: var(--fs-cap);
   color: var(--text);
 }
-.nr-ph .nr-result-picker .result-origin {
+.nr-console-body > .nr-result-picker .result-origin {
   display: none;
 }
-.nr-ph .result-actions {
+.nr-console-body > .nr-result-picker .result-actions {
   display: flex;
   flex-wrap: nowrap;
   gap: 0;
   margin: 0;
 }
-.nr-ph .result-actions button {
+.nr-console-body > .nr-result-picker .result-actions button {
   padding: 5px;
   background: transparent;
   font-size: 0;
 }
-.nr-ph .result-actions svg {
+.nr-console-body > .nr-result-picker .result-actions svg {
   width: 14px;
   height: 14px;
 }
@@ -1074,7 +1225,7 @@ textarea {
   border-radius: var(--r-m);
   background: var(--surface-2);
 }
-.nr-ph .nr-result-picker form {
+.nr-console-body > .nr-result-picker form {
   position: absolute;
   z-index: 30;
   top: calc(100% + 6px);
@@ -1310,11 +1461,7 @@ textarea {
     flex: 1 1 110px;
     min-width: 90px;
   }
-  .nr-ph .nr-result-picker {
-    width: 215px;
-    flex-basis: 215px;
-  }
-  .nr-ph .create-from-song > button {
+  .desktop-toolbar-actions .create-from-song > button {
     width: 32px;
     font-size: 0;
     gap: 0;
@@ -1328,15 +1475,6 @@ textarea {
 @media (max-width: 1120px) {
   html:not([data-platform='android']) .nr-app {
     grid-template-columns: 200px minmax(0, 1fr);
-  }
-  .nr-ph .nr-result-picker {
-    width: 190px;
-    flex-basis: 190px;
-  }
-  .nr-ph .save-indicator {
-    max-width: 55px;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
   .nr-nav-mini .nr-btn {
     font-size: 11px;
@@ -1493,6 +1631,41 @@ html[data-platform='android'] .mobile-speed-popover > button {
 }
 html[data-platform='android'] .mixer-shell.nr-console {
   width: 100%;
+}
+html[data-platform='android'] .nr-console-body > .mobile-advanced-mix {
+  margin: 0;
+  padding: 14px 16px;
+  border-top: 0;
+  border-bottom: 1px solid var(--line);
+}
+html[data-platform='android'] .mobile-advanced-mix > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  margin: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--text-2);
+}
+html[data-platform='android'] .mobile-advanced-mix > summary::-webkit-details-marker {
+  display: none;
+}
+html[data-platform='android'] .mobile-advanced-mix > summary > svg {
+  flex: none;
+  transition: transform 140ms ease;
+}
+html[data-platform='android'] .mobile-advanced-mix[open] > summary > svg {
+  transform: rotate(90deg);
+}
+html[data-platform='android'] .mobile-advanced-mix > .practice-mode-control {
+  padding-inline: 0;
+}
+html[data-platform='android'] .mobile-advanced-mix > .preset-controls {
+  padding-inline: 0;
+}
+html[data-platform='android'] .mobile-advanced-mix > .nr-result-picker {
+  padding-inline: 0;
 }
 html[data-platform='android'] .mobile-panel-tabs {
   padding: 12px;

@@ -442,44 +442,6 @@ export default function App() {
                   </button>
                   <RehearsalCover id={project.id} size={40} cover={project.cover} />
                   <ProjectHeading {...folderProps} project={project} onProject={save} />
-                  <button
-                    className="save-indicator text-button"
-                    onClick={() => void controller.flushEdits().catch(() => {})}
-                  >
-                    {controller.saveState === 'saving'
-                      ? tr('正在保存…')
-                      : controller.saveState === 'error'
-                        ? tr('保存失败，点此重试')
-                        : tr('已保存')}
-                  </button>
-                  {project.kind !== 'creation' && (
-                    <ResultPicker
-                      compact
-                      project={project}
-                      onProject={adopt}
-                      onError={notify}
-                      loading={loading}
-                    />
-                  )}
-                  {!project.kind && (
-                    <CreateFromSong
-                      project={project}
-                      onCreate={(kind) => {
-                        setSessionSource(project);
-                        setCreatingSession(kind);
-                      }}
-                    />
-                  )}
-                  {!isAndroid && project.kind !== 'creation' && (
-                    <button
-                      className="primary small nr-btn nr-primary nr-sm"
-                      disabled={!!job}
-                      onClick={() => setModal('separate')}
-                    >
-                      <Sparkles size={15} />
-                      {tr('拆分音轨')}
-                    </button>
-                  )}
                 </header>
               )}
               {!isAndroid ? (
@@ -508,6 +470,36 @@ export default function App() {
                   </div>
                   {practiceTools}
                   <div className="desktop-toolbar-actions">
+                    <button
+                      className="save-indicator text-button"
+                      onClick={() => void controller.flushEdits().catch(() => {})}
+                    >
+                      {controller.saveState === 'saving'
+                        ? tr('正在保存…')
+                        : controller.saveState === 'error'
+                          ? tr('保存失败，点此重试')
+                          : tr('已保存')}
+                    </button>
+                    {!project.kind && (
+                      <CreateFromSong
+                        project={project}
+                        onCreate={(kind) => {
+                          setSessionSource(project);
+                          setCreatingSession(kind);
+                        }}
+                      />
+                    )}
+                    {!isAndroid && project.kind !== 'creation' && (
+                      <button
+                        className="primary small nr-btn nr-primary nr-sm"
+                        disabled={!!job}
+                        onClick={() => setModal('separate')}
+                      >
+                        <Sparkles size={15} />
+                        {tr('拆分音轨')}
+                      </button>
+                    )}
+
                     <button
                       className="icon-button nr-icon-btn"
                       title={tr('导出歌曲项目')}
