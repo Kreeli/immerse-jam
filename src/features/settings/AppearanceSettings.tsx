@@ -2,6 +2,9 @@ import Select from '../../shared/Select';
 import { jamCall } from '../../platform/project-call';
 import { setPreferences, usePreferences } from '../../app/preferences';
 import { t as tr } from '../../i18n';
+import { isAndroid } from '../../platform/environment';
+import { PointerGlyph } from '../../platform/android/AndroidPointer';
+import WaveColorSettings from './WaveColorSettings';
 export default function AppearanceSettings() {
   const preferences = usePreferences();
   return (
@@ -49,6 +52,27 @@ export default function AppearanceSettings() {
           </Select>
         </label>
       </div>
+      <WaveColorSettings />
+      {isAndroid && (
+        <fieldset className="pointer-settings">
+          <legend>{tr('鼠标指针')}</legend>
+          <div className="pointer-options">
+            {(['arrow', 'ring', 'crosshair', 'system'] as const).map((style, index) => (
+              <button
+                key={style}
+                type="button"
+                className="nr-btn"
+                aria-pressed={preferences.pointerStyle === style}
+                onClick={() => setPreferences({ pointerStyle: style })}
+              >
+                <PointerGlyph style={style} />
+                {[tr('箭头'), tr('圆环'), tr('十字'), tr('系统')][index]}
+              </button>
+            ))}
+          </div>
+          <small>{tr('移动鼠标时显示，触摸或闲置后隐藏。')}</small>
+        </fieldset>
+      )}
       <div className="license-links">
         <button className="small" onClick={() => void jamCall('open-license-folder')}>
           {tr('查看许可与第三方声明')}

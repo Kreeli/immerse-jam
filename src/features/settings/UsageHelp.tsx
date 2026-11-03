@@ -93,6 +93,28 @@ export default function UsageHelp() {
           ? tr('拖动波形定位，双指缩放时间窗口；点击倍速调整速度。项目自动保存。')
           : tr('拖动波形定位，Ctrl＋滚轮缩放时间窗口。项目自动保存。')}
       </small>
+      <dl className="keyboard-shortcuts" aria-label={tr('键盘快捷键')}>
+        <dt>
+          <kbd>Space</kbd>
+        </dt>
+        <dd>{tr('播放 / 暂停')}</dd>
+        <dt>
+          <kbd>←</kbd> <kbd>→</kbd>
+        </dt>
+        <dd>{tr('后退 / 前进 5 秒')}</dd>
+        <dt>
+          <kbd>L</kbd>
+        </dt>
+        <dd>{tr('设置循环起止')}</dd>
+        <dt>
+          <kbd>M</kbd>
+        </dt>
+        <dd>{tr('添加标记点')}</dd>
+        <dt>
+          <kbd>Ctrl</kbd> + {tr('滚轮')}
+        </dt>
+        <dd>{tr('缩放时间窗口')}</dd>
+      </dl>
     </div>
   );
 }

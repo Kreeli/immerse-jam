@@ -16,6 +16,7 @@ import type {
 } from '../shared/types';
 import { usePreferences } from './preferences';
 import { isAndroid } from '../platform/environment';
+import { playerShortcut } from '../shared/shortcuts';
 export function useWorkspace() {
   usePreferences();
   const [library, setLibrary] = useState<Project[]>([]),
@@ -24,6 +25,7 @@ export function useWorkspace() {
     [showPlayer, setShowPlayer] = useState(false),
     [creatingSession, setCreatingSession] = useState<'practice' | 'creation' | null>(null),
     [deletingProject, setDeletingProject] = useState<Project | null>(null),
+    [editingProject, setEditingProject] = useState<Project | null>(null),
     [page, setPage] = useState(isAndroid ? 'practice' : 'library'),
     [view, setView] = useState('wave'),
     [modal, setModal] = useState<string | null>(null),
@@ -435,7 +437,7 @@ export function useWorkspace() {
     }
     setLoading(true);
 
-    setPeaks([]);
+    setPeaks(player.current.previewWaveform(project) || []);
 
     setWaveSource('mix');
 
@@ -751,29 +753,27 @@ export function useWorkspace() {
   }, [loading, notify, save]);
   useEffect(() => {
     const listener = (e: KeyboardEvent) => {
+      const target = e.target instanceof HTMLElement ? e.target : null;
       if (
-        (e.target as HTMLElement).matches('input,textarea,select') ||
+        target?.closest(
+          'input,textarea,select,[contenteditable="true"],[role="combobox"],[role="menu"]',
+        ) ||
         modal ||
         creatingSession ||
         deletingProject ||
         recording ||
-        document.querySelector('[role="dialog"]')
+        document.querySelector('[role="dialog"],[role="menu"][data-state="open"],[role="listbox"]')
       )
         return;
 
-      if (e.code === 'Space') {
-        e.preventDefault();
-
-        togglePlay();
-      }
-
-      if (e.code === 'ArrowLeft') player.current.seek(player.current.position() - 5);
-
-      if (e.code === 'ArrowRight') player.current.seek(player.current.position() + 5);
-
-      if (e.key.toLowerCase() === 'l') captureRange();
-
-      if (e.key.toLowerCase() === 'm') addPoint();
+      const action = playerShortcut(e);
+      if (!action) return;
+      e.preventDefault();
+      if (action === 'toggle') togglePlay();
+      else if (action === 'back') player.current.seek(player.current.position() - 5);
+      else if (action === 'forward') player.current.seek(player.current.position() + 5);
+      else if (action === 'loop') captureRange();
+      else if (action === 'marker') addPoint();
     };
 
     window.addEventListener('keydown', listener);
@@ -788,6 +788,8 @@ export function useWorkspace() {
       (p.title + ' ' + p.artist).toLowerCase().includes(query.toLowerCase()),
   );
   return {
+    editingProject,
+    setEditingProject,
     checkingRuntime,
     adoptIfCurrent,
     flushEdits,

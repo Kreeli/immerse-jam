@@ -17,6 +17,7 @@ import { version } from '../../../package.json';
 import { isAndroid, platformVersion } from '../../platform/environment';
 import type { WorkspaceController } from '../../app/useWorkspace';
 import { t as tr } from '../../i18n';
+import RehearsalCover from '../../shared/RehearsalCover';
 type Props = Pick<
   WorkspaceController,
   | 'page'
@@ -130,7 +131,11 @@ export default function Sidebar({
                 title={folder.name}
                 onClick={() => navigate('folder:' + folder.id)}
               >
-                <Folder size={16} />
+                {'cover' in folder && folder.cover ? (
+                  <RehearsalCover id={folder.id} size={18} cover={folder.cover} folder />
+                ) : (
+                  <Folder size={18} />
+                )}
                 <span className="nr-ellipsis">{folder.name}</span>
               </button>
             ))}

@@ -1,5 +1,5 @@
-import { Plus } from 'lucide-react';
-import { useState } from 'react';
+import { Guitar, Layers, Plus } from 'lucide-react';
+import * as Menu from '@radix-ui/react-dropdown-menu';
 import { t as tr } from '../../i18n';
 import type { Project } from '../../shared/types';
 export default function CreateFromSong({
@@ -9,41 +9,34 @@ export default function CreateFromSong({
   project: Project;
   onCreate: (kind: 'practice' | 'creation') => void;
 }) {
-  const [open, setOpen] = useState(false);
   return (
     <div className="create-from-song">
-      <button
-        className="small"
-        aria-label={tr('以这首歌创建')}
-        title={tr('以这首歌创建')}
-        aria-expanded={open}
-        onClick={() => setOpen(!open)}
-      >
-        <Plus size={15} />
-        {tr('以这首歌创建')}
-      </button>
-      {open && (
-        <div className="create-song-menu">
-          <button
-            disabled={!project.results?.some((result) => result.tracks.length)}
-            title={tr('选择已分轨的歌曲开始跟练')}
-            onClick={() => {
-              setOpen(false);
-              onCreate('practice');
-            }}
-          >
-            {tr('跟练')}
-          </button>
-          <button
-            onClick={() => {
-              setOpen(false);
-              onCreate('creation');
-            }}
-          >
-            {tr('创作')}
-          </button>
-        </div>
-      )}
+      <Menu.Root>
+        <Menu.Trigger
+          className="nr-btn nr-sm"
+          aria-label={tr('以这首歌创建')}
+          title={tr('以这首歌创建')}
+        >
+          <Plus size={15} />
+          {tr('以这首歌创建')}
+        </Menu.Trigger>
+        <Menu.Portal>
+          <Menu.Content className="nr-action-menu" align="end" sideOffset={6} collisionPadding={12}>
+            <Menu.Item
+              disabled={!project.results?.some((result) => result.tracks.length)}
+              title={tr('选择已分轨的歌曲开始跟练')}
+              onSelect={() => onCreate('practice')}
+            >
+              <Guitar size={16} />
+              {tr('跟练')}
+            </Menu.Item>
+            <Menu.Item onSelect={() => onCreate('creation')}>
+              <Layers size={16} />
+              {tr('创作')}
+            </Menu.Item>
+          </Menu.Content>
+        </Menu.Portal>
+      </Menu.Root>
     </div>
   );
 }

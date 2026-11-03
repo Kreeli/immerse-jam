@@ -64,7 +64,7 @@ export default function Waveform({
     const observer = new MutationObserver(() => setThemeRevision((value) => value + 1));
     observer.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ['data-theme', 'data-accent', 'lang'],
+      attributeFilter: ['data-theme', 'data-accent', 'data-wave-color', 'lang'],
     });
     return () => observer.disconnect();
   }, []);
@@ -157,6 +157,9 @@ export default function Waveform({
         '#111114',
       ].map((c) => [c, themeColor(c)]),
     );
+    colors['#aa92b8'] =
+      getComputedStyle(document.documentElement).getPropertyValue('--waveform-fill').trim() ||
+      colors['#aa92b8'];
     const painter = wavePainter(
       waveCanvas.current,
       envelope.values,

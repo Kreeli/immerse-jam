@@ -28,10 +28,18 @@ public class MainActivity extends ComponentActivity {
   WebView web;
   NativeBridge bridge;
   private CompletableFuture<List<Uri>> selection;
+  private ValueCallback<Uri[]> coverSelection;
+  private final ActivityResultLauncher<String[]> coverPicker =
+      registerForActivityResult(new ActivityResultContracts.OpenDocument(), uri -> {
+        ValueCallback<Uri[]> callback = coverSelection;
+        coverSelection = null;
+        if (callback != null) callback.onReceiveValue(uri == null ? null : new Uri[]{uri});
+      });
   private PermissionRequest microphone;
   private CompletableFuture<Boolean> nativeMicrophone;
   private long lastBack;
   private boolean pageReady;
+  private volatile boolean customPointer = true;
   private Intent sharedIntent;
   private CompletableFuture<String> scanTask;
   private final ActivityResultLauncher<ScanOptions> scanner =
@@ -70,7 +78,15 @@ public class MainActivity extends ComponentActivity {
   @Override
   public void onCreate(Bundle saved) {
     super.onCreate(saved);
-    web = new WebView(this);
+    customPointer = !getSharedPreferences("ui", MODE_PRIVATE).getString("pointerStyle", "arrow").equals("system");
+    web = new WebView(this) {
+      @Override
+      public android.view.PointerIcon onResolvePointerIcon(android.view.MotionEvent event, int pointerIndex) {
+        if (customPointer && (event.isFromSource(android.view.InputDevice.SOURCE_MOUSE) || event.getToolType(pointerIndex) == android.view.MotionEvent.TOOL_TYPE_MOUSE))
+          return android.view.PointerIcon.getSystemIcon(getContext(), android.view.PointerIcon.TYPE_NULL);
+        return super.onResolvePointerIcon(event, pointerIndex);
+      }
+    };
     web.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, false);
     PlaybackService.host = new java.lang.ref.WeakReference<>(this);
     web.setBackgroundColor(Color.rgb(17, 17, 20));
@@ -135,6 +151,20 @@ public class MainActivity extends ComponentActivity {
         });
     web.setWebChromeClient(
         new WebChromeClient() {
+          @Override
+          public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
+            if (view.getUrl() == null || !view.getUrl().startsWith(ORIGIN + "/")) return false;
+            if (coverSelection != null) coverSelection.onReceiveValue(null);
+            coverSelection = callback;
+            try {
+              coverPicker.launch(new String[]{"image/jpeg", "image/png", "image/webp"});
+            } catch (Exception error) {
+              coverSelection = null;
+              callback.onReceiveValue(null);
+            }
+            return true;
+          }
+
           @Override
           public void onPermissionRequest(PermissionRequest request) {
             runOnUiThread(
@@ -335,6 +365,15 @@ public class MainActivity extends ComponentActivity {
     }
   }
 
+  void pointerStyle(String style) throws IOException {
+    if (!Set.of("arrow", "ring", "crosshair", "system").contains(style)) throw new IOException("无效指针样式");
+    getSharedPreferences("ui", MODE_PRIVATE).edit().putString("pointerStyle", style).apply();
+    runOnUiThread(() -> {
+      customPointer = !style.equals("system");
+      web.setPointerIcon(android.view.PointerIcon.getSystemIcon(this, customPointer ? android.view.PointerIcon.TYPE_NULL : android.view.PointerIcon.TYPE_ARROW));
+    });
+  }
+
   boolean playback(boolean playing, String title) throws Exception {
     CompletableFuture<Boolean> task = new CompletableFuture<>();
     runOnUiThread(() -> {
@@ -359,6 +398,7 @@ public class MainActivity extends ComponentActivity {
     stopService(new Intent(this, PlaybackService.class));
     PlaybackService.host.clear();
     if (selection != null) selection.complete(List.of());
+    if (coverSelection != null) coverSelection.onReceiveValue(null);
     if (scanTask != null) scanTask.complete("");
     if (microphone != null) microphone.deny();
     if (nativeMicrophone != null) nativeMicrophone.complete(false);

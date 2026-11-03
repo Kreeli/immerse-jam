@@ -31,7 +31,9 @@ export function LiveWave({ live, ...timeline }: TimelineProps & { live: LiveEnve
       peaks={snapshot.peaks}
       peakOrigin={snapshot.origin}
       peakDuration={snapshot.duration}
-      amplitudeScale={1.08}
+      // The painter divides by this full-scale value: 1.08 / 3 gives a fixed
+      // display gain of three without changing captured PCM or auto-normalising.
+      amplitudeScale={0.36}
       preserveBins
       source="live-recording"
       disabled

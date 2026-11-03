@@ -5,6 +5,7 @@ import { X } from 'lucide-react';
 import { useState } from 'react';
 import { t as tr } from '../../i18n';
 import type { Project } from '../../shared/types';
+import ModalFrame from '../../shared/ModalFrame';
 export default function SessionCreateDialog({
   library,
   kind,
@@ -60,21 +61,25 @@ export default function SessionCreateDialog({
     }
   };
   return (
-    <div
-      className="modal-backdrop session-create"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget && !busy) onClose();
-      }}
+    <ModalFrame
+      open
+      onClose={() => !busy && onClose()}
+      className="metadata-dialog session-create-dialog"
+      label={kind === 'practice' ? tr('新建跟练') : tr('新建创作')}
     >
-      <section
-        className="modal"
-        role="dialog"
+      <form
+        role={isAndroid ? undefined : 'dialog'}
         aria-label={kind === 'practice' ? tr('新建跟练') : tr('新建创作')}
+        onSubmit={(event) => {
+          event.preventDefault();
+          void submit();
+        }}
       >
         <div className="modal-heading">
           <h2>{kind === 'practice' ? tr('新建跟练') : tr('新建创作')}</h2>
           <button
             className="icon-button"
+            type="button"
             aria-label={tr('关闭新建窗口')}
             disabled={busy}
             onClick={onClose}
@@ -97,6 +102,7 @@ export default function SessionCreateDialog({
           <label>
             {tr('音乐库歌曲')}
             <Select
+              menu
               aria-label={tr('音乐库歌曲')}
               value={sourceId}
               onChange={(event) => {
@@ -116,6 +122,7 @@ export default function SessionCreateDialog({
             <label>
               {tr('使用分离结果')}
               <Select
+                menu
                 aria-label={tr('使用分离结果')}
                 value={selectedResult}
                 onChange={(event) => setResultId(event.target.value)}
@@ -133,12 +140,14 @@ export default function SessionCreateDialog({
             <>
               <div className="recording-mode-options">
                 <button
+                  type="button"
                   className={mode === 'instrument' ? 'selected' : ''}
                   onClick={() => setMode('instrument')}
                 >
                   {tr('分轨伴奏')}
                 </button>
                 <button
+                  type="button"
                   className={mode === 'mixed' ? 'selected' : ''}
                   onClick={() => setMode('mixed')}
                 >
@@ -158,18 +167,18 @@ export default function SessionCreateDialog({
           <p className="muted">{tr('确认后建立独立跟练或创作，音乐库中的源歌曲保持不变。')}</p>
         </div>
         <div className="modal-actions">
-          <button disabled={busy} onClick={onClose}>
+          <button className="nr-btn" type="button" disabled={busy} onClick={onClose}>
             {tr('取消')}
           </button>
           <button
-            className="primary"
+            className="nr-btn nr-primary"
             disabled={busy || (kind === 'practice' && !sourceId)}
-            onClick={() => void submit()}
+            type="submit"
           >
             {busy ? tr('正在创建…') : tr('创建')}
           </button>
         </div>
-      </section>
-    </div>
+      </form>
+    </ModalFrame>
   );
 }

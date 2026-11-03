@@ -75,6 +75,8 @@ public final class ProjectValidation {
       throw new IOException("不支持的歌曲版本");
     if (!(p.opt("title") instanceof String) || !(p.opt("original") instanceof String))
       throw new IOException("歌曲名称或原曲无效");
+    if (p.has("description") && (!(p.opt("description") instanceof String) || p.getString("description").length() > 2000)) throw new IOException("项目简介过长");
+    validateCover(p.opt("cover"));
     number(p, "duration", 0, 2640, false);
     JSONObject settings = p.getJSONObject("practice");
     number(settings, "tempo", .25, 2, false);
@@ -153,5 +155,17 @@ public final class ProjectValidation {
           throw new IOException("乐谱打击乐标记无效");
       }
     }
+  }
+
+  static void validateCover(Object value) throws Exception {
+    if (value == null || "".equals(value)) return;
+    if (!(value instanceof String)) throw new IOException("封面图片无效");
+    String image = (String) value;
+    if (image.length() > 180000 || !image.matches("^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$")) throw new IOException("封面图片无效");
+    String[] parts = image.split(",", 2);
+    byte[] bytes = android.util.Base64.decode(parts[1], android.util.Base64.NO_WRAP);
+    if (!android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP).equals(parts[1])) throw new IOException("封面图片无效");
+    boolean valid = parts[0].contains("jpeg") ? bytes.length >= 3 && (bytes[0] & 255) == 255 && (bytes[1] & 255) == 216 && (bytes[2] & 255) == 255 : parts[0].contains("png") ? bytes.length >= 8 && Arrays.equals(Arrays.copyOf(bytes, 8), new byte[]{(byte)137,80,78,71,13,10,26,10}) : bytes.length >= 12 && new String(bytes,0,4,java.nio.charset.StandardCharsets.US_ASCII).equals("RIFF") && new String(bytes,8,4,java.nio.charset.StandardCharsets.US_ASCII).equals("WEBP");
+    if (!valid) throw new IOException("封面图片无效");
   }
 }

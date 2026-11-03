@@ -144,7 +144,7 @@ public class ProjectStore {
 
   public synchronized JSONObject update(String id, JSONObject patch) throws Exception {
     JSONObject p = get(id), filtered = new JSONObject();
-    Set<String> allowed = Set.of("title", "artist", "starred", "bookmarks", "practice", "alignment", "analysis", "attachments", "tracks", "duration", "waveform", "playlist", "notes", "originalMix", "presets", "chordCharts", "activeChordChartId", "takes", "selectedTakeIds", "recordingSettings", "practiceMode", "sourceMix", "sourceGroups");
+    Set<String> allowed = Set.of("title", "artist", "description", "cover", "starred", "bookmarks", "practice", "alignment", "analysis", "attachments", "tracks", "duration", "waveform", "playlist", "notes", "originalMix", "presets", "chordCharts", "activeChordChartId", "takes", "selectedTakeIds", "recordingSettings", "practiceMode", "sourceMix", "sourceGroups");
     for (Iterator<String> it = patch.keys(); it.hasNext();) {
       String key = it.next();
       if (allowed.contains(key)) filtered.put(key, patch.get(key));

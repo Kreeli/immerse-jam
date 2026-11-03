@@ -7,6 +7,7 @@ import type { LiveEnvelope } from '../../audio/live-envelope';
 import { creationGroups } from '../../audio/performance';
 import { toggleTrackState } from '../../audio/track-state';
 import { t as tr } from '../../i18n';
+import { trackColor } from '../../styles/palette';
 import type { Project, SourceGroup, Track } from '../../shared/types';
 import TrackControl from '../player/TrackControl';
 import TakeTiming from './TakeTiming';
@@ -149,6 +150,7 @@ export default function CreationTracks({
   const [expanded, setExpanded] = useState<Set<string>>(
       () => new Set((project.takes || []).slice(-2).map((take) => take.id)),
     ),
+    [expandedStems, setExpandedStems] = useState<Set<string>>(() => new Set()),
     [adding, setAdding] = useState(false);
   const known = useRef(new Set(project.takes?.map((take) => take.id) || []));
   const endAnchor = useRef<HTMLDivElement>(null);
@@ -274,6 +276,8 @@ export default function CreationTracks({
                 <b>{Math.round(group.gain * 100)}%</b>
               </span>
               <input
+                className="nr-range"
+                style={{ '--p': group.gain * 100 + '%' } as React.CSSProperties}
                 aria-label={tr('分组音量 {0}', [group.name])}
                 type="range"
                 min="0"
@@ -306,29 +310,51 @@ export default function CreationTracks({
                 group={group}
                 signature={JSON.stringify(group)}
               />
-              <details className="source-stems" open>
-                <summary>{tr('内部声部')}</summary>
-                {group.tracks.map((track) => (
-                  <div className="source-stem-row" key={track.id}>
-                    <TrackControl
-                      grouped
-                      track={track}
-                      selected={false}
-                      onSelect={() => toggle(track.id)}
-                      meterPlayer={timeline.player}
-                      onState={(action) => {
-                        const state = toggleTrackState(group.tracks, track.id, action).find(
-                          (item) => item.id === track.id,
-                        )!;
-                        stemChange(group, track, { mute: state.mute, solo: state.solo });
-                      }}
-                      color="#91bda9"
-                      onChange={(patch) => stemChange(group, track, patch)}
-                    />
-                    {expanded.has(track.id) && <TrackWave {...timeline} source={track.id} />}
+              <div className="source-stems">
+                <button
+                  className="source-stems-toggle nr-btn nr-ghost"
+                  aria-expanded={expandedStems.has(group.id)}
+                  onClick={() =>
+                    setExpandedStems((before) => {
+                      const next = new Set(before);
+                      next.has(group.id) ? next.delete(group.id) : next.add(group.id);
+                      return next;
+                    })
+                  }
+                >
+                  {expandedStems.has(group.id) ? (
+                    <ChevronDown size={16} />
+                  ) : (
+                    <ChevronRight size={16} />
+                  )}
+                  {tr('显示所有音轨')}
+                  <small>{group.tracks.length}</small>
+                </button>
+                {expandedStems.has(group.id) && (
+                  <div className="source-stems-list">
+                    {group.tracks.map((track) => (
+                      <div className="source-stem-row" key={track.id}>
+                        <TrackControl
+                          grouped
+                          track={track}
+                          selected={expanded.has(track.id)}
+                          onSelect={() => toggle(track.id)}
+                          meterPlayer={timeline.player}
+                          onState={(action) => {
+                            const state = toggleTrackState(group.tracks, track.id, action).find(
+                              (item) => item.id === track.id,
+                            )!;
+                            stemChange(group, track, { mute: state.mute, solo: state.solo });
+                          }}
+                          color={trackColor(track.name)}
+                          onChange={(patch) => stemChange(group, track, patch)}
+                        />
+                        {expanded.has(track.id) && <TrackWave {...timeline} source={track.id} />}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </details>
+                )}
+              </div>
             </div>
           )}
         </section>

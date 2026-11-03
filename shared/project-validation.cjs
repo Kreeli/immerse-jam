@@ -106,6 +106,8 @@ function validateProject(p) {
   text(p.id, 'id', 200);
   text(p.title, 'title', 1000);
   text(p.artist, 'artist', 1000, true);
+  text(p.description, 'description', 2000, true);
+  validateCover(p.cover);
   if (p.kind !== undefined && !['practice', 'creation'].includes(p.kind)) fail('kind');
   number(p.duration, 'duration', 0, MAX_SECONDS);
   const practice = object(p.practice, 'practice');
@@ -208,4 +210,30 @@ function validateProject(p) {
   for (const name of referencedFiles(p)) file(name);
   return p;
 }
-module.exports = { validateProject, referencedFiles, repairLegacyAnalysis, MAX_SECONDS };
+function validateCover(value) {
+  if (value === undefined || value === '') return;
+  if (
+    typeof value !== 'string' ||
+    value.length > 180000 ||
+    !/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(value)
+  )
+    fail('封面图片');
+  const [prefix, encoded] = value.split(','),
+    bytes = Buffer.from(encoded, 'base64');
+  if (
+    bytes.toString('base64') !== encoded ||
+    !(prefix.includes('jpeg')
+      ? bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255
+      : prefix.includes('png')
+        ? bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
+        : bytes.subarray(0, 4).toString() === 'RIFF' && bytes.subarray(8, 12).toString() === 'WEBP')
+  )
+    fail('封面图片');
+}
+module.exports = {
+  validateProject,
+  validateCover,
+  referencedFiles,
+  repairLegacyAnalysis,
+  MAX_SECONDS,
+};

@@ -4,6 +4,8 @@ export type Preferences = {
   language: 'zh-CN' | 'en';
   theme: 'dark' | 'light' | 'system';
   accent: 'rose' | 'blue' | 'green' | 'purple';
+  waveColor: string;
+  pointerStyle: 'arrow' | 'ring' | 'crosshair' | 'system';
 };
 const listeners = new Set<() => void>();
 const defaults: Preferences = {
@@ -13,6 +15,8 @@ const defaults: Preferences = {
       : 'en',
   theme: 'dark',
   accent: 'rose',
+  waveColor: '',
+  pointerStyle: 'arrow',
 };
 let preferences: Preferences = defaults;
 try {
@@ -21,6 +25,10 @@ try {
     language: ['zh-CN', 'en'].includes(saved.language) ? saved.language : defaults.language,
     theme: ['dark', 'light', 'system'].includes(saved.theme) ? saved.theme : 'dark',
     accent: ['rose', 'blue', 'green', 'purple'].includes(saved.accent) ? saved.accent : 'rose',
+    waveColor: /^#[0-9a-f]{6}$/i.test(saved.waveColor || '') ? saved.waveColor : '',
+    pointerStyle: ['arrow', 'ring', 'crosshair', 'system'].includes(saved.pointerStyle)
+      ? saved.pointerStyle
+      : 'arrow',
   };
 } catch {}
 if (typeof window !== 'undefined' && window.jam?.language)
@@ -33,6 +41,10 @@ function apply() {
   document.documentElement.dataset.theme =
     preferences.theme === 'system' ? (system?.matches ? 'light' : 'dark') : preferences.theme;
   document.documentElement.dataset.accent = preferences.accent;
+  document.documentElement.dataset.waveColor = preferences.waveColor;
+  if (preferences.waveColor)
+    document.documentElement.style.setProperty('--waveform-fill', preferences.waveColor);
+  else document.documentElement.style.removeProperty('--waveform-fill');
   if (window.jam) void jamCall('ui-language', { language: preferences.language }).catch(() => {});
 }
 system?.addEventListener('change', apply);

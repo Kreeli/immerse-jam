@@ -194,6 +194,8 @@ class Store {
     for (const key of [
       'title',
       'artist',
+      'description',
+      'cover',
       'starred',
       'bookmarks',
       'practice',

@@ -1,7 +1,17 @@
 import Select from '../../shared/Select';
 import { isAndroid } from '../../platform/environment';
 import { jamCall } from '../../platform/project-call';
-import { Circle, FolderOpen, Mic2, Settings2, Square, Trash2, Upload, X } from 'lucide-react';
+import {
+  Circle,
+  FolderOpen,
+  LoaderCircle,
+  Mic2,
+  Settings2,
+  Square,
+  Trash2,
+  Upload,
+  X,
+} from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import ModalFrame from '../../shared/ModalFrame';
 import { AudioCapture, type CaptureSession } from '../../audio/capture';
@@ -57,9 +67,6 @@ export default function PracticeRecorder({
     }),
     [active, setActive] = useState(false),
     [busy, setBusy] = useState(false),
-    [seconds, setSeconds] = useState(0),
-    [level, setLevel] = useState(0),
-    [inputName, setInputName] = useState(''),
     [importPosition, setImportPosition] = useState('0');
   const lastDialog = useRef(dialog);
   if (dialog) lastDialog.current = dialog;
@@ -165,7 +172,6 @@ export default function PracticeRecorder({
       capture.current = null;
       setActive(false);
       setBusy(false);
-      setLevel(0);
       props.current.onActive(false);
       stopping.current = false;
     }
@@ -189,7 +195,6 @@ export default function PracticeRecorder({
           (device) => device.kind === 'audioinput' && device.deviceId === settings.inputDeviceId,
         ),
         label = input?.label || tr('系统默认输入');
-      setInputName(label);
       capture.current = await AudioCapture.open(
         player.context!,
         settings,
@@ -205,10 +210,7 @@ export default function PracticeRecorder({
             bytes,
           });
         },
-        (elapsed, value) => {
-          setSeconds(elapsed);
-          setLevel(value);
-        },
+        () => {},
         () => void stop(),
       );
       player.loop = null;
@@ -252,7 +254,6 @@ export default function PracticeRecorder({
         patch: { recordingSettings: settings },
       });
       props.current.onSaved(updated);
-      setSeconds(0);
       setActive(true);
       setDialog(null);
     } catch (error) {
@@ -315,28 +316,32 @@ export default function PracticeRecorder({
   return (
     <>
       <div className="practice-record-actions">
-        {isAndroid && active && (
+        {!libraryOnly && (
           <button
-            className="transport-record active"
-            aria-label={tr('停止并保存')}
-            disabled={busy}
-            onClick={() => void stop()}
+            className={'transport-record' + (active ? ' active' : '')}
+            disabled={busy || (!active && disabled)}
+            title={
+              active ? tr('停止并保存') : project.kind === 'creation' ? tr('录音') : tr('练琴录音')
+            }
+            aria-label={
+              active ? tr('停止并保存') : project.kind === 'creation' ? tr('录音') : tr('练琴录音')
+            }
+            aria-pressed={active}
+            onClick={() =>
+              active
+                ? void stop()
+                : project.recordingSettings
+                  ? void start()
+                  : setDialog('settings')
+            }
           >
-            <Square size={18} fill="currentColor" />
-          </button>
-        )}
-        {!active && !libraryOnly && (
-          <button
-            className="transport-record"
-            disabled={busy || disabled}
-            title={project.kind === 'creation' ? tr('录音') : tr('练琴录音')}
-            aria-label={project.kind === 'creation' ? tr('录音') : tr('练琴录音')}
-            onClick={() => (project.recordingSettings ? void start() : setDialog('settings'))}
-          >
-            <Circle size={isAndroid ? 20 : 14} fill="currentColor" strokeWidth={0} />
-            <span className="record-action-label">
-              {busy ? tr('准备录音…') : project.kind === 'creation' ? tr('录音') : tr('练琴录音')}
-            </span>
+            {busy ? (
+              <LoaderCircle size={18} className="spin" />
+            ) : active ? (
+              <Square size={isAndroid ? 18 : 14} fill="currentColor" strokeWidth={0} />
+            ) : (
+              <Circle size={isAndroid ? 20 : 14} fill="currentColor" strokeWidth={0} />
+            )}
           </button>
         )}
         {!isAndroid && !libraryOnly && (
@@ -358,35 +363,6 @@ export default function PracticeRecorder({
           </button>
         )}
       </div>
-      {active && !isAndroid && (
-        <div className="recording-bar recording-inline">
-          <span className="record-dot" />
-          <strong>
-            {busy
-              ? tr('正在保存录音…')
-              : settings.mode === 'mixed'
-                ? tr('录制声卡混音')
-                : tr('录制乐器输入')}
-          </strong>
-          <span>{time(seconds)}</span>
-
-          <div
-            className="input-live-meter"
-            role="meter"
-            aria-label={tr('录音输入声音大小')}
-            aria-valuemin={0}
-            aria-valuemax={1}
-            aria-valuenow={Math.min(1, level)}
-          >
-            <i style={{ transform: `scaleX(${Math.min(1, Math.sqrt(level))})` }} />
-          </div>
-          <small>{inputName}</small>
-          <button className="primary small" disabled={busy} onClick={() => void stop()}>
-            <Square size={12} fill="currentColor" />
-            {tr('停止并保存')}
-          </button>
-        </div>
-      )}
       <ModalFrame
         open={!!dialog}
         onClose={() => !busy && setDialog(null)}

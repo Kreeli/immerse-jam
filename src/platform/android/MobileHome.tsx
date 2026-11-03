@@ -5,13 +5,20 @@ import { Guitar, Layers, Plus, Share2, Trash2, Search } from 'lucide-react';
 import { useState } from 'react';
 import type { WorkspaceController } from '../../app/useWorkspace';
 import { t as tr } from '../../i18n';
+import ProjectMenu from '../../features/library/ProjectMenu';
+import MobileFolders from './MobileFolders';
 
 export default function MobileHome({ controller: c }: { controller: WorkspaceController }) {
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = useState('all'),
+    [folder, setFolder] = useState('all');
   const projects = c.library
     .filter(
       (p) =>
         (filter === 'all' || (p.kind || 'practice') === filter) &&
+        (folder === 'all' ||
+          (folder
+            ? c.folders.find((f) => f.id === folder)?.projectIds.includes(p.id)
+            : !c.folders.some((f) => f.projectIds.includes(p.id)))) &&
         (p.title + ' ' + p.artist).toLowerCase().includes(c.query.toLowerCase()),
     )
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
@@ -30,29 +37,43 @@ export default function MobileHome({ controller: c }: { controller: WorkspaceCon
           onChange={(e) => c.setQuery(e.target.value)}
         />
       </label>
-      <div className="session-tabs nr-seg">
-        {[
-          ['all', '全部'],
-          ['practice', '跟练'],
-          ['creation', '创作'],
-        ].map(([id, label]) => (
-          <button
-            key={id}
-            className={filter === id ? 'selected' : ''}
-            aria-selected={filter === id}
-            onClick={() => setFilter(id)}
-          >
-            {tr(label)}
-          </button>
-        ))}
+      <div className="mobile-library-tools">
+        <div className="session-tabs nr-seg">
+          {[
+            ['all', '全部'],
+            ['practice', '跟练'],
+            ['creation', '创作'],
+          ].map(([id, label]) => (
+            <button
+              key={id}
+              className={filter === id ? 'selected' : ''}
+              aria-selected={filter === id}
+              onClick={() => setFilter(id)}
+            >
+              {tr(label)}
+            </button>
+          ))}
+        </div>
+        <MobileFolders
+          folders={c.folders}
+          onFolders={c.setFolders}
+          onError={c.notify}
+          value={folder}
+          onChange={setFolder}
+        />
       </div>
       <div className="mobile-projects">
         {projects.map((p) => (
           <article key={p.id} className="nr-m-card">
             <button className="mobile-project-open" onClick={() => c.openProject(p)}>
-              <RehearsalCover id={p.id} size={52} />
+              <RehearsalCover id={p.id} size={52} cover={p.cover} />
               <span>
                 <strong>{p.title}</strong>
+                {p.description && (
+                  <small className="project-description" title={p.description}>
+                    {p.description}
+                  </small>
+                )}
                 <small>
                   {p.artist || (p.kind === 'creation' ? tr('创作') : tr('跟练'))} ·{' '}
                   {time(p.duration)}
@@ -69,13 +90,15 @@ export default function MobileHome({ controller: c }: { controller: WorkspaceCon
             >
               <Share2 size={18} />
             </button>
-            <button
-              className="icon-button"
-              aria-label={tr('删除 {0}', [p.title])}
-              onClick={() => c.setDeletingProject(p)}
-            >
-              <Trash2 size={17} />
-            </button>
+            <ProjectMenu
+              project={p}
+              folders={c.folders}
+              onFolders={c.setFolders}
+              onError={c.notify}
+              onEdit={c.setEditingProject}
+              onOpen={c.openProject}
+              onDelete={c.setDeletingProject}
+            />
           </article>
         ))}
       </div>

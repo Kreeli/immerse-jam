@@ -49,7 +49,7 @@ let app;
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.getByRole('button', { name: '跟练/创作', exact: true }).click();
-  await page.getByRole('button', { name: '打开 录音连续性验收', exact: true }).click();
+  await page.locator('.session-title').filter({ hasText: '录音连续性验收' }).click();
   await page.waitForFunction(() => !document.querySelector('.play-main').disabled);
   await page.evaluate(async () => {
     const el = document.querySelector('.transport');
@@ -80,11 +80,11 @@ let app;
       return window.__player.position();
     });
     await page.getByRole('button', { name: '练琴录音', exact: true }).click();
-    await page.waitForSelector('.recording-bar');
+    await page.waitForSelector('.transport-record.active');
     await page.waitForTimeout(650);
     const stopPosition = await page.evaluate(() => window.__player.position());
     await page.getByRole('button', { name: '停止并保存', exact: true }).click();
-    await page.waitForSelector('.recording-bar', { state: 'detached' });
+    await page.waitForSelector('.transport-record:not(.active):not(:disabled)');
     await page.waitForFunction(() => !window.__player.appendTask);
     await page.waitForTimeout(350);
     const state = await page.evaluate(() => {

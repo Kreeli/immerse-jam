@@ -5,6 +5,7 @@ import MobileActions from '../platform/android/MobileActions';
 import UsageHelp from '../features/settings/UsageHelp';
 import { jamCall } from '../platform/project-call';
 import MobileHome from '../platform/android/MobileHome';
+import AndroidPointer from '../platform/android/AndroidPointer';
 import {
   ArrowLeft,
   ArrowRight,
@@ -40,6 +41,7 @@ import LibraryPage from '../features/library/LibraryPage';
 import RecoveryDialog from '../features/library/RecoveryDialog';
 import FolderPage, { FolderDialog } from '../features/library/Folders';
 import ProjectHeading from '../features/library/ProjectHeading';
+import ProjectDetails from '../features/library/ProjectDetails';
 import Sidebar from '../features/library/Sidebar';
 import DatabaseMigration from '../features/migration/DatabaseMigration';
 import { compatible } from '../features/models/compatibility';
@@ -249,6 +251,10 @@ export default function App() {
       setDeletingProject(null);
       return true;
     }
+    if (controller.editingProject) {
+      controller.setEditingProject(null);
+      return true;
+    }
     if (creatingFolder) {
       setCreatingFolder(false);
       return true;
@@ -340,6 +346,7 @@ export default function App() {
         } else void importSongs(files);
       }}
     >
+      {isAndroid && <AndroidPointer />}
       {!isAndroid && <Sidebar {...controller} onCreateFolder={() => setCreatingFolder(true)} />}
       <main
         className={
@@ -358,6 +365,7 @@ export default function App() {
               onOpen={openProject}
               onDelete={setDeletingProject}
               onCreate={() => setCreatingFolder(true)}
+              onEdit={controller.setEditingProject}
             />
           ) : page === 'practice' ? (
             <PracticeHub
@@ -366,6 +374,7 @@ export default function App() {
               onOpen={openProject}
               onCreate={setCreatingSession}
               onDelete={setDeletingProject}
+              onEdit={controller.setEditingProject}
             />
           ) : (
             <LibraryPage {...controller} />
@@ -429,7 +438,7 @@ export default function App() {
                   >
                     <ArrowLeft size={20} />
                   </button>
-                  <RehearsalCover id={project.id} size={40} />
+                  <RehearsalCover id={project.id} size={40} cover={project.cover} />
                   <ProjectHeading {...folderProps} project={project} onProject={save} />
                   <button
                     className="save-indicator text-button"
@@ -761,6 +770,14 @@ export default function App() {
         />
       )}
       {creatingFolder && <FolderDialog {...folderProps} onClose={() => setCreatingFolder(false)} />}
+      {controller.editingProject && (
+        <ProjectDetails
+          project={controller.editingProject}
+          beforeSave={controller.flushEdits}
+          onSaved={controller.adoptIfCurrent}
+          onClose={() => controller.setEditingProject(null)}
+        />
+      )}
       {creatingSession && (
         <SessionCreateDialog
           kind={creatingSession}

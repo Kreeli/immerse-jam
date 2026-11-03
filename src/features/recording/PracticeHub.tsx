@@ -1,8 +1,10 @@
-import { ChevronRight, Guitar, Layers, Plus, Trash2 } from 'lucide-react';
+import { Guitar, Layers, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { t as tr } from '../../i18n';
 import type { Project } from '../../shared/types';
-import { FolderPicker, type FolderProps } from '../library/Folders';
+import type { FolderProps } from '../library/Folders';
+import ProjectMenu from '../library/ProjectMenu';
+import RehearsalCover from '../../shared/RehearsalCover';
 export default function PracticeHub({
   library,
   onOpen,
@@ -11,11 +13,13 @@ export default function PracticeHub({
   folders,
   onFolders,
   onError,
+  onEdit,
 }: {
   library: Project[];
   onOpen: (project: Project) => void;
   onCreate: (kind: 'practice' | 'creation') => void;
   onDelete: (project: Project) => void;
+  onEdit: (project: Project) => void;
 } & FolderProps) {
   const [filter, setFilter] = useState<'all' | 'practice' | 'creation'>('all');
   const sessions = library.filter(
@@ -84,9 +88,14 @@ export default function PracticeHub({
                 <tr className="session-row" key={project.id} onDoubleClick={() => onOpen(project)}>
                   <td>
                     <button className="session-title" onClick={() => onOpen(project)}>
-                      {project.kind === 'practice' ? <Guitar size={19} /> : <Layers size={19} />}
+                      <RehearsalCover id={project.id} cover={project.cover} size={38} />
                       <span>
                         <strong>{project.title}</strong>
+                        {project.description && (
+                          <small className="project-description" title={project.description}>
+                            {project.description}
+                          </small>
+                        )}
                         <small>
                           {project.sessionSource
                             ? tr('源歌曲：{0}', [project.sessionSource.title])
@@ -115,27 +124,15 @@ export default function PracticeHub({
                   </td>
                   <td>
                     <div className="session-row-actions">
-                      <FolderPicker
+                      <ProjectMenu
                         project={project}
                         folders={folders}
                         onFolders={onFolders}
                         onError={onError}
+                        onOpen={onOpen}
+                        onDelete={onDelete}
+                        onEdit={onEdit}
                       />
-                      <button
-                        className="icon-button"
-                        aria-label={tr('打开 {0}', [project.title])}
-                        onClick={() => onOpen(project)}
-                      >
-                        <ChevronRight size={18} />
-                      </button>
-                      <button
-                        className="icon-button"
-                        aria-label={tr('删除 {0}', [project.title])}
-                        title={tr('删除')}
-                        onClick={() => onDelete(project)}
-                      >
-                        <Trash2 size={16} />
-                      </button>
                     </div>
                   </td>
                 </tr>

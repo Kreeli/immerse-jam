@@ -5,6 +5,7 @@ import { FolderOpen, Pencil } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { t as tr, message as translateMessage } from '../../i18n';
 import type { Project } from '../../shared/types';
+import ModalFrame from '../../shared/ModalFrame';
 export default function ResultPicker({
   project,
   onProject,
@@ -20,6 +21,7 @@ export default function ResultPicker({
 }) {
   const result = project.results?.find((item) => item.id === project.activeResultId);
   const [renaming, setRenaming] = useState(false),
+    [savingName, setSavingName] = useState(false),
     [name, setName] = useState('');
   useEffect(() => {
     setRenaming(false);
@@ -81,25 +83,64 @@ export default function ResultPicker({
         )}
       </div>
       {renaming && result && (
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            void jamCall<Project>('result-rename', { id: project.id, resultId: result.id, name })
-              .then(onProject)
-              .catch((error) => onError(error.message));
-          }}
+        <ModalFrame
+          open
+          label={tr('重命名分离结果')}
+          onClose={() => !savingName && setRenaming(false)}
+          className="metadata-dialog result-name-dialog"
         >
-          <input
-            aria-label={tr('分离结果名称')}
-            value={name}
-            maxLength={120}
-            autoFocus
-            onChange={(event) => setName(event.target.value)}
-          />
-          <button className="small primary" type="submit">
-            {tr('保存名称')}
-          </button>
-        </form>
+          <form
+            role={isAndroid ? undefined : 'dialog'}
+            aria-label={tr('重命名分离结果')}
+            onSubmit={async (event) => {
+              event.preventDefault();
+              setSavingName(true);
+              try {
+                onProject(
+                  await jamCall<Project>('result-rename', {
+                    id: project.id,
+                    resultId: result.id,
+                    name,
+                  }),
+                );
+                setRenaming(false);
+              } catch (error) {
+                onError((error as Error).message);
+              } finally {
+                setSavingName(false);
+              }
+            }}
+          >
+            <h2>{tr('重命名分离结果')}</h2>
+            <label>
+              {tr('分离结果名称')}
+              <input
+                aria-label={tr('分离结果名称')}
+                value={name}
+                maxLength={120}
+                autoFocus
+                onChange={(event) => setName(event.target.value)}
+              />
+            </label>
+            <footer>
+              <button
+                className="nr-btn"
+                type="button"
+                disabled={savingName}
+                onClick={() => setRenaming(false)}
+              >
+                {tr('取消')}
+              </button>
+              <button
+                className="nr-btn nr-primary"
+                disabled={savingName || !name.trim()}
+                type="submit"
+              >
+                {tr('保存名称')}
+              </button>
+            </footer>
+          </form>
+        </ModalFrame>
       )}
       {result && (
         <small className="result-origin">

@@ -6,6 +6,7 @@ import processorUrl from './playback-processor.js?worker&url';
 import { t as tr } from '../i18n';
 import { asset, interpolate, type Project, type SourceGroup, type Track } from '../shared/types';
 import { placeEnvelope } from './envelope';
+import { WaveHistory, waveHistoryKey } from './wave-history';
 import { beatGrid, localInterval, nearestBeat, strongBeat } from './metronome';
 import {
   creationGroups,
@@ -86,6 +87,7 @@ export class Player {
   metroBeats: number[] = [];
   metroScheduled = new Set<string>();
   peakCache = new Map<string, number[]>();
+  private waveHistory = new WaveHistory();
   channels: Channel[] = [];
   mix: GainNode | null = null;
   master: GainNode | null = null;
@@ -1419,9 +1421,34 @@ export class Player {
     ]);
   }
   cachedWaveform(source = 'mix'): number[] | null {
-    return source === 'mix'
-      ? this.mixWaves.get(this.waveKey()) || null
-      : this.trackWaves.get(source) || null;
+    if (source !== 'mix') return this.trackWaves.get(source) || null;
+    const found = this.mixWaves.get(this.waveKey());
+    if (found) return found;
+    if (!this.project) return null;
+    const cached = this.waveHistory.get(
+      waveHistoryKey(
+        this.project,
+        this.channels.map((c) => c.track),
+        'mix',
+        0,
+        this.duration,
+        this.project.practice.master,
+      ),
+    );
+    if (cached) this.mixWaves.set(this.waveKey(), cached);
+    return cached;
+  }
+  previewWaveform(project: Project) {
+    return this.waveHistory.get(
+      waveHistoryKey(
+        project,
+        playbackTracks(project, false),
+        'mix',
+        0,
+        project.duration,
+        project.practice.master,
+      ),
+    );
   }
   waveformRegion(source: string, override?: SourceGroup) {
     const group =
@@ -1482,6 +1509,19 @@ export class Player {
         ? this.waveformRegion(source, group)
         : { origin: 0, duration: this.duration },
       master = group ? 1 : (this.project?.practice.master ?? 0.8);
+    const historyKey = waveHistoryKey(
+        this.project!,
+        tracks,
+        source,
+        region.origin,
+        region.duration,
+        master,
+      ),
+      previous = this.waveHistory.get(historyKey);
+    if (previous) {
+      this.mixWaves.set(key, previous);
+      return previous;
+    }
     const task = this.waveQueue
       .catch(() => {})
       .then(async () => {
@@ -1497,6 +1537,7 @@ export class Player {
         if (valid()) {
           if (this.mixWaves.size >= 8) this.mixWaves.delete(this.mixWaves.keys().next().value!);
           this.mixWaves.set(key, values);
+          this.waveHistory.set(historyKey, values);
         }
         return values;
       });
@@ -1542,5 +1583,6 @@ export class Player {
     this.trackWaves.clear();
     this.mixWaves.clear();
     this.mixInFlight.clear();
+    this.waveHistory.clear();
   }
 }

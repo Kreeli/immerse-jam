@@ -1,5 +1,5 @@
 import * as Dialog from '@radix-ui/react-dialog';
-import type { ReactNode } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { isAndroid } from '../platform/environment';
 import { t as tr } from '../i18n';
@@ -16,6 +16,29 @@ export default function ModalFrame({
   label?: string;
   children: ReactNode;
 }) {
+  const [viewport, setViewport] = useState<CSSProperties>({});
+  useEffect(() => {
+    if (!isAndroid || !open) return;
+    const visible = window.visualViewport;
+    const update = () => {
+      const height = visible?.height ?? innerHeight,
+        top = visible?.offsetTop ?? 0;
+      setViewport({
+        '--dialog-visible-height': height + 'px',
+        '--dialog-keyboard-inset': Math.max(0, innerHeight - top - height) + 'px',
+        '--dialog-center-from-bottom': innerHeight - top - height / 2 + 'px',
+      } as CSSProperties);
+    };
+    update();
+    visible?.addEventListener('resize', update);
+    visible?.addEventListener('scroll', update);
+    window.addEventListener('resize', update);
+    return () => {
+      visible?.removeEventListener('resize', update);
+      visible?.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+    };
+  }, [open]);
   if (!isAndroid)
     return open
       ? createPortal(
@@ -34,6 +57,7 @@ export default function ModalFrame({
         <Dialog.Overlay className="mobile-dialog-overlay" />
         <Dialog.Content
           className={'modal mobile-dialog ' + className}
+          style={viewport}
           aria-describedby={undefined}
           onOpenAutoFocus={(e) => e.preventDefault()}
         >

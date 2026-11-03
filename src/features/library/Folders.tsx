@@ -4,6 +4,11 @@ import { ChevronRight, Folder, FolderPlus, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { t as tr } from '../../i18n';
 import type { Project, ProjectFolder } from '../../shared/types';
+import CoverPicker from '../../shared/CoverPicker';
+import RehearsalCover from '../../shared/RehearsalCover';
+import ModalFrame from '../../shared/ModalFrame';
+import ProjectMenu from './ProjectMenu';
+import { isAndroid } from '../../platform/environment';
 export interface FolderProps {
   folders: ProjectFolder[];
   onFolders: (folders: ProjectFolder[]) => void;
@@ -17,6 +22,7 @@ export function FolderPicker({
 }: FolderProps & { project: Project }) {
   return (
     <Select
+      menu
       className="folder-picker"
       aria-label={tr('移动到分类 {0}', [project.title])}
       value={folders.find((folder) => folder.projectIds.includes(project.id))?.id || ''}
@@ -45,13 +51,20 @@ export function FolderDialog({
   ...props
 }: FolderProps & { folder?: ProjectFolder; onClose: () => void }) {
   const [name, setName] = useState(folder?.name || ''),
+    [cover, setCover] = useState(folder?.cover || ''),
+    [imageBusy, setImageBusy] = useState(false),
     [busy, setBusy] = useState(false);
   return (
-    <div className="modal-backdrop">
+    <ModalFrame
+      open
+      label={folder ? tr('编辑分类') : tr('新建分类')}
+      onClose={() => !busy && onClose()}
+      className="metadata-dialog"
+    >
       <form
-        className="modal folder-dialog"
-        role="dialog"
-        aria-label={folder ? tr('重命名分类') : tr('新建分类')}
+        className="folder-dialog"
+        role={isAndroid ? undefined : 'dialog'}
+        aria-label={folder ? tr('编辑分类') : tr('新建分类')}
         onSubmit={(event) => {
           event.preventDefault();
           setBusy(true);
@@ -59,6 +72,7 @@ export function FolderDialog({
             action: folder ? 'rename' : 'create',
             id: folder?.id,
             name,
+            cover,
           })
             .then((value) => {
               props.onFolders(value);
@@ -68,7 +82,8 @@ export function FolderDialog({
             .finally(() => setBusy(false));
         }}
       >
-        <h2>{folder ? tr('重命名分类') : tr('新建分类')}</h2>
+        <h2>{folder ? tr('编辑分类') : tr('新建分类')}</h2>
+        <CoverPicker value={cover} onChange={setCover} onBusyChange={setImageBusy} folder />
         <label>
           {tr('分类名称')}
           <input
@@ -83,12 +98,12 @@ export function FolderDialog({
           <button type="button" disabled={busy} onClick={onClose}>
             {tr('取消')}
           </button>
-          <button className="primary" disabled={busy || !name.trim()}>
+          <button className="primary" disabled={busy || imageBusy || !name.trim()}>
             {tr('保存')}
           </button>
         </div>
       </form>
-    </div>
+    </ModalFrame>
   );
 }
 export default function FolderPage({
@@ -97,6 +112,7 @@ export default function FolderPage({
   onOpen,
   onDelete,
   onCreate,
+  onEdit,
   ...props
 }: FolderProps & {
   id: string;
@@ -104,6 +120,7 @@ export default function FolderPage({
   onOpen: (project: Project) => void;
   onDelete: (project: Project) => void;
   onCreate: () => void;
+  onEdit: (project: Project) => void;
 }) {
   const folder = props.folders.find((item) => item.id === id),
     [editing, setEditing] = useState(false),
@@ -126,7 +143,11 @@ export default function FolderPage({
         <div>
           <div className="eyebrow">IMMERSE JAM</div>
           <h1>
-            <Folder size={28} />
+            {folder?.cover ? (
+              <RehearsalCover id={folder.id} cover={folder.cover} folder size={40} />
+            ) : (
+              <Folder size={28} />
+            )}
             {folder?.name || tr('默认分类')}
             <span>{tr('{0} 项内容', [projects.length])}</span>
           </h1>
@@ -137,7 +158,7 @@ export default function FolderPage({
             <>
               <button onClick={() => setEditing(true)}>
                 <Pencil size={16} />
-                {tr('重命名')}
+                {tr('编辑分类')}
               </button>
               <button onClick={() => setDeleting(true)}>
                 <Trash2 size={16} />
@@ -174,31 +195,31 @@ export default function FolderPage({
           projects.map((project) => (
             <article className="folder-project" key={project.id}>
               <button className="folder-project-open" onClick={() => onOpen(project)}>
-                <strong>{project.title}</strong>
-                <small>
-                  {project.kind === 'practice'
-                    ? tr('跟练')
-                    : project.kind === 'creation'
-                      ? tr('创作')
-                      : tr('分轨歌曲')}
-                  {project.artist ? ' · ' + project.artist : ''}
-                </small>
+                <RehearsalCover id={project.id} cover={project.cover} size={40} />
+                <span>
+                  <strong>{project.title}</strong>
+                  {project.description && (
+                    <small className="project-description" title={project.description}>
+                      {project.description}
+                    </small>
+                  )}
+                  <small>
+                    {project.kind === 'practice'
+                      ? tr('跟练')
+                      : project.kind === 'creation'
+                        ? tr('创作')
+                        : tr('分轨歌曲')}
+                    {project.artist ? ' · ' + project.artist : ''}
+                  </small>
+                </span>
               </button>
-              <FolderPicker {...props} project={project} />
-              <button
-                className="icon-button"
-                aria-label={tr('删除 {0}', [project.title])}
-                onClick={() => onDelete(project)}
-              >
-                <Trash2 size={16} />
-              </button>
-              <button
-                className="icon-button"
-                aria-label={tr('打开 {0}', [project.title])}
-                onClick={() => onOpen(project)}
-              >
-                <ChevronRight size={19} />
-              </button>
+              <ProjectMenu
+                {...props}
+                project={project}
+                onOpen={onOpen}
+                onDelete={onDelete}
+                onEdit={onEdit}
+              />
             </article>
           ))
         ) : (

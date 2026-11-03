@@ -1,6 +1,7 @@
 export interface ProjectFolder {
   id: string;
   name: string;
+  cover?: string;
   projectIds: string[];
 }
 export interface ModelDownload {
@@ -172,6 +173,9 @@ export interface Practice {
   snapCountIn?: boolean;
 }
 export interface Project {
+  importRevision?: string;
+  description?: string;
+  cover?: string;
   broken?: string;
   kind?: 'practice' | 'creation';
   sessionSource?: { projectId: string; title: string; resultId: string | null };

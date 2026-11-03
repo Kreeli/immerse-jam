@@ -14,6 +14,34 @@ import org.junit.runner.RunWith;
 @RunWith(AndroidJUnit4.class)
 public class StorageTest {
   @Test
+  public void projectDetailsArchiveRoundtrip() throws Exception {
+    Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+    ProjectStore store = new ProjectStore(context);
+    JSONObject p = store.create(new JSONObject().put("kind", "creation").put("title", "Metadata isolated check"));
+    String id = p.getString("id");
+    String importedId = null;
+    File archive = null;
+    try {
+      String cover = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jrRkAAAAASUVORK5CYII=";
+      p = store.update(id, new JSONObject().put("title", "Rehearsal").put("description", "Band notes").put("cover", cover));
+      store.update(id, new JSONObject().put("practice",new JSONObject().put("master",.4)));
+      archive = store.pack(id);
+      JSONObject imported = store.importArchive(archive, UUID.randomUUID().toString());
+      importedId = imported.getString("id");
+      assertEquals("Band notes", imported.getString("description"));
+      assertEquals(cover, imported.getString("cover"));
+      assertEquals(.4, imported.getJSONObject("practice").getDouble("master"),1e-9);
+      try { store.update(id, new JSONObject().put("cover","data:image/svg+xml;base64,PHN2Zy8+")); fail("SVG cover accepted"); } catch (IOException expected) {}
+      store.update(id, new JSONObject().put("cover",""));
+      assertEquals("",store.get(id).getString("cover"));
+    } finally {
+      ProjectStore.remove(store.dir(id));
+      if (importedId != null && !importedId.equals(id)) ProjectStore.remove(store.dir(importedId));
+      if (archive != null) archive.delete();
+    }
+  }
+
+  @Test
   public void desktopBeatFixtureImportsAndExportsNativeMix() throws Exception {
     Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
     File fixture = new File(context.getCacheDir(), "device-fixtures/source.ijam");

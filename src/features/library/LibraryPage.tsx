@@ -4,12 +4,10 @@ import {
   ChevronRight,
   Mic2,
   Music2,
-  MoreHorizontal,
   Play,
   Plus,
   Search,
   Star,
-  Trash2,
   Upload,
   Waves,
   Folder,
@@ -20,7 +18,7 @@ import { time, type Project } from '../../shared/types';
 import RehearsalCover from '../../shared/RehearsalCover';
 import { trackColor } from '../../styles/palette';
 import { keyLabel } from '../analysis/transposition';
-import { FolderPicker } from './Folders';
+import ProjectMenu from './ProjectMenu';
 type Props = Pick<
   WorkspaceController,
   | 'page'
@@ -38,6 +36,7 @@ type Props = Pick<
   | 'folders'
   | 'setFolders'
   | 'notify'
+  | 'setEditingProject'
 >;
 
 // React adaptation of PR #6 libraryPage(): page-inner, real resume, lib-grid and card foot.
@@ -57,6 +56,7 @@ export default function LibraryPage({
   folders,
   setFolders,
   notify,
+  setEditingProject,
 }: Props) {
   const recent = library
     .filter((p) => !p.kind && p.practice.lastPlayedAt)
@@ -88,7 +88,7 @@ export default function LibraryPage({
         </header>
         {recent && page === 'library' && !query && (
           <div className="nr-resume">
-            <RehearsalCover id={recent.id} size={52} />
+            <RehearsalCover id={recent.id} size={52} cover={recent.cover} />
             <div className="nr-grow">
               <div className="nr-eyebrow">{tr('返回播放')}</div>
               <h3 className="nr-ellipsis">{recent.title}</h3>
@@ -146,10 +146,15 @@ export default function LibraryPage({
                     aria-label={tr('打开 {0}', [p.title])}
                     onClick={() => openProject(p)}
                   />
-                  <RehearsalCover id={p.id} />
+                  <RehearsalCover id={p.id} cover={p.cover} />
                   <div className="nr-song-copy">
                     <h3 className="nr-ellipsis">{p.broken ? tr('歌曲数据需要恢复') : p.title}</h3>
                     <div className="nr-meta nr-ellipsis">{p.artist || tr('本地音乐')}</div>
+                    {p.description && (
+                      <div className="project-description nr-ellipsis" title={p.description}>
+                        {p.description}
+                      </div>
+                    )}
                     <div className="nr-meta nr-mono">
                       {time(p.duration)}
                       {p.analysis
@@ -193,35 +198,15 @@ export default function LibraryPage({
                       >
                         <Star size={16} fill={p.starred ? 'currentColor' : 'none'} />
                       </button>
-                      <details className="song-more nr-card-menu">
-                        <summary aria-label={tr('更多操作')} className="nr-icon-btn nr-sm">
-                          <MoreHorizontal size={17} />
-                        </summary>
-                        <div>
-                          <FolderPicker
-                            project={p}
-                            folders={folders}
-                            onFolders={setFolders}
-                            onError={notify}
-                          />
-                          <button
-                            className="nr-btn nr-ghost"
-                            aria-label={tr('删除歌曲 {0}', [p.title])}
-                            onClick={() => setDeletingProject(p)}
-                          >
-                            <Trash2 size={15} />
-                            {tr('删除歌曲')}
-                          </button>
-                          <button
-                            className="nr-btn nr-ghost"
-                            aria-label={tr('打开歌曲')}
-                            onClick={() => openProject(p)}
-                          >
-                            <ChevronRight size={16} />
-                            {tr('打开歌曲')}
-                          </button>
-                        </div>
-                      </details>
+                      <ProjectMenu
+                        project={p}
+                        folders={folders}
+                        onFolders={setFolders}
+                        onError={notify}
+                        onEdit={setEditingProject}
+                        onDelete={setDeletingProject}
+                        onOpen={openProject}
+                      />
                     </div>
                   </div>
                 </article>

@@ -62,6 +62,7 @@ public class NativeBridge {
       if (!allowed.contains(method)
           && !Set.of(
                   "android-back-result",
+                  "android-pointer-style",
                   "android-playback-state",
                   "android-capture-devices", "android-capture-open", "android-capture-clock", "android-capture-stop", "android-capture-close",
                   "android-stream-open", "android-stream-close", "android-stream-wave", "android-stream-append",
@@ -156,6 +157,9 @@ public class NativeBridge {
 
   Object call(String method, JSONObject d) throws Exception {
     switch (method) {
+      case "android-pointer-style":
+        activity.pointerStyle(d.getString("style"));
+        return true;
       case "android-capture-devices": return capture.devices(d.optBoolean("permission"));
       case "android-capture-open": return capture.open(d);
       case "android-capture-clock": return new JSONObject().put("seconds", System.nanoTime() / 1e9);
@@ -455,17 +459,35 @@ public class NativeBridge {
     String action = d.getString("action"),
         id = d.optString("id"),
         project = d.optString("projectId");
+    if (!Set.of("create", "rename", "delete", "move").contains(action)) throw new IOException("分类操作无效");
+    if (d.has("cover")) ProjectValidation.validateCover(d.opt("cover"));
+    String name = d.optString("name").trim();
+    boolean exists = false;
+    for (int i = 0; i < list.length(); i++) {
+      JSONObject folder = list.getJSONObject(i);
+      if (folder.getString("id").equals(id)) exists = true;
+      if ((action.equals("create") || action.equals("rename")) && !folder.getString("id").equals(id) && folder.getString("name").equalsIgnoreCase(name)) throw new IOException("已有同名分类");
+    }
+    if (action.equals("create") || action.equals("rename")) {
+      if (name.isEmpty() || name.length() > 60) throw new IOException("分类名称需要 1–60 个字");
+      if (action.equals("create") && list.length() >= 200) throw new IOException("分类数量已达上限");
+    }
+    if (!action.equals("create") && !exists && !(action.equals("move") && id.isEmpty())) throw new IOException("分类不存在");
+    if (action.equals("move")) store.get(project);
     if (action.equals("create"))
       list.put(
           new JSONObject()
               .put("id", UUID.randomUUID().toString())
-              .put("name", d.getString("name"))
+              .put("name", name)
+              .put("cover", d.optString("cover", ""))
               .put("projectIds", new JSONArray()));
     for (int i = 0; i < list.length(); i++) {
       JSONObject folder = list.getJSONObject(i);
       if (action.equals("delete") && folder.getString("id").equals(id)) continue;
-      if (action.equals("rename") && folder.getString("id").equals(id))
-        folder.put("name", d.getString("name"));
+      if (action.equals("rename") && folder.getString("id").equals(id)) {
+        folder.put("name", name);
+        if (d.has("cover")) folder.put("cover", d.getString("cover"));
+      }
       if (action.equals("move")) {
         JSONArray old = folder.getJSONArray("projectIds"), ids = new JSONArray();
         for (int j = 0; j < old.length(); j++)
@@ -475,7 +497,7 @@ public class NativeBridge {
       }
       next.put(folder);
     }
-    ProjectStore.write(new File(store.root, "folders.json"), new JSONObject().put("folders", next));
+    ProjectStore.write(new File(store.root, "folders.json"), new JSONObject().put("schemaVersion", 1).put("folders", next));
     return next;
   }
 

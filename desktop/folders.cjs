@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { atomicJson } = require('./store.cjs');
+const { validateCover } = require('../shared/project-validation.cjs');
 class Folders {
   constructor(store) {
     this.store = store;
@@ -25,6 +26,7 @@ class Folders {
           )
         )
           throw new Error('分类数据无效');
+        for (const folder of data.folders) validateCover(folder.cover);
         return data;
       } catch {
         fs.copyFileSync(this.file, this.file + '.corrupt.' + Date.now());
@@ -49,9 +51,10 @@ class Folders {
       projectIds: folder.projectIds.filter((id) => ids.has(id)),
     }));
   }
-  edit({ action, id, name, projectId }) {
+  edit({ action, id, name, projectId, cover }) {
     const data = this.read(),
       folder = data.folders.find((item) => item.id === id);
+    validateCover(cover);
     if (['create', 'rename'].includes(action)) {
       if (typeof name !== 'string' || !name.trim() || name.trim().length > 60)
         throw new Error('分类名称需要 1–60 个字');
@@ -65,9 +68,16 @@ class Folders {
     }
     if (action === 'create') {
       if (data.folders.length >= 200) throw new Error('分类数量已达上限');
-      data.folders.push({ id: crypto.randomUUID(), name, projectIds: [] });
-    } else if (action === 'rename' && folder) folder.name = name;
-    else if (action === 'delete' && folder)
+      data.folders.push({
+        id: crypto.randomUUID(),
+        name,
+        projectIds: [],
+        ...(cover ? { cover } : {}),
+      });
+    } else if (action === 'rename' && folder) {
+      folder.name = name;
+      if (cover !== undefined) folder.cover = cover;
+    } else if (action === 'delete' && folder)
       data.folders = data.folders.filter((item) => item.id !== id);
     else if (action === 'move' && (!id || folder)) {
       this.store.get(projectId);
