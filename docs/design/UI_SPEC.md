@@ -22,12 +22,12 @@
 
 **意象**：关了大灯、只留几盏暖灯的排练室。
 
-| 原则 | 落到界面上 |
-|---|---|
-| 手离开琴也只要一下 | 播放、±5 秒、循环、录音永远在固定位置；电脑有快捷键，手机放在拇指区（屏幕下 1/3）。 |
-| 声部颜色就是信息 | 声部颜色固定且是界面里最鲜艳的东西；关掉的声部变灰并从波形里消失——所见即所听。 |
-| 说人话 | 「选听 / 关闭声音 / 挂载 / 拆分」，不写 Solo、Mute、Stem。每个耗时操作说明要多久、会不会上传。 |
-| 不打断练习 | 拆分、下载、互传在后台；完成用通知条 + 「打开」；删除都能撤销。 |
+| 原则               | 落到界面上                                                                                     |
+| ------------------ | ---------------------------------------------------------------------------------------------- |
+| 手离开琴也只要一下 | 播放、±5 秒、循环、录音永远在固定位置；电脑有快捷键，手机放在拇指区（屏幕下 1/3）。            |
+| 声部颜色就是信息   | 声部颜色固定且是界面里最鲜艳的东西；关掉的声部变灰并从波形里消失——所见即所听。                 |
+| 说人话             | 「选听 / 关闭声音 / 挂载 / 拆分」，不写 Solo、Mute、Stem。每个耗时操作说明要多久、会不会上传。 |
+| 不打断练习         | 拆分、下载、互传在后台；完成用通知条 + 「打开」；删除都能撤销。                                |
 
 ---
 
@@ -37,31 +37,31 @@
 
 ### 2.1 表面与文字
 
-| Token | 暗色 | 浅色 | 用途 |
-|---|---|---|---|
-| `--ground` | `#0d0c11` | `#eeedf2` | 窗口底色 |
-| `--surface-1` | `#14131a` | `#fbfbfd` | 侧栏、面板、走带 |
-| `--surface-2` | `#1b1a22` | `#ffffff` | 卡片、菜单、对话框 |
-| `--surface-3` | `#24222d` | `#f0eff5` | 控件底、悬停 |
-| `--surface-4` | `#2e2b38` | `#e5e3ec` | 滑轨、进度底 |
-| `--line` | `#2a2833` | `#e1dfe8` | 分隔线、卡片描边 |
-| `--line-strong` | `#3b3847` | `#cbc8d6` | 输入框、强调描边 |
-| `--text` | `#eeecf3` | `#17151d` | 正文 |
-| `--text-2` | `#aba7b9` | `#55516a` | 次要文字 |
-| `--text-3` | `#75718a` | `#85819a` | 提示、占位 |
-| `--scrim` | `rgba(6,5,9,.66)` | `rgba(30,27,40,.38)` | 遮罩 |
-| `--playhead` | `#ffffff` | `#17151d` | 播放头 |
+| Token           | 暗色              | 浅色                 | 用途               |
+| --------------- | ----------------- | -------------------- | ------------------ |
+| `--ground`      | `#0d0c11`         | `#eeedf2`            | 窗口底色           |
+| `--surface-1`   | `#14131a`         | `#fbfbfd`            | 侧栏、面板、走带   |
+| `--surface-2`   | `#1b1a22`         | `#ffffff`            | 卡片、菜单、对话框 |
+| `--surface-3`   | `#24222d`         | `#f0eff5`            | 控件底、悬停       |
+| `--surface-4`   | `#2e2b38`         | `#e5e3ec`            | 滑轨、进度底       |
+| `--line`        | `#2a2833`         | `#e1dfe8`            | 分隔线、卡片描边   |
+| `--line-strong` | `#3b3847`         | `#cbc8d6`            | 输入框、强调描边   |
+| `--text`        | `#eeecf3`         | `#17151d`            | 正文               |
+| `--text-2`      | `#aba7b9`         | `#55516a`            | 次要文字           |
+| `--text-3`      | `#75718a`         | `#85819a`            | 提示、占位         |
+| `--scrim`       | `rgba(6,5,9,.66)` | `rgba(30,27,40,.38)` | 遮罩               |
+| `--playhead`    | `#ffffff`         | `#17151d`            | 播放头             |
 
 中性色都带一点紫色偏向（与 rose 主题色同温），不要用纯灰。
 
 ### 2.2 主题色（只用于「现在能点什么」：主按钮、选中、进度、播放进度）
 
-| `data-accent` | `--accent` 暗 / 浅 | 说明 |
-|---|---|---|
-| （默认）rose | `#ff5c7a` / `#e23d62` | 玫瑰 |
-| ocean | `#3fa7ff` / 对应深色 | 海蓝 |
-| pine | `#34d399` / 对应深色 | 松绿 |
-| violet | `#a78bfa` / 对应深色 | 紫罗兰 |
+| `data-accent` | `--accent` 暗 / 浅    | 说明   |
+| ------------- | --------------------- | ------ |
+| （默认）rose  | `#ff5c7a` / `#e23d62` | 玫瑰   |
+| ocean         | `#3fa7ff` / 对应深色  | 海蓝   |
+| pine          | `#34d399` / 对应深色  | 松绿   |
+| violet        | `#a78bfa` / 对应深色  | 紫罗兰 |
 
 每个主题色派生：`--accent-strong`（悬停/浅色文字）、`--accent-ink`（主按钮上的文字）、`--accent-soft`（14% 选中底）、`--accent-line`（42% 选中描边）。完整值见 `prototype.html` 头部 `<style>`。
 
@@ -69,18 +69,18 @@
 
 ### 2.3 声部颜色（固定，不随主题色变）
 
-| Token | 暗 | 浅 | 声部 |
-|---|---|---|---|
-| `--stem-vocals` | `#ff5470` | `#e2334f` | 人声 |
-| `--stem-drums` | `#b77bff` | `#8a4fe0` | 鼓 |
-| `--stem-bass` | `#45adff` | `#1f84d8` | 贝斯 |
-| `--stem-piano` | `#3fdc92` | `#13a465` | 钢琴 |
-| `--stem-guitar` | `#ffa043` | `#e27518` | 吉他 |
-| `--stem-other` | `#9a95ad` | `#77728c` | 其他 / 伴奏 |
-| `--stem-lead` | `#ffc15a` | `#d9951a` | 主音吉他 |
-| `--stem-rhythm` | `#ff7f3a` | `#e05a14` | 节奏吉他 |
-| `--stem-backing` | `#ff92b4` | `#e0628c` | 和声 |
-| `--stem-take` | `#efe7d2` | `#3a3448` | 我的录音 |
+| Token            | 暗        | 浅        | 声部        |
+| ---------------- | --------- | --------- | ----------- |
+| `--stem-vocals`  | `#ff5470` | `#e2334f` | 人声        |
+| `--stem-drums`   | `#b77bff` | `#8a4fe0` | 鼓          |
+| `--stem-bass`    | `#45adff` | `#1f84d8` | 贝斯        |
+| `--stem-piano`   | `#3fdc92` | `#13a465` | 钢琴        |
+| `--stem-guitar`  | `#ffa043` | `#e27518` | 吉他        |
+| `--stem-other`   | `#9a95ad` | `#77728c` | 其他 / 伴奏 |
+| `--stem-lead`    | `#ffc15a` | `#d9951a` | 主音吉他    |
+| `--stem-rhythm`  | `#ff7f3a` | `#e05a14` | 节奏吉他    |
+| `--stem-backing` | `#ff92b4` | `#e0628c` | 和声        |
+| `--stem-take`    | `#efe7d2` | `#3a3448` | 我的录音    |
 
 画布（Canvas）绘制时通过 `getComputedStyle` 读取这些变量，主题切换后重读一次（原型 `readColors()`）。
 
@@ -90,28 +90,28 @@
 
 ### 2.5 字体
 
-| Token | 字体栈 | 用途 |
-|---|---|---|
-| `--font-display` | Bricolage Grotesque → Noto Sans SC → 系统中文 | 页面标题、歌名、大数字 |
-| `--font-ui` | Noto Sans SC → HarmonyOS Sans SC → PingFang SC → Microsoft YaHei UI | 正文与控件 |
-| `--font-mono` | JetBrains Mono → Cascadia Mono → Consolas | 时间码、BPM、百分比、ms（等宽，跳动时不抖） |
+| Token            | 字体栈                                                              | 用途                                        |
+| ---------------- | ------------------------------------------------------------------- | ------------------------------------------- |
+| `--font-display` | Bricolage Grotesque → Noto Sans SC → 系统中文                       | 页面标题、歌名、大数字                      |
+| `--font-ui`      | Noto Sans SC → HarmonyOS Sans SC → PingFang SC → Microsoft YaHei UI | 正文与控件                                  |
+| `--font-mono`    | JetBrains Mono → Cascadia Mono → Consolas                           | 时间码、BPM、百分比、ms（等宽，跳动时不抖） |
 
 字号（px）：`--fs-micro 11` · `--fs-cap 12` · `--fs-ui 13` · `--fs-body 14` · `--fs-title-s 16` · `--fs-title 20` · `--fs-display 30`。
 手机端正文 15、列表标题 16、页面标题 26（m-hello）。标题 `text-wrap: balance`，eyebrow 标签 `letter-spacing: .08em`。
 
 ### 2.6 圆角 · 间距 · 动效
 
-| Token | 值 | 用途 |
-|---|---|---|
-| `--r-xs / --r-s` | 4 / 7 | 标签、菜单项、小按钮 |
-| `--r-m` | 10 | 按钮、输入框、通知条 |
-| `--r-l` | 14 | 卡片、声部条 |
-| `--r-xl` | 20 | 对话框、手机底部面板顶角 |
-| 间距 | 4 · 8 · 12 · 16 · 24 · 32 | 只用这 6 档；同组元素用 `gap` |
-| `--t-fast` | 120ms | 悬停、按下 |
-| `--t-med` | 200ms | 开关、选项卡 |
-| `--t-slow` | 300ms | 对话框、抽屉、底部面板进入 |
-| `--ease` | `cubic-bezier(.2,.8,.2,1)` | 所有进入动画 |
+| Token            | 值                         | 用途                          |
+| ---------------- | -------------------------- | ----------------------------- |
+| `--r-xs / --r-s` | 4 / 7                      | 标签、菜单项、小按钮          |
+| `--r-m`          | 10                         | 按钮、输入框、通知条          |
+| `--r-l`          | 14                         | 卡片、声部条                  |
+| `--r-xl`         | 20                         | 对话框、手机底部面板顶角      |
+| 间距             | 4 · 8 · 12 · 16 · 24 · 32  | 只用这 6 档；同组元素用 `gap` |
+| `--t-fast`       | 120ms                      | 悬停、按下                    |
+| `--t-med`        | 200ms                      | 开关、选项卡                  |
+| `--t-slow`       | 300ms                      | 对话框、抽屉、底部面板进入    |
+| `--ease`         | `cubic-bezier(.2,.8,.2,1)` | 所有进入动画                  |
 
 `prefers-reduced-motion: reduce` 时所有动画降到 1ms。重新渲染时**不要**重复播放进入动画（原型用 `body.calm` 处理）。
 
@@ -119,25 +119,25 @@
 
 ## 3. 组件
 
-| 组件 | 规格 | 状态 |
-|---|---|---|
-| 按钮 `.btn` | 高 34（`.sm` 28，手机 44 / 34），圆角 `--r-m`，图标 15 + 文字 13/600 | default / hover（surface-3）/ active（scale .98）/ disabled（40%）/ `primary` / `ghost` / `danger` / `danger-ghost` / `quiet` |
-| 图标按钮 `.icon-btn` | 32×32（`.sm` 26，手机 44） | 同上；必须有 `aria-label` 或 `title` |
-| 分段 `.seg` | 底 surface-1 + 描边；选中项 surface-3 + text | `aria-pressed` / `aria-selected` |
-| 开关 `.toggle` | 36×20（手机 44×26） | `role="switch"` + `aria-checked` |
-| 勾选 `.check` / 单选 `.radio` | 18 | `aria-checked` |
-| 选项卡片 `.choice` | 整块可点，左侧 radio，右侧可带警示 chip（需下载 xx MB） | 选中：accent-soft 底 + accent-line 描边 |
-| 标签 `.chip` | 高 24，`ok / warn / accent` 变体 | — |
-| 滑块 `.range` | 轨道 4，拇指 14；已填充部分用 `--c`（声部色），通过 `--p` 百分比绘制 | 声像 `.pan` 中心有刻线，拇指为方形 |
-| 选听/静音 `.ms-btn` | 电脑 26×22，手机 52×34；S 选中 = 黄色底，M 选中 = 灰底 + 删除线色 | 被关掉的声部整条 `.off`（50% 不透明 + 去饱和） |
-| 电平 `.meter` | 4px 宽竖条，声部色，60ms 线性过渡 | 只在播放时有值 |
-| 进度 `.progress` | 高 6（手机 4） | `.ok` 完成态 |
-| 通知 `.notice` | surface-1 + 描边，图标 info/warn | — |
-| 通知条 `.toast` | 反色（text 底 / ground 字），最多 3 条，2.8 s；带动作时 5.2 s | 动作按钮 accent 色：「打开」「撤销」「查看」 |
-| 菜单 `.menu` | surface-2，最小宽 210，项高 32；从触发器下方 6px 出现，超出视口自动翻转 | 同一触发器再次点击关闭；点外部关闭 |
-| 对话框 `.modal` | 最大宽 560（`.wide` 760），头 / 可滚动体 / 底部按钮区 | Esc / 点遮罩 / × 关闭；底部最多一个主按钮 |
-| 抽屉 `.drawer` | 右侧 420 宽 | 录音库、回收站 |
-| 底部面板 `.sheet`（手机） | 默认 62% 高，上拉手柄切换到 88%；`auto` 高度用于短内容 | 点遮罩 / 手柄 / × 关闭 |
+| 组件                          | 规格                                                                    | 状态                                                                                                                          |
+| ----------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| 按钮 `.btn`                   | 高 34（`.sm` 28，手机 44 / 34），圆角 `--r-m`，图标 15 + 文字 13/600    | default / hover（surface-3）/ active（scale .98）/ disabled（40%）/ `primary` / `ghost` / `danger` / `danger-ghost` / `quiet` |
+| 图标按钮 `.icon-btn`          | 32×32（`.sm` 26，手机 44）                                              | 同上；必须有 `aria-label` 或 `title`                                                                                          |
+| 分段 `.seg`                   | 底 surface-1 + 描边；选中项 surface-3 + text                            | `aria-pressed` / `aria-selected`                                                                                              |
+| 开关 `.toggle`                | 36×20（手机 44×26）                                                     | `role="switch"` + `aria-checked`                                                                                              |
+| 勾选 `.check` / 单选 `.radio` | 18                                                                      | `aria-checked`                                                                                                                |
+| 选项卡片 `.choice`            | 整块可点，左侧 radio，右侧可带警示 chip（需下载 xx MB）                 | 选中：accent-soft 底 + accent-line 描边                                                                                       |
+| 标签 `.chip`                  | 高 24，`ok / warn / accent` 变体                                        | —                                                                                                                             |
+| 滑块 `.range`                 | 轨道 4，拇指 14；已填充部分用 `--c`（声部色），通过 `--p` 百分比绘制    | 声像 `.pan` 中心有刻线，拇指为方形                                                                                            |
+| 选听/静音 `.ms-btn`           | 电脑 26×22，手机 52×34；S 选中 = 黄色底，M 选中 = 灰底 + 删除线色       | 被关掉的声部整条 `.off`（50% 不透明 + 去饱和）                                                                                |
+| 电平 `.meter`                 | 4px 宽竖条，声部色，60ms 线性过渡                                       | 只在播放时有值                                                                                                                |
+| 进度 `.progress`              | 高 6（手机 4）                                                          | `.ok` 完成态                                                                                                                  |
+| 通知 `.notice`                | surface-1 + 描边，图标 info/warn                                        | —                                                                                                                             |
+| 通知条 `.toast`               | 反色（text 底 / ground 字），最多 3 条，2.8 s；带动作时 5.2 s           | 动作按钮 accent 色：「打开」「撤销」「查看」                                                                                  |
+| 菜单 `.menu`                  | surface-2，最小宽 210，项高 32；从触发器下方 6px 出现，超出视口自动翻转 | 同一触发器再次点击关闭；点外部关闭                                                                                            |
+| 对话框 `.modal`               | 最大宽 560（`.wide` 760），头 / 可滚动体 / 底部按钮区                   | Esc / 点遮罩 / × 关闭；底部最多一个主按钮                                                                                     |
+| 抽屉 `.drawer`                | 右侧 420 宽                                                             | 录音库、回收站                                                                                                                |
+| 底部面板 `.sheet`（手机）     | 默认 62% 高，上拉手柄切换到 88%；`auto` 高度用于短内容                  | 点遮罩 / 手柄 / × 关闭                                                                                                        |
 
 ---
 
@@ -215,18 +215,18 @@
 
 ### 4.8 对话框清单
 
-| 对话框 | 关键内容 |
-|---|---|
-| 拆分 `separate` | 7 种方式卡片（识别和弦、四轨、六轨推荐、吉他手、鼓手、贝斯手、歌手）、需下载提示、NVIDIA/CPU、同时识别和弦、预计耗时 |
-| 导出 `export` | 当前混音 / 各分轨 / 录音与伴奏 / 工程包；格式 WAV FLAC MP3；应用速度音调；只导出循环段；保存位置 |
-| 新建跟练/创作 `newSession` | 跟练 / 创作、名称、来源歌曲、伴奏方式（分轨 / 录音含伴奏）、挂载上限说明 |
-| 录音设置 `recSettings` | 录音来源、输入设备、声道、输入电平、监听输出、延迟校正 |
-| 延迟校准 `calib` | 准备 → 8 声测量 → 结果（平均 / 抖动 / 之前）|
-| 恢复录音 `recovery` | 意外退出后列出未保存录音，恢复 / 丢弃 |
-| 收到文件 `incoming` | 来源设备、文件、接收进度 |
-| 新手引导 `onboard` | 三步：拖入 → 拆分 → 开始练 |
-| 文件夹 `folder` | 新建 / 重命名 |
-| 确认删除 `confirm` | 标题 + 后果说明 + 危险按钮；删除后通知条可撤销 |
+| 对话框                     | 关键内容                                                                                                             |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| 拆分 `separate`            | 7 种方式卡片（识别和弦、四轨、六轨推荐、吉他手、鼓手、贝斯手、歌手）、需下载提示、NVIDIA/CPU、同时识别和弦、预计耗时 |
+| 导出 `export`              | 当前混音 / 各分轨 / 录音与伴奏 / 工程包；格式 WAV FLAC MP3；应用速度音调；只导出循环段；保存位置                     |
+| 新建跟练/创作 `newSession` | 跟练 / 创作、名称、来源歌曲、伴奏方式（分轨 / 录音含伴奏）、挂载上限说明                                             |
+| 录音设置 `recSettings`     | 录音来源、输入设备、声道、输入电平、监听输出、延迟校正                                                               |
+| 延迟校准 `calib`           | 准备 → 8 声测量 → 结果（平均 / 抖动 / 之前）                                                                         |
+| 恢复录音 `recovery`        | 意外退出后列出未保存录音，恢复 / 丢弃                                                                                |
+| 收到文件 `incoming`        | 来源设备、文件、接收进度                                                                                             |
+| 新手引导 `onboard`         | 三步：拖入 → 拆分 → 开始练                                                                                           |
+| 文件夹 `folder`            | 新建 / 重命名                                                                                                        |
+| 确认删除 `confirm`         | 标题 + 后果说明 + 危险按钮；删除后通知条可撤销                                                                       |
 
 ---
 
@@ -234,15 +234,15 @@
 
 画板 390×844 dp；状态栏 24、手势条 20；内容左右安全边距 16；**所有点击区域 ≥ 44×44**。
 
-| 屏幕 | 结构 |
-|---|---|
-| 曲库首页 `MobileHome` | 顶栏（品牌 + 设置）→「今天练点什么？」→ 继续练习卡（封面 / 进度 / 64 播放）→ 三步引导卡（可关闭）→ 搜索 → 分段（全部 / 收藏 / 已拆分 / 来自电脑）→ 歌曲列表（行高 72，右侧 ⋯ 打开歌曲面板）→ 右下 FAB「+」导入 → 底部导航 |
-| 播放器 · 波形 | 顶栏（返回 / 标题 + 调·BPM / ⋮）→ 波形·和弦谱分段 → 波形区（左右拖动定位）→ 横向滑动胶囊（循环、标记、控制台、录音库、节拍器）→ 声部行 38 高（点名称即静音）→ **底部固定控制区**：概览波形、时间 / 小节 / 总长、速度 · −5 · 播放 64 · +5 · 录音 52 |
-| 播放器 · 和弦谱 | 和弦谱切换 chip + 跟随播放开关 → 每行固定 4 小节；点格子弹出和弦面板（指法图 + 4 列常用和弦 + 自定义输入 + 拆成 2 个和弦 / 从这里播放 / 清空） |
-| 控制台面板 | 底部面板三页：控制台（总音量、声部条 S/M 52×34、已挂载录音、节拍器、预备拍）/ 循环段落 / 标记点；上拉展开 88% |
-| 跟练项目 | 项目卡片（录音条数、更新时间、删除）→ 新建跟练（底部面板选歌）。手机端只新建跟练，多轨创作在电脑做 |
-| 互传 | 扫码 / 连接码分段 → 取景框或输入框 → 已连接卡（设备、会话剩余时间、断开）→ 发送到电脑 / 最近收到 |
-| 设置 | 外观（主题、主题色）、录音（预备拍、延迟校准）、存储、关于（版本、检查更新、捐赠） |
+| 屏幕                  | 结构                                                                                                                                                                                                                                               |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 曲库首页 `MobileHome` | 顶栏（品牌 + 设置）→「今天练点什么？」→ 继续练习卡（封面 / 进度 / 64 播放）→ 三步引导卡（可关闭）→ 搜索 → 分段（全部 / 收藏 / 已拆分 / 来自电脑）→ 歌曲列表（行高 72，右侧 ⋯ 打开歌曲面板）→ 右下 FAB「+」导入 → 底部导航                          |
+| 播放器 · 波形         | 顶栏（返回 / 标题 + 调·BPM / ⋮）→ 波形·和弦谱分段 → 波形区（左右拖动定位）→ 横向滑动胶囊（循环、标记、控制台、录音库、节拍器）→ 声部行 38 高（点名称即静音）→ **底部固定控制区**：概览波形、时间 / 小节 / 总长、速度 · −5 · 播放 64 · +5 · 录音 52 |
+| 播放器 · 和弦谱       | 和弦谱切换 chip + 跟随播放开关 → 每行固定 4 小节；点格子弹出和弦面板（指法图 + 4 列常用和弦 + 自定义输入 + 拆成 2 个和弦 / 从这里播放 / 清空）                                                                                                     |
+| 控制台面板            | 底部面板三页：控制台（总音量、声部条 S/M 52×34、已挂载录音、节拍器、预备拍）/ 循环段落 / 标记点；上拉展开 88%                                                                                                                                      |
+| 跟练项目              | 项目卡片（录音条数、更新时间、删除）→ 新建跟练（底部面板选歌）。手机端只新建跟练，多轨创作在电脑做                                                                                                                                                 |
+| 互传                  | 扫码 / 连接码分段 → 取景框或输入框 → 已连接卡（设备、会话剩余时间、断开）→ 发送到电脑 / 最近收到                                                                                                                                                   |
+| 设置                  | 外观（主题、主题色）、录音（预备拍、延迟校准）、存储、关于（版本、检查更新、捐赠）                                                                                                                                                                 |
 
 **能力边界（必须在界面里说清）**：手机本机只做「人声与伴奏」两轨拆分和「识别和弦与节拍」；完整六轨等方式提示到电脑上拆，再用互传发过来。
 
@@ -252,31 +252,31 @@
 
 ## 6. 断点
 
-| 宽度 | 变化 |
-|---|---|
-| ≥ 1180 | 控制台常驻右侧 320 |
-| 980–1180 | 控制台变浮层；和弦侧栏、乐谱侧栏隐藏 |
-| < 960 | 侧栏收成 64 图标栏 |
-| < 980 | 设置 / 互传改单列，列表隐藏次要列，走带两行 |
-| 产品最小窗口 | 960 × 600（Electron `minWidth/minHeight`） |
-| 原型 < 760 | 强制显示手机版（仅原型行为） |
+| 宽度         | 变化                                        |
+| ------------ | ------------------------------------------- |
+| ≥ 1180       | 控制台常驻右侧 320                          |
+| 980–1180     | 控制台变浮层；和弦侧栏、乐谱侧栏隐藏        |
+| < 960        | 侧栏收成 64 图标栏                          |
+| < 980        | 设置 / 互传改单列，列表隐藏次要列，走带两行 |
+| 产品最小窗口 | 960 × 600（Electron `minWidth/minHeight`）  |
+| 原型 < 760   | 强制显示手机版（仅原型行为）                |
 
 ---
 
 ## 7. 快捷键（电脑）
 
-| 键 | 作用 |
-|---|---|
-| Space | 播放 / 暂停（开了预备拍先数拍；数拍中再按取消） |
-| ← / → | ±5 秒；Shift + ←/→ 按 1 小节 |
-| L | 设循环开始 → 设循环结束 → 之后切换循环开关 |
-| M | 当前位置加标记点 |
-| R | 开始 / 停止录音（没有跟练项目时先弹出新建） |
-| [ / ] | 速度 −/+ 0.05× |
-| T | Tap 测速 |
-| Ctrl + 滚轮 | 波形窗口 4 / 8 / 16 / 30 秒 |
-| Ctrl + Z | 撤销和弦修改 |
-| Esc | 依次关闭：菜单 → 对话框 → 底部面板 → 抽屉 → 和弦选中 → 单轨模式 |
+| 键          | 作用                                                            |
+| ----------- | --------------------------------------------------------------- |
+| Space       | 播放 / 暂停（开了预备拍先数拍；数拍中再按取消）                 |
+| ← / →       | ±5 秒；Shift + ←/→ 按 1 小节                                    |
+| L           | 设循环开始 → 设循环结束 → 之后切换循环开关                      |
+| M           | 当前位置加标记点                                                |
+| R           | 开始 / 停止录音（没有跟练项目时先弹出新建）                     |
+| [ / ]       | 速度 −/+ 0.05×                                                  |
+| T           | Tap 测速                                                        |
+| Ctrl + 滚轮 | 波形窗口 4 / 8 / 16 / 30 秒                                     |
+| Ctrl + Z    | 撤销和弦修改                                                    |
+| Esc         | 依次关闭：菜单 → 对话框 → 底部面板 → 抽屉 → 和弦选中 → 单轨模式 |
 
 输入框聚焦时快捷键全部失效；中文输入法组合输入期间不响应 Enter。
 
@@ -286,20 +286,20 @@
 
 每个界面都要实现以下状态（原型「演示场景」可逐个查看）：
 
-| 状态 | 表现 |
-|---|---|
-| 空曲库 | 大图标 + 支持格式 + 导入 / 迁移按钮 |
-| 第一次使用 | 新手引导对话框（电脑）/ 三步卡片（手机） |
-| 处理中 | 卡片内阶段名 + 百分比；多阶段写「（2/3）」；可继续操作别的 |
-| 首次下载模型 | 拆分对话框黄色提示「需要先下载 xx（约 670 MB）」，开始后自动下载 |
-| 完成 | 通知条「『鲜花』拆分完成 · 打开」 |
-| 无音频示例 | 黄色 chip「示例 · 无音频」 |
-| 录音不到 1 秒 | 丢弃并提示 |
-| 录音挂满 2 条 | 新录音进录音库，提示「已挂满 2 条」 |
-| 意外退出 | 恢复录音对话框 |
-| 收到文件 | 接收对话框 → 进度 → 放进曲库 + 「打开」 |
-| 有新版本 | 设置-更新带红点；下载 → 校验 → 退出后安装 |
-| 删除 | 二次确认 + 通知条「撤销」；录音进回收站 30 天 |
+| 状态          | 表现                                                             |
+| ------------- | ---------------------------------------------------------------- |
+| 空曲库        | 大图标 + 支持格式 + 导入 / 迁移按钮                              |
+| 第一次使用    | 新手引导对话框（电脑）/ 三步卡片（手机）                         |
+| 处理中        | 卡片内阶段名 + 百分比；多阶段写「（2/3）」；可继续操作别的       |
+| 首次下载模型  | 拆分对话框黄色提示「需要先下载 xx（约 670 MB）」，开始后自动下载 |
+| 完成          | 通知条「『鲜花』拆分完成 · 打开」                                |
+| 无音频示例    | 黄色 chip「示例 · 无音频」                                       |
+| 录音不到 1 秒 | 丢弃并提示                                                       |
+| 录音挂满 2 条 | 新录音进录音库，提示「已挂满 2 条」                              |
+| 意外退出      | 恢复录音对话框                                                   |
+| 收到文件      | 接收对话框 → 进度 → 放进曲库 + 「打开」                          |
+| 有新版本      | 设置-更新带红点；下载 → 校验 → 退出后安装                        |
+| 删除          | 二次确认 + 通知条「撤销」；录音进回收站 30 天                    |
 
 文案规则：动词开头（「开始拆分」不是「拆分开始」）；数值带单位（`670 MB`、`31 ms`、`0.75×`）；说明后果（「原文件不会被删除」）；术语：选听、关闭声音、挂载、录音库、回收站、预备拍、循环段落、标记点、和弦谱、分轨。
 
@@ -307,25 +307,25 @@
 
 ## 9. 界面 ↔ 代码对照
 
-| 原型区域 | 现有组件 | 主要 `jamCall` 方法 |
-|---|---|---|
-| 侧栏、文件夹 | `features/library/Sidebar.tsx`、`Folders.tsx` | `folders-list`、`folders-edit` |
-| 曲库卡片 / 列表 / 导入 | `features/library/LibraryPage.tsx`、`ProjectHeading.tsx`、`ProjectName.tsx` | `library`、`import`、`reveal` |
-| 删除确认 / 恢复 | `DeleteProjectDialog.tsx`、`RecoveryDialog.tsx` | `project-delete`、`project-recover`、`take-recover` |
-| 拆分对话框、处理进度 | `features/models/ResultPicker.tsx`、`features/analysis/AnalysisMeta.tsx` | `run`、`cancel`、`result-select`、`result-rename`、`result-open` |
-| 播放器波形 / 声部行 | `features/player/Waveform.tsx`、`TrackControl.tsx`、`TrackMeter.tsx` | — |
-| 控制台 | `SidePanel.tsx`、`Mixer.tsx`、`PresetControls.tsx`、`PracticeToolbar.tsx`、`CountInControl.tsx`、`PracticeMarks.tsx` | — |
-| 走带 | `Transport.tsx` | — |
-| 和弦视图 | `features/chords/ChordSheet.tsx`、`ChordDiagram.tsx`、`MobileChartPicker.tsx` | — |
-| 乐谱 / 附件 / 视频 | `features/score/Score.tsx`、`library/Attachments.tsx`、`player/SyncedVideo.tsx` | `attach`、`read-attachment` |
-| 跟练 / 创作、录音 | `features/recording/*`（`PracticeHub`、`PracticeRecorder`、`PracticeWaves`、`TakeTiming`、`TakeRemoval`、`CreationTracks`、`SessionCreateDialog`、`CreateFromSong`） | `session-create`、`take-start/append/finish`、`take-select`、`take-delete`、`take-restore`、`take-deleted`、`take-import`、`take-open` |
-| 延迟校准 | `recording/LatencyCalibration.tsx` | — |
-| 导出 | （导出对话框） | `export`、`export-audio` |
-| 互传（电脑） | `features/transfer/RemoteTransfer.tsx` | `pair-start`、`pair-stop`、`peer-*` |
-| 迁移 | `features/migration/DatabaseMigration.tsx` | `migration-detect/scan/import`、`migration-database-scan/import` |
-| 设置 | `features/settings/*`、`features/models/ModelManager.tsx` | `runtime-status`、`runtime-install`、`models`、`model-download`、`model-import`、`download-settings`、`pick-folder`、`update-check/download/install`、`ui-language`、`feedback-open`、`open-license-folder` |
-| 手机首页 / 操作 / 互传 | `platform/android/MobileHome.tsx`、`MobileActions.tsx`、`LanTransfer.tsx`、`TransferSharing.tsx` | `android-scan-pair`、`android-lan-*`、`android-share-projects`、`android-capture-*` |
-| 对话框外壳 / 下拉 | `shared/ModalFrame.tsx`、`shared/Select.tsx` | — |
+| 原型区域               | 现有组件                                                                                                                                                             | 主要 `jamCall` 方法                                                                                                                                                                                         |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 侧栏、文件夹           | `features/library/Sidebar.tsx`、`Folders.tsx`                                                                                                                        | `folders-list`、`folders-edit`                                                                                                                                                                              |
+| 曲库卡片 / 列表 / 导入 | `features/library/LibraryPage.tsx`、`ProjectHeading.tsx`、`ProjectName.tsx`                                                                                          | `library`、`import`、`reveal`                                                                                                                                                                               |
+| 删除确认 / 恢复        | `DeleteProjectDialog.tsx`、`RecoveryDialog.tsx`                                                                                                                      | `project-delete`、`project-recover`、`take-recover`                                                                                                                                                         |
+| 拆分对话框、处理进度   | `features/models/ResultPicker.tsx`、`features/analysis/AnalysisMeta.tsx`                                                                                             | `run`、`cancel`、`result-select`、`result-rename`、`result-open`                                                                                                                                            |
+| 播放器波形 / 声部行    | `features/player/Waveform.tsx`、`TrackControl.tsx`、`TrackMeter.tsx`                                                                                                 | —                                                                                                                                                                                                           |
+| 控制台                 | `SidePanel.tsx`、`Mixer.tsx`、`PresetControls.tsx`、`PracticeToolbar.tsx`、`CountInControl.tsx`、`PracticeMarks.tsx`                                                 | —                                                                                                                                                                                                           |
+| 走带                   | `Transport.tsx`                                                                                                                                                      | —                                                                                                                                                                                                           |
+| 和弦视图               | `features/chords/ChordSheet.tsx`、`ChordDiagram.tsx`、`MobileChartPicker.tsx`                                                                                        | —                                                                                                                                                                                                           |
+| 乐谱 / 附件 / 视频     | `features/score/Score.tsx`、`library/Attachments.tsx`、`player/SyncedVideo.tsx`                                                                                      | `attach`、`read-attachment`                                                                                                                                                                                 |
+| 跟练 / 创作、录音      | `features/recording/*`（`PracticeHub`、`PracticeRecorder`、`PracticeWaves`、`TakeTiming`、`TakeRemoval`、`CreationTracks`、`SessionCreateDialog`、`CreateFromSong`） | `session-create`、`take-start/append/finish`、`take-select`、`take-delete`、`take-restore`、`take-deleted`、`take-import`、`take-open`                                                                      |
+| 延迟校准               | `recording/LatencyCalibration.tsx`                                                                                                                                   | —                                                                                                                                                                                                           |
+| 导出                   | （导出对话框）                                                                                                                                                       | `export`、`export-audio`                                                                                                                                                                                    |
+| 互传（电脑）           | `features/transfer/RemoteTransfer.tsx`                                                                                                                               | `pair-start`、`pair-stop`、`peer-*`                                                                                                                                                                         |
+| 迁移                   | `features/migration/DatabaseMigration.tsx`                                                                                                                           | `migration-detect/scan/import`、`migration-database-scan/import`                                                                                                                                            |
+| 设置                   | `features/settings/*`、`features/models/ModelManager.tsx`                                                                                                            | `runtime-status`、`runtime-install`、`models`、`model-download`、`model-import`、`download-settings`、`pick-folder`、`update-check/download/install`、`ui-language`、`feedback-open`、`open-license-folder` |
+| 手机首页 / 操作 / 互传 | `platform/android/MobileHome.tsx`、`MobileActions.tsx`、`LanTransfer.tsx`、`TransferSharing.tsx`                                                                     | `android-scan-pair`、`android-lan-*`、`android-share-projects`、`android-capture-*`                                                                                                                         |
+| 对话框外壳 / 下拉      | `shared/ModalFrame.tsx`、`shared/Select.tsx`                                                                                                                         | —                                                                                                                                                                                                           |
 
 ### 迁移步骤建议
 
