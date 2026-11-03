@@ -778,6 +778,12 @@ textarea {
   flex: 0 0 332px;
   border-radius: 0;
 }
+/* Keep the desktop console in its column at the minimum window width. */
+html:not([data-platform='android']) .nr-pbody .nr-console {
+  position: static;
+  box-shadow: none;
+  animation: none;
+}
 .nr-console-tabs.console-tabs {
   display: block;
 }

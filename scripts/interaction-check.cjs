@@ -28,6 +28,10 @@ async function waitReady() {
     },
   });
   page = await app.firstWindow();
+  // Exercise the minimum desktop width, where the console must not cover chords.
+  await app.evaluate(({ BrowserWindow }) =>
+    BrowserWindow.getAllWindows()[0].setContentSize(1024, 768),
+  );
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.getByRole('button', { name: '打开 交互验收', exact: true }).click();
