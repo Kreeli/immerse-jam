@@ -7,6 +7,7 @@ import type { WorkspaceController } from '../../app/useWorkspace';
 import { t as tr } from '../../i18n';
 import ProjectMenu from '../../features/library/ProjectMenu';
 import MobileFolders from './MobileFolders';
+import { keyLabel } from '../../features/analysis/transposition';
 
 export default function MobileHome({ controller: c }: { controller: WorkspaceController }) {
   const [filter, setFilter] = useState('all'),
@@ -78,6 +79,12 @@ export default function MobileHome({ controller: c }: { controller: WorkspaceCon
                   {p.artist || (p.kind === 'creation' ? tr('创作') : tr('跟练'))} ·{' '}
                   {time(p.duration)}
                 </small>
+                {p.analysis && (
+                  <small>
+                    {p.analysis.bpm ? `${Math.round(p.analysis.bpm * 100) / 100} BPM` : '— BPM'} ·{' '}
+                    {keyLabel(p.analysis.key)}
+                  </small>
+                )}
               </span>
             </button>
             <button

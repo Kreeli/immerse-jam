@@ -1123,6 +1123,28 @@ textarea {
   outline: none;
   cursor: pointer;
 }
+.chart-picker-check {
+  display: grid;
+  place-items: center;
+  color: var(--text);
+  pointer-events: none;
+}
+.mobile-project-heading {
+  flex: 1;
+  min-width: 0;
+}
+.mobile-project-heading .mobile-project-title {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mobile-project-heading .analysis-meta {
+  font: 400 10px/1.4 var(--font-mono);
+  color: var(--text-2);
+  gap: 8px !important;
+  white-space: nowrap;
+}
 .chart-picker-action[data-highlighted] {
   color: var(--text);
   background: var(--surface-3);

@@ -42,6 +42,7 @@ import LibraryPage from '../features/library/LibraryPage';
 import RecoveryDialog from '../features/library/RecoveryDialog';
 import FolderPage, { FolderDialog } from '../features/library/Folders';
 import ProjectHeading from '../features/library/ProjectHeading';
+import AnalysisMeta from '../features/analysis/AnalysisMeta';
 import ProjectDetails from '../features/library/ProjectDetails';
 import Sidebar from '../features/library/Sidebar';
 import DatabaseMigration from '../features/migration/DatabaseMigration';
@@ -399,9 +400,12 @@ export default function App() {
                     >
                       <ArrowLeft size={20} />
                     </button>
-                    <span className="mobile-project-title" title={project.title}>
-                      {project.title}
-                    </span>
+                    <div className="mobile-project-heading">
+                      <span className="mobile-project-title" title={project.title}>
+                        {project.title}
+                      </span>
+                      <AnalysisMeta project={project} onProject={save} readOnly />
+                    </div>
                     <MobileActions controller={controller} />
                   </div>
                   <div

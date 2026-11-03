@@ -37,13 +37,16 @@ export default function ChartPicker({
           align="start"
         >
           {automatic && (
-            <Menu.Item
-              className="nr-choice-option mobile-select-option"
-              onSelect={() => onChoose('auto')}
-            >
-              {tr('最新识别结果')}
-              {value === 'auto' && <Check size={15} />}
-            </Menu.Item>
+            <div className="chart-picker-choice">
+              <Menu.Item
+                className="nr-choice-option mobile-select-option"
+                onSelect={() => onChoose('auto')}
+              >
+                {tr('最新识别结果')}
+              </Menu.Item>
+              <span />
+              <span className="chart-picker-check">{value === 'auto' && <Check size={15} />}</span>
+            </div>
           )}
           {charts.map((chart) => (
             <div className="chart-picker-choice" key={chart.id}>
