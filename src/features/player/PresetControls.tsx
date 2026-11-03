@@ -61,6 +61,7 @@ export default function PresetControls({
   return (
     <div className="preset-controls">
       <Select
+        menu
         aria-label={tr('混音预设')}
         value=""
         onChange={(event) => {

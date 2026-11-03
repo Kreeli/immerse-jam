@@ -15,7 +15,7 @@ export default function ProjectHeading({
   const [editing, setEditing] = useState(false);
   return (
     <div
-      className="now-title"
+      className="now-title nr-ph-title"
       onContextMenu={(event) => {
         event.preventDefault();
         setEditing(!editing);

@@ -1,3 +1,14 @@
+// Analysis stores a bare tonic for major and an "m" suffix for minor.
+// Expand only the display label so existing projects and chord symbols stay intact.
+export function keyLabel(key: string) {
+  const match = key.trim().match(/^([A-G][#♯b♭]?)\s*:?\s*(.*)$/);
+  if (!match) return key;
+  const [, tonic, mode] = match;
+  if (!mode || mode === 'M' || /^(maj(?:or)?|大调)$/i.test(mode)) return `${tonic} major`;
+  if (/^(m|min(?:or)?|小调)$/i.test(mode)) return `${tonic} minor`;
+  return key;
+}
+
 export function transpose(label: string, semitones: number) {
   if (!semitones || label === 'N') return label;
   const notes = ['C', 'C♯', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭', 'A', 'B♭', 'B'];

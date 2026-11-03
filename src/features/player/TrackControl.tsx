@@ -45,100 +45,112 @@ export default function TrackControl({
 }) {
   const [renaming, setRenaming] = useState(false),
     [name, setName] = useState('');
+  // PR #6 stripHTML(): meter + compact header + volume/pan line.
   return (
     <div
-      style={{ '--track-color': color } as React.CSSProperties}
+      style={{ '--c': color, '--track-color': color } as React.CSSProperties}
       className={
-        'track-control ' + (t.mute ? 'muted-track ' : '') + (selected ? 'wave-selected' : '')
+        'track-control nr-strip ' +
+        (t.mute ? 'muted-track nr-off ' : '') +
+        (selected ? 'wave-selected' : '')
       }
+      data-focus={selected}
       onClick={(event) => {
         if (!(event.target as HTMLElement).closest('input,button,form')) onSelect();
       }}
     >
-      <div className="track-top">
-        <button
-          className="track-name"
-          aria-label={tr('显示{0}波形', [trackLabel(t)])}
-          onClick={onSelect}
-          onDoubleClick={() => {
-            setName(trackLabel(t));
-            setRenaming(true);
-          }}
-          title={tr('单击显示波形，双击重命名')}
-        >
-          <i style={{ background: color }} />
-          {trackLabel(t)}
-          {t.quiet && <small className="quiet-track-label">{tr('几乎无声')}</small>}
-        </button>
-        <small>{Math.round(t.gain * 100)}%</small>
-      </div>
-      {renaming && (
-        <form
-          className="track-rename"
-          onSubmit={(event) => {
-            event.preventDefault();
-            onChange({ label: name.trim().slice(0, 60) });
-            setRenaming(false);
-          }}
-        >
+      <TrackMeter player={meterPlayer} id={t.id} label={trackLabel(t)} vertical />
+      <div className="nr-strip-body">
+        <div className="track-top nr-strip-top">
+          <button
+            className="track-name nr-name"
+            aria-label={tr('显示{0}波形', [trackLabel(t)])}
+            aria-pressed={selected}
+            onClick={onSelect}
+            onDoubleClick={() => {
+              setName(trackLabel(t));
+              setRenaming(true);
+            }}
+            title={tr('单击显示波形，双击重命名')}
+          >
+            <i className="nr-stem-dot" />
+            {trackLabel(t)}
+          </button>
+          {t.quiet && <small className="nr-tag-quiet">{tr('几乎无声')}</small>}
+          <span className="nr-pct">{Math.round(t.gain * 100)}%</span>
+          <button
+            className={'track-switch nr-ms-btn nr-s ' + (t.solo ? 'solo' : '')}
+            aria-label={tr('选听')}
+            aria-pressed={t.solo}
+            title={
+              grouped
+                ? tr('组内选听：只选择此分组中的声部，不影响其他音轨')
+                : tr('选听：可选择多轨，存在选听音轨时只播放这些音轨')
+            }
+            onClick={() => onState('listen')}
+          >
+            S
+          </button>
+          <button
+            className={'track-switch nr-ms-btn nr-m ' + (t.mute ? 'enabled' : '')}
+            aria-label={tr('关闭声音')}
+            aria-pressed={t.mute}
+            title={tr('关闭声音：可同时关闭多个音轨')}
+            onClick={() => onState('close')}
+          >
+            M
+          </button>
+        </div>
+        <div className="nr-strip-ctl">
           <input
-            aria-label={tr('音轨名称')}
-            value={name}
-            autoFocus
-            onChange={(event) => setName(event.target.value)}
+            className="nr-range"
+            style={{ '--p': (t.gain / 1.5) * 100 + '%' } as React.CSSProperties}
+            aria-label={tr('{0}音量', [trackLabel(t)])}
+            type="range"
+            min="0"
+            max="1.5"
+            step=".01"
+            value={t.gain}
+            onChange={(e) => onChange({ gain: +e.target.value })}
           />
-          <button className="small" type="submit">
-            {tr('保存')}
-          </button>
-          <button className="small" type="button" onClick={() => setRenaming(false)}>
-            {tr('取消')}
-          </button>
-        </form>
-      )}
-      <TrackMeter player={meterPlayer} id={t.id} label={trackLabel(t)} />
-      <div className="track-slider">
-        <input
-          aria-label={tr('{0}音量', [trackLabel(t)])}
-          type="range"
-          min="0"
-          max="1.5"
-          step=".01"
-          value={t.gain}
-          onChange={(e) => onChange({ gain: +e.target.value })}
-        />
-        <button
-          className={'track-switch ' + (t.solo ? 'solo' : '')}
-          aria-pressed={t.solo}
-          title={
-            grouped
-              ? tr('组内选听：只选择此分组中的声部，不影响其他音轨')
-              : tr('选听：可选择多轨，存在选听音轨时只播放这些音轨')
-          }
-          onClick={() => onState('listen')}
-        >
-          {tr('选听')}
-        </button>
-        <button
-          className={'track-switch ' + (t.mute ? 'enabled' : '')}
-          aria-pressed={t.mute}
-          title={tr('关闭声音：可同时关闭多个音轨')}
-          onClick={() => onState('close')}
-        >
-          {tr('关闭声音')}
-        </button>
-      </div>
-      <div className="pan-control">
-        <span>L</span>
-        <input
-          aria-label={tr('{0}左右声像', [trackLabel(t)])}
-          type="range"
-          min="-1"
-          max="1"
-          step=".01"
-          value={t.pan}
-          onChange={(e) => onChange({ pan: +e.target.value })}
-        />
-        <span>R</span>
+          <span className="nr-pan-wrap">
+            L
+            <input
+              className="nr-range nr-pan"
+              aria-label={tr('{0}左右声像', [trackLabel(t)])}
+              type="range"
+              min="-1"
+              max="1"
+              step=".01"
+              value={t.pan}
+              onChange={(e) => onChange({ pan: +e.target.value })}
+            />
+            R
+          </span>
+        </div>
+        {renaming && (
+          <form
+            className="track-rename"
+            onSubmit={(event) => {
+              event.preventDefault();
+              onChange({ label: name.trim().slice(0, 60) });
+              setRenaming(false);
+            }}
+          >
+            <input
+              aria-label={tr('音轨名称')}
+              value={name}
+              autoFocus
+              onChange={(event) => setName(event.target.value)}
+            />
+            <button className="nr-btn nr-sm" type="submit">
+              {tr('保存')}
+            </button>
+            <button className="nr-btn nr-sm" type="button" onClick={() => setRenaming(false)}>
+              {tr('取消')}
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );

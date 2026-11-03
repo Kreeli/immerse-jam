@@ -6,7 +6,7 @@ import type { Player } from '../../audio/Player';
 import { sourceTracks } from '../../audio/performance';
 import { t as tr } from '../../i18n';
 import type { Practice, Project, Track } from '../../shared/types';
-import { transpose } from '../analysis/transposition';
+import { keyLabel, transpose } from '../analysis/transposition';
 import ResultPicker from '../models/ResultPicker';
 import PracticeModeControl from '../recording/PracticeModeControl';
 import TakeTiming from '../recording/TakeTiming';
@@ -52,7 +52,7 @@ export default function Mixer({
     }
   };
   return (
-    <aside className="mixer">
+    <aside className="mixer nr-console-body">
       <div className="panel-heading">
         <h3>
           <SlidersHorizontal size={16} />
@@ -110,7 +110,7 @@ export default function Mixer({
           disabled={recording || loading}
         />
       )}
-      <label className="master-control">
+      <label className="master-control nr-master">
         <span>
           <Volume2 size={15} />
           {tr('总音量')}
@@ -118,6 +118,13 @@ export default function Mixer({
         </span>
         <input
           aria-label={tr('总音量')}
+          className="nr-range"
+          style={
+            {
+              '--p': project.practice.master * 100 + '%',
+              '--c': 'var(--text-2)',
+            } as React.CSSProperties
+          }
           type="range"
           min="0"
           max="1"
@@ -206,7 +213,7 @@ export default function Mixer({
           </button>
           <strong>
             {project.analysis
-              ? transpose(project.analysis.key, project.practice.pitch)
+              ? keyLabel(transpose(project.analysis.key, project.practice.pitch))
               : tr('原调')}
           </strong>
           <button onClick={() => onPractice({ pitch: Math.min(12, project.practice.pitch + 1) })}>

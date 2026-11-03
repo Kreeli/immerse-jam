@@ -10,10 +10,13 @@ import {
 } from 'react';
 import { isAndroid } from '../platform/environment';
 
-/** Native desktop control, accessible animated mobile menu. */
-export default function Select(props: SelectHTMLAttributes<HTMLSelectElement>) {
+/** Opt-in desktop menu shares the accessible mobile implementation. */
+export default function Select({
+  menu = false,
+  ...props
+}: SelectHTMLAttributes<HTMLSelectElement> & { menu?: boolean }) {
   const native = useRef<HTMLSelectElement>(null);
-  if (!isAndroid) return <select {...props} />;
+  if (!isAndroid && !menu) return <select {...props} />;
   const options: { value: string; label: ReactNode; disabled?: boolean }[] = [];
   const collect = (children: ReactNode) =>
     Children.forEach(children, (child) => {
@@ -49,10 +52,18 @@ export default function Select(props: SelectHTMLAttributes<HTMLSelectElement>) {
         }}
       >
         <Primitive.Trigger
-          className={'mobile-select-trigger ' + (props.className || '')}
+          className={'mobile-select-trigger nr-choice-trigger ' + (props.className || '')}
           aria-label={props['aria-label']}
           title={props.title}
           style={props.style}
+          onBlur={(event) => {
+            if (native.current)
+              props.onBlur?.({
+                ...event,
+                target: native.current,
+                currentTarget: native.current,
+              } as React.FocusEvent<HTMLSelectElement>);
+          }}
         >
           <Primitive.Value />
           <Primitive.Icon>
@@ -61,7 +72,7 @@ export default function Select(props: SelectHTMLAttributes<HTMLSelectElement>) {
         </Primitive.Trigger>
         <Primitive.Portal>
           <Primitive.Content
-            className="mobile-select-menu"
+            className="mobile-select-menu nr-choice-menu"
             position="popper"
             sideOffset={6}
             collisionPadding={12}
@@ -69,7 +80,7 @@ export default function Select(props: SelectHTMLAttributes<HTMLSelectElement>) {
             <Primitive.Viewport>
               {options.map((option) => (
                 <Primitive.Item
-                  className="mobile-select-option"
+                  className="mobile-select-option nr-choice-option"
                   key={option.value}
                   value={'v:' + option.value}
                   disabled={option.disabled}

@@ -30,7 +30,7 @@ async function waitReady() {
   page = await app.firstWindow();
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
-  await page.locator('.song-info').filter({ hasText: '交互验收' }).click();
+  await page.getByRole('button', { name: '打开 交互验收', exact: true }).click();
   await waitReady();
   await page.waitForFunction(
     () => Number(document.querySelector('.waveform').dataset.peakCount) > 1000,
@@ -52,7 +52,7 @@ async function waitReady() {
       Number(document.querySelector('.waveform').dataset.peakMax) < 0.00001,
   );
   await range('播放进度', 30);
-  await page.getByRole('combobox', { name: '当前分离结果', exact: true }).selectOption(resultB);
+  await require('./ui-gestures.cjs').choose(page, '当前分离结果', resultB);
   await waitReady();
   assert.equal(await page.locator('.track-control').count(), 6);
   assert.ok(
@@ -179,7 +179,7 @@ async function waitReady() {
   await page.getByRole('button', { name: '暂停', exact: true }).click();
   await page.screenshot({ path: 'test-output/v012-chords.png' });
   await page.getByTitle('返回曲库', { exact: true }).click();
-  await page.locator('.song-info').filter({ hasText: '交互验收' }).click();
+  await page.getByRole('button', { name: '打开 交互验收', exact: true }).click();
   await waitReady();
   assert.equal(
     await page.getByRole('textbox', { name: '和弦谱名称', exact: true }).inputValue(),

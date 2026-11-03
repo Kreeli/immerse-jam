@@ -1,0 +1,38 @@
+/* Clear legacy presentation only on the components ported from PR #6. */
+.nr-nav button,
+.nr-ph button,
+.nr-ptool button,
+.nr-strip button,
+.nr-song button,
+.nr-page-head button,
+.nr-library-footer button,
+.nr-console-tabs button,
+.nr-transport button,
+.nr-choice-trigger {
+  font: inherit;
+  color: inherit;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  text-align: inherit;
+}
+.nr-nav,
+.nr-song,
+.nr-lib-grid,
+.nr-strip,
+.nr-ph,
+.nr-ptool,
+.nr-page-head,
+.nr-lib-tools,
+.nr-console-tabs,
+.nr-console-body {
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.nr-song {
+  border: 0;
+}

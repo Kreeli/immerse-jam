@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { t as tr } from '../../i18n';
 import type { Project } from '../../shared/types';
+import { keyLabel } from './transposition';
 export default function AnalysisMeta({
   project,
   onProject,
@@ -38,7 +39,7 @@ export default function AnalysisMeta({
             setEditing(editing === 'key' ? null : 'key');
           }}
         >
-          {project.analysis?.key || tr('调性待分析')}
+          {project.analysis?.key ? keyLabel(project.analysis.key) : tr('调性待分析')}
         </button>
         <button
           title={reviewed ? tr('已手动校准，可继续调整') : tr('自动估计，点击校准或选择半速／倍速')}

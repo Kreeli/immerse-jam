@@ -168,6 +168,8 @@ export default function Waveform({
       height,
     );
     const center = (height - 30) / 2;
+    let displayedWindow = latest.current.windowSeconds,
+      zoomFrame = performance.now();
     let last = '',
       frame = 0;
     let previousMarks: Bookmark[] | undefined,
@@ -176,7 +178,15 @@ export default function Waveform({
       markerRevision = 0;
     const paint = () => {
       const state = latest.current;
-      const windowSeconds = state.windowSeconds;
+      const now = performance.now(),
+        elapsed = Math.min(100, now - zoomFrame);
+      zoomFrame = now;
+      // Smooth physical wheel steps in the painter; keep React/audio scheduling
+      // at the input event rate. There are no preset zoom levels.
+      displayedWindow += (state.windowSeconds - displayedWindow) * (1 - Math.exp(-elapsed / 65));
+      if (Math.abs(state.windowSeconds - displayedWindow) < 0.001)
+        displayedWindow = state.windowSeconds;
+      const windowSeconds = displayedWindow;
       if (state.marks !== previousMarks || markerWindow !== windowSeconds) {
         ctx.font = '12px "Segoe UI",sans-serif';
         markers = waveMarkers(ctx, state.marks, width, windowSeconds);
@@ -270,11 +280,15 @@ export default function Waveform({
   useEffect(() => {
     const element = canvas.current;
     if (!element) return;
+    let target = windowSeconds;
     const wheel = (event: WheelEvent) => {
       if (!event.ctrlKey || disabled || !onWindow) return;
       event.preventDefault();
       event.stopPropagation();
-      zoom(windowSeconds * Math.exp(event.deltaY * 0.002));
+      const pixels =
+        event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? size.height : 1);
+      target = Math.max(2, Math.min(600, target * Math.exp(pixels * 0.0015)));
+      zoom(target);
     };
     element.addEventListener('wheel', wheel, { passive: false });
     return () => element.removeEventListener('wheel', wheel);

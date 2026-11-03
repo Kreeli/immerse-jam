@@ -1,0 +1,10 @@
+@layer legacy, component-reset, design, integration;
+@import './style.css' layer(legacy);
+@import './themes.css' layer(legacy);
+@import './playback-controls.css' layer(legacy);
+@import './recording-workspace.css' layer(legacy);
+@import './readability.css' layer(legacy);
+@import '../platform/android/mobile.css' layer(legacy);
+@import './rehearsal-reset.css' layer(component-reset);
+@import './rehearsal-design.css' layer(design);
+@import './rehearsal.css' layer(integration);

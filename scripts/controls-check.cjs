@@ -29,9 +29,9 @@ const wait = (ms) => page.waitForTimeout(ms);
   page = await app.firstWindow();
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
-  await page.locator('.song-info').filter({ hasText: '交互验收' }).click();
+  await page.getByRole('button', { name: '打开 交互验收', exact: true }).click();
   await ready();
-  await page.getByRole('combobox', { name: '当前分离结果', exact: true }).selectOption(resultB);
+  await require('./ui-gestures.cjs').choose(page, '当前分离结果', resultB);
   await ready();
   await page.waitForFunction(
     () =>
@@ -42,7 +42,7 @@ const wait = (ms) => page.waitForTimeout(ms);
   assert.equal(await page.getByText('智能节拍器', { exact: true }).count(), 1);
   await page.getByRole('checkbox', { name: '启用智能节拍器', exact: true }).uncheck();
   assert.equal(await page.locator('.ab-point').count(), 0);
-  assert.ok(await page.locator('.brand-mark img').evaluate((image) => image.naturalWidth > 0));
+  assert.ok(await page.locator('.nr-brandmark img').evaluate((image) => image.naturalWidth > 0));
   const timings = [];
   for (let i = 0; i < 3; i++) {
     const start = Date.now();
@@ -125,7 +125,10 @@ const wait = (ms) => page.waitForTimeout(ms);
   await page.getByRole('button', { name: '删除标记点 难点', exact: true }).click();
   await require('./ui-gestures.cjs').saved(() => store.get(p.id).bookmarks.length === 0);
   assert.equal(store.get(p.id).bookmarks.length, 0);
-  await page.getByRole('combobox', { name: '右侧面板', exact: true }).selectOption('mixer');
+  await page
+    .getByRole('group', { name: '右侧面板', exact: true })
+    .getByRole('button', { name: '控制台', exact: true })
+    .click();
   await page.getByRole('checkbox', { name: '启用预备拍', exact: true }).check();
   await page.getByRole('spinbutton', { name: '预备拍 BPM', exact: true }).fill('120');
   await page.getByRole('spinbutton', { name: '预备拍 BPM', exact: true }).blur();

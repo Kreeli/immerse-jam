@@ -98,7 +98,9 @@ export default function PracticeToolbar({
   return (
     <div className="practice-toolbar">
       <button
-        className={'range-capture ' + (pendingRange !== null ? 'recording-range' : '')}
+        className={
+          'range-capture nr-btn nr-sm nr-quiet ' + (pendingRange !== null ? 'recording-range' : '')
+        }
         disabled={recording}
         onClick={onRange}
       >
@@ -121,7 +123,7 @@ export default function PracticeToolbar({
           {tr('停止循环')}
         </button>
       )}
-      <button className="text-button" onClick={onPoint}>
+      <button className="text-button nr-btn nr-sm nr-quiet" onClick={onPoint}>
         <Bookmark size={14} />
         {tr('添加标记点')}
       </button>

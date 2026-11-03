@@ -1,3 +1,4 @@
+import RehearsalCover from '../shared/RehearsalCover';
 import ModalFrame from '../shared/ModalFrame';
 import Select from '../shared/Select';
 import MobileActions from '../platform/android/MobileActions';
@@ -313,7 +314,9 @@ export default function App() {
   return (
     <div
       className={
-        'app ' + (recording ? 'is-recording ' : '') + (mobileMixer ? 'mobile-mixer-open ' : '')
+        'app nr-app ' +
+        (recording ? 'is-recording ' : '') +
+        (mobileMixer ? 'mobile-mixer-open ' : '')
       }
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => {
@@ -338,7 +341,11 @@ export default function App() {
       }}
     >
       {!isAndroid && <Sidebar {...controller} onCreateFolder={() => setCreatingFolder(true)} />}
-      <main className={'workspace ' + (project && (!isAndroid || showPlayer) ? 'has-player' : '')}>
+      <main
+        className={
+          'workspace nr-main ' + (project && (!isAndroid || showPlayer) ? 'has-player' : '')
+        }
+      >
         <div className="browse-content" hidden={!!project && showPlayer}>
           {isAndroid ? (
             !showPlayer && <MobileHome controller={controller} />
@@ -366,12 +373,12 @@ export default function App() {
         </div>
         {project && (
           <>
-            <div className="player-screen" hidden={!showPlayer}>
+            <div className="player-screen nr-player" hidden={!showPlayer}>
               {isAndroid ? (
                 <header className="mobile-player-header">
-                  <div className="mobile-project-row">
+                  <div className="mobile-project-row nr-m-top">
                     <button
-                      className="icon-button"
+                      className="icon-button nr-icon-btn"
                       aria-label={tr('返回列表')}
                       disabled={recording}
                       onClick={() => {
@@ -386,7 +393,11 @@ export default function App() {
                     </span>
                     <MobileActions controller={controller} />
                   </div>
-                  <div className="mobile-player-tabs" role="tablist" aria-label={tr('练习视图')}>
+                  <div
+                    className="mobile-player-tabs nr-seg"
+                    role="tablist"
+                    aria-label={tr('练习视图')}
+                  >
                     {[
                       { id: 'wave', icon: AudioLines, label: tr('波形') },
                       { id: 'chords', icon: Library, label: tr('和弦') },
@@ -407,9 +418,9 @@ export default function App() {
                   </div>
                 </header>
               ) : (
-                <header className="player-header">
+                <header className="player-header nr-ph">
                   <button
-                    className="icon-button"
+                    className="icon-button nr-icon-btn"
                     title={project.kind ? tr('返回列表') : tr('返回曲库')}
                     onClick={() => {
                       setPage(project.kind ? 'practice' : 'library');
@@ -418,9 +429,7 @@ export default function App() {
                   >
                     <ArrowLeft size={20} />
                   </button>
-                  <div className="now-cover">
-                    <Music2 size={24} />
-                  </div>
+                  <RehearsalCover id={project.id} size={40} />
                   <ProjectHeading {...folderProps} project={project} onProject={save} />
                   <button
                     className="save-indicator text-button"
@@ -452,7 +461,7 @@ export default function App() {
                   )}
                   {!isAndroid && project.kind !== 'creation' && (
                     <button
-                      className="primary small"
+                      className="primary small nr-btn nr-primary nr-sm"
                       disabled={!!job}
                       onClick={() => setModal('separate')}
                     >
@@ -461,7 +470,7 @@ export default function App() {
                     </button>
                   )}
                   <button
-                    className="icon-button"
+                    className="icon-button nr-icon-btn"
                     title={tr('导出歌曲项目')}
                     onClick={() =>
                       void act(async () => {
@@ -483,8 +492,8 @@ export default function App() {
                 </header>
               )}
               {!isAndroid ? (
-                <div className="desktop-view-toolbar">
-                  <div className="view-switch">
+                <div className="desktop-view-toolbar nr-ptool">
+                  <div className="view-switch nr-seg">
                     {[
                       {
                         id: 'wave',
@@ -498,6 +507,7 @@ export default function App() {
                       <button
                         key={id}
                         className={view === id ? 'selected' : ''}
+                        aria-selected={view === id}
                         onClick={() => setView(id)}
                       >
                         <Icon size={16} />
@@ -510,8 +520,8 @@ export default function App() {
               ) : (
                 view === 'wave' && practiceTools
               )}
-              <div className="player-body">
-                <div className="practice-area">
+              <div className="player-body nr-pbody">
+                <div className="practice-area nr-stage">
                   {loading && (
                     <div
                       className={isAndroid ? 'mobile-audio-loading' : 'audio-loading'}
@@ -573,7 +583,7 @@ export default function App() {
                           (project.kind === 'practice' ? 'practice-wave-comparison' : '')
                         }
                       >
-                        <div className="wave-caption">
+                        <div className="wave-caption nr-wave-head">
                           <div>
                             <button
                               className={
@@ -615,7 +625,7 @@ export default function App() {
                             <PracticeWaves {...timeline} project={project} live={live} />
                           )}
                         </>
-                        <div className="wave-window-hint">
+                        <div className="wave-window-hint nr-wave-hint">
                           {tr(
                             '播放位置固定在中央 \u00B7 左右拖动波形移动时间窗口 \u00B7 点击音轨切换波形，再点一次回到总混音',
                           )}
@@ -831,7 +841,7 @@ export default function App() {
             </h2>
           </div>
           <button
-            className="icon-button"
+            className="icon-button nr-icon-btn"
             aria-label={tr('关闭窗口')}
             onClick={() => setModal(null)}
           >

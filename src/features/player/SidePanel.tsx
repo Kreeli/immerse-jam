@@ -23,7 +23,7 @@ export default function SidePanel({
   open?: boolean;
 }) {
   const content = (
-    <aside className="mixer-shell">
+    <aside className="mixer-shell nr-console">
       {isAndroid ? (
         <div className="mobile-panel-tabs">
           {(
@@ -33,7 +33,12 @@ export default function SidePanel({
               { id: 'points', icon: Bookmark, label: tr('标记点') },
             ] as const
           ).map(({ id, icon: Icon, label }) => (
-            <button key={id} className={tab === id ? 'selected' : ''} onClick={() => onTab(id)}>
+            <button
+              key={id}
+              className={tab === id ? 'selected' : ''}
+              aria-selected={tab === id}
+              onClick={() => onTab(id)}
+            >
               <Icon size={18} />
               {label}
             </button>
@@ -43,23 +48,26 @@ export default function SidePanel({
           </button>
         </div>
       ) : (
-        <div className="console-tabs" role="group" aria-label={tr('右侧面板')}>
-          {(
-            [
-              ['mixer', tr('控制台')],
-              ['ranges', tr('循环段落')],
-              ['points', tr('标记点')],
-            ] as const
-          ).map(([id, label]) => (
-            <button
-              key={id}
-              aria-pressed={tab === id}
-              className={tab === id ? 'selected' : ''}
-              onClick={() => onTab(id)}
-            >
-              {label}
-            </button>
-          ))}
+        <div className="console-tabs nr-console-tabs" role="group" aria-label={tr('右侧面板')}>
+          <div className="nr-seg nr-accent">
+            {(
+              [
+                ['mixer', tr('控制台')],
+                ['ranges', tr('循环段落')],
+                ['points', tr('标记点')],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                aria-pressed={tab === id}
+                className={tab === id ? 'selected' : ''}
+                aria-selected={tab === id}
+                onClick={() => onTab(id)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
       {tab === 'mixer' ? (

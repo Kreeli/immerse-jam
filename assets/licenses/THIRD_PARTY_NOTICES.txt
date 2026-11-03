@@ -172,6 +172,12 @@ git+https://github.com/radix-ui/primitives.git
 @radix-ui/react-use-is-hydrated 0.1.3 — MIT
 git+https://github.com/radix-ui/primitives.git
 
+Bricolage Grotesque — SIL OFL 1.1
+https://github.com/google/fonts/tree/main/ofl/bricolagegrotesque
+
+JetBrains Mono — SIL OFL 1.1
+https://github.com/JetBrains/JetBrainsMono
+
 SCNet: backend/vendor/scnet/LICENSE
 Beat This! 1.1.0: backend/vendor/beat_this/LICENSE (MIT)
 Beat This! source: https://github.com/CPJKU/beat_this

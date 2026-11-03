@@ -20,4 +20,21 @@ async function saved(predicate) {
     await new Promise((resolve) => setTimeout(resolve, 25));
   }
 }
-module.exports = { range, saved };
+async function choose(page, name, value) {
+  const control = page.getByRole('combobox', { name, exact: true });
+  if (await control.evaluate((el) => el.tagName === 'SELECT')) return control.selectOption(value);
+  const label = await page.locator('select').evaluateAll(
+    (nodes, { name, value }) => {
+      const select = nodes.find((el) => el.getAttribute('aria-label') === name);
+      return [...(select?.options || [])]
+        .find((option) => option.value === String(value))
+        ?.textContent?.trim()
+        .replace(/\s+/g, ' ');
+    },
+    { name, value },
+  );
+  if (!label) throw new Error('Missing option for ' + name + ': ' + value);
+  await control.click();
+  await page.getByRole('option', { name: label, exact: true }).click();
+}
+module.exports = { range, saved, choose };

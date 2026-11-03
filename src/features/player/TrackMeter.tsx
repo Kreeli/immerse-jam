@@ -5,10 +5,12 @@ export default function TrackMeter({
   player,
   id,
   label,
+  vertical = false,
 }: {
   player: Player;
   id: string;
   label: string;
+  vertical?: boolean;
 }) {
   const host = useRef<HTMLDivElement>(null),
     fill = useRef<HTMLSpanElement>(null),
@@ -26,7 +28,7 @@ export default function TrackMeter({
         display = !player.playing ? -60 : Math.max(db, display - Math.min(0.2, elapsed) * 60);
         const value = Math.max(0, Math.min(1, (display + 60) / 60));
         if (fill.current) {
-          fill.current.style.transform = `scaleX(${value})`;
+          fill.current.style.transform = `${vertical ? 'scaleY' : 'scaleX'}(${value})`;
           fill.current.style.background =
             level.peak >= 0.98 ? '#ec7e8d' : display > -6 ? '#d7b27b' : '#91b8a9';
         }
@@ -41,9 +43,9 @@ export default function TrackMeter({
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [player, id]);
+  }, [player, id, vertical]);
   return (
-    <div className="track-meter-wrap">
+    <div className={'track-meter-wrap' + (vertical ? ' nr-live-meter' : '')}>
       <div
         ref={host}
         className="track-meter"

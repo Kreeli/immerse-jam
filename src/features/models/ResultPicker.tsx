@@ -26,10 +26,11 @@ export default function ResultPicker({
     setName(result?.name || '');
   }, [result?.id, result?.name]);
   return (
-    <div className={'result-picker' + (compact ? ' compact-result' : '')}>
+    <div className={'result-picker nr-result-picker' + (compact ? ' compact-result' : '')}>
       <label>
         {tr('分离结果')}
         <Select
+          menu
           title={result?.name}
           aria-label={tr('当前分离结果')}
           disabled={loading}

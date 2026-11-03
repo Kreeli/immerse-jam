@@ -46,6 +46,16 @@ for (const name of packages) {
     `${name} ${p.version} — ${p.license}\n${typeof p.repository === 'object' ? p.repository.url : p.repository || p.homepage || ''}`,
   );
 }
+for (const family of ['BricolageGrotesque', 'JetBrainsMono']) {
+  fs.copyFileSync(
+    path.join('src/assets/fonts', family + '-OFL.txt'),
+    path.join(dir, family + '-OFL.txt'),
+  );
+}
+rows.push(
+  'Bricolage Grotesque — SIL OFL 1.1\nhttps://github.com/google/fonts/tree/main/ofl/bricolagegrotesque',
+  'JetBrains Mono — SIL OFL 1.1\nhttps://github.com/JetBrains/JetBrainsMono',
+);
 fs.writeFileSync(
   path.join(dir, 'THIRD_PARTY_NOTICES.txt'),
   `Immerse Jam uses the following unmodified open-source components.\nCopyright and license texts are included in this directory.\n\n${rows.join('\n\n')}\n\nSCNet: backend/vendor/scnet/LICENSE\nBeat This! 1.1.0: backend/vendor/beat_this/LICENSE (MIT)\nBeat This! source: https://github.com/CPJKU/beat_this\nBeat This! pinned PyPI source and checksum: backend/vendor/beat_this/SOURCE.json\nAudio-separator, PyTorch and Python dependencies: installed with their package license files at first use.\nModel weights: Beat This! final0 is bundled with Windows under MIT; other weights are downloaded separately. See the model catalog for sources and terms.\n\nalphaTab 1.8.4 source: https://github.com/CoderLine/alphaTab/tree/022a45c8e42370f9e12e68949d11eada370da83d\nSoundTouchJS 2.1.1 source: https://github.com/cutterbl/SoundTouchJS/tree/v2.1.1\nFFmpeg 6.1.1 source: https://github.com/FFmpeg/FFmpeg/commit/e38092ef93\nFFmpeg build configuration and linked library versions: ffmpeg-static/ffmpeg.exe.README\nFFmpeg build source distribution: https://www.gyan.dev/ffmpeg/builds/\nuv source and license: https://github.com/astral-sh/uv/tree/0.13.6 (MIT OR Apache-2.0)\n`,

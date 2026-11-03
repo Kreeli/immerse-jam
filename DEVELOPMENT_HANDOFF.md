@@ -1,4 +1,16 @@
-## 最新状态 · 2026-11-03：PR #6 视觉与连续录音测试版
+## 最新状态 · 2026-11-03：直接复用 PR #6 代码的本地验收版
+
+用户反馈第一版按外观重写不够精细，要求接受同学的原始贡献、直接复用其 UI 代码，再保留自己的操作逻辑。已批准并以 merge 方式合并 PR #6，保留 wweiyi2004 的 af582ba 原提交；GitHub Contributors 已显示其 1 次贡献。main 仅接受原型 / 规范及其格式修正 71a80cc，Source checks 41592579885 成功；应用改动仍只在本地 codex/night-rehearsal-recording，未推送、未发 Release。
+
+新增脚本直接从已合并 prototype.html 提取组件 CSS，并将 navHTML / libraryPage / stripHTML / cover 等组合移植为 React，保留原字体、间距、配色和控件。字体及许可本地打包，无在线字体请求。分离结果与混音预设采用统一可访问菜单，修复暗浅主题下文字背景融在一起的问题。显示调性统一补全 major / minor，不改变工程内调性。总波形仍为单色，点音轨切单轨、再点回混音；普通进度条、图标录音按钮、连续 Ctrl＋滚轮 / 双指缩放保留，没有六轨概览、前后跳转键或时间窗预设。
+
+原连续录音改动保留；本轮 Windows 再做三次短录音，整曲重载 0、伴奏节点保持、监测节点静音间隙 0。类型 / 文案 / 语法 / 格式、Windows 三个维护中 UI 检查、Android 共享布局检查、双端构建和打包启动核验通过。设备长时音频 / 路由的限制沿用上一轮记录，不能据短测保证所有场景无卡顿。
+
+Windows 已更新原 Start-Immerse-Jam.cmd 指向的 release/win-unpacked，仍使用原 .runtime/data。新 Android 验收包在 release/pr6-direct-review/Immerse-Jam-Android-review-arm64.apk；旧一版源码分支 codex/first-ui-review-2026-11-03（57c8487）、完整程序 release/first-ui-review-57c8487/win-unpacked、APK release/pr6-review 均保留。更早公开版备份不动。完整范围及核验结果见 docs/REVIEW-PR6-DIRECT-2026-11-03.md。本轮没有新 Setup，网站与正式 Release 不变，等待作者试用。
+
+下文是此前阶段的历史记录，以本节为准。
+
+## 此前状态 · 2026-11-03：PR #6 第一版视觉与连续录音测试版
 
 用户已恢复工作，要求从同学 PR 接入新视觉，原波形 / 滑条 / 拖动与缩放操作保留，并优先改善两端录音手感。PR #6 只有设计文档 / 原型，因此在其提交 af582ba 上建立本地 codex/night-rehearsal-recording 分支实现；没有合并、推送或发布。当前 Windows 原 Start-Immerse-Jam.cmd 已更新，仍用 .runtime/data；平板已同签名安装测试版，用户正在试用，不再操作设备。
 

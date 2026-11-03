@@ -161,7 +161,9 @@ let browser;
     'none',
   );
   assert.equal(
-    await page.locator('.search input').evaluate((el) => getComputedStyle(el).userSelect),
+    await page
+      .getByPlaceholder('搜索歌曲、艺术家…', { exact: true })
+      .evaluate((el) => getComputedStyle(el).userSelect),
     'text',
   );
   for (const width of [1024, 1440]) {

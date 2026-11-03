@@ -68,11 +68,19 @@ export default function Transport({
   };
   if (isAndroid)
     return (
-      <footer className="mobile-transport">
+      <footer className="mobile-transport nr-m-dock">
         <div className="mobile-seek-row">
           <span>{time(scrubPosition ?? visualPosition)}</span>
           <input
-            className="seek"
+            className="seek nr-range"
+            style={
+              {
+                '--p':
+                  ((scrubPosition ?? visualPosition) / Math.max(project.duration, position, 0.01)) *
+                    100 +
+                  '%',
+              } as React.CSSProperties
+            }
             aria-label={tr('播放进度')}
             type="range"
             min="0"
@@ -93,10 +101,10 @@ export default function Transport({
           />
           <span>{time(Math.max(project.duration, position))}</span>
         </div>
-        <div className="mobile-transport-controls">
+        <div className="mobile-transport-controls nr-m-dock-row">
           <div className="mobile-primary-controls">
             <button
-              className="play-main"
+              className="play-main nr-play"
               aria-label={playing || starting ? tr('暂停') : tr('播放')}
               disabled={loading || recording || !project.duration}
               onClick={onTogglePlay}
@@ -113,7 +121,7 @@ export default function Transport({
           </div>
           <div className="mobile-speed-control">
             <button
-              className="mobile-speed-button"
+              className="mobile-speed-button nr-speed-chip"
               aria-label={tr('调整倍速')}
               aria-expanded={speedOpen}
               disabled={recording}
@@ -147,7 +155,7 @@ export default function Transport({
       </footer>
     );
   return (
-    <footer className="transport">
+    <footer className="transport nr-transport">
       <div className="transport-top">
         {browsing ? (
           <button className="transport-project" onClick={onReturn} title={tr('返回播放')}>
@@ -183,7 +191,7 @@ export default function Transport({
       </div>
       <div className="transport-bottom">
         <button
-          className="play-main"
+          className="play-main nr-play"
           aria-label={playing ? tr('暂停') : tr('播放')}
           disabled={loading || recording || !project.duration}
           onClick={onTogglePlay}
@@ -205,7 +213,15 @@ export default function Transport({
           </span>
         )}
         <input
-          className="seek"
+          className="seek nr-range"
+          style={
+            {
+              '--p':
+                ((scrubPosition ?? visualPosition) / Math.max(project.duration, position, 0.01)) *
+                  100 +
+                '%',
+            } as React.CSSProperties
+          }
           aria-label={tr('播放进度')}
           type="range"
           min="0"

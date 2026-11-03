@@ -330,19 +330,16 @@ let browser;
   const before = await page.evaluate(
     () => window.__nativeCalls.filter((c) => c.method === 'update').length,
   );
-  await page
-    .locator('.track-slider input')
-    .first()
-    .evaluate((slider) => {
-      for (let i = 0; i < 20; i++) {
-        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(
-          slider,
-          String(0.5 + i / 100),
-        );
-        slider.dispatchEvent(new Event('input', { bubbles: true }));
-      }
-      window.dispatchEvent(new Event('pointerup'));
-    });
+  await page.getByRole('slider', { name: '人声音量', exact: true }).evaluate((slider) => {
+    for (let i = 0; i < 20; i++) {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(
+        slider,
+        String(0.5 + i / 100),
+      );
+      slider.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    window.dispatchEvent(new Event('pointerup'));
+  });
   await page.waitForTimeout(300);
   assert.ok(
     await page.evaluate(

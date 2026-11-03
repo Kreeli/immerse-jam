@@ -1,3 +1,4 @@
+import RehearsalCover from '../../shared/RehearsalCover';
 import MobileActions from './MobileActions';
 import { time } from '../../shared/types';
 import { Guitar, Layers, Plus, Share2, Trash2, Search } from 'lucide-react';
@@ -15,12 +16,12 @@ export default function MobileHome({ controller: c }: { controller: WorkspaceCon
     )
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   return (
-    <section className="mobile-home">
-      <div className="mobile-home-top">
+    <section className="mobile-home nr-m-home">
+      <div className="mobile-home-top nr-m-top">
         <strong className="mobile-home-brand">Immerse Jam</strong>
         <MobileActions controller={c} />
       </div>
-      <label className="mobile-search">
+      <label className="mobile-search nr-search">
         <Search size={17} />
         <input
           aria-label={tr('搜索项目')}
@@ -29,7 +30,7 @@ export default function MobileHome({ controller: c }: { controller: WorkspaceCon
           onChange={(e) => c.setQuery(e.target.value)}
         />
       </label>
-      <div className="session-tabs">
+      <div className="session-tabs nr-seg">
         {[
           ['all', '全部'],
           ['practice', '跟练'],
@@ -38,6 +39,7 @@ export default function MobileHome({ controller: c }: { controller: WorkspaceCon
           <button
             key={id}
             className={filter === id ? 'selected' : ''}
+            aria-selected={filter === id}
             onClick={() => setFilter(id)}
           >
             {tr(label)}
@@ -46,9 +48,9 @@ export default function MobileHome({ controller: c }: { controller: WorkspaceCon
       </div>
       <div className="mobile-projects">
         {projects.map((p) => (
-          <article key={p.id}>
+          <article key={p.id} className="nr-m-card">
             <button className="mobile-project-open" onClick={() => c.openProject(p)}>
-              {p.kind === 'creation' ? <Layers size={24} /> : <Guitar size={24} />}
+              <RehearsalCover id={p.id} size={52} />
               <span>
                 <strong>{p.title}</strong>
                 <small>
