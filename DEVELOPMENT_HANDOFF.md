@@ -96,4 +96,4 @@
 
 作者已明确授权提交源码、推送 Git、发布 Release 并更新官网。Windows 提升到 0.1.12；Android 沿用已验收 preview.3 更新包。官网由 Pages 工作流重新构建发布。最后侧栏调整不追加 UI 核对。
 
-发布完成记录：tag `v0.1.12` 指向 main `c2fd80e`，附件为 Setup 0.1.12、preview.3 双架构 APK 与 `SHA256SUMS.txt`。期间修复两处 CI 失败：`DEVELOPMENT_HANDOFF.md` 未过格式检查、`tests/content-removal.test.cjs` 夹具假定 `.runtime/test-workspaces` 已存在；修复后 Source checks 在 main 与工作分支均为绿。官网静态文案已更新，下载链接由 Pages 工作流在 Release 发布后自动刷新，线上已验证全部指向 v0.1.12。`release/win-unpacked` 已更新为 0.1.12，原入口 `Start-Immerse-Jam.cmd` 可直接使用。
+发布完成记录：tag `v0.1.12` 指向 main `c2fd80e`，附件为 Setup 0.1.12、preview.3 双架构 APK 与 `SHA256SUMS.txt`。期间修复两处 CI 失败：`DEVELOPMENT_HANDOFF.md` 未过格式检查、`tests/content-removal.test.cjs` 夹具假定 `.runtime/test-workspaces` 已存在；修复后 Source checks 在 main 与工作分支均为绿。官网静态文案已更新，下载链接由 Pages 工作流在 Release 发布后自动刷新，线上已验证全部指向 v0.1.12。`release/win-unpacked` 已更新为 0.1.12，原入口 `Start-Immerse-Jam.cmd` 可直接使用。后续会话从 `docs/HANDOFF-RELAY-2026-11-04.md` 起步。
