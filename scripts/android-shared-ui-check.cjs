@@ -147,6 +147,7 @@ let browser;
           else if (
             method === 'android-playback-budget' ||
             method === 'android-playback-state' ||
+            method === 'android-pointer-style' ||
             method === 'ui-language' ||
             method === 'android-share-projects' ||
             method === 'peer-close' ||

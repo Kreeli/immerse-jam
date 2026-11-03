@@ -2,11 +2,7 @@ import './bridge';
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from '@desktop/app/App';
-import '@desktop/styles/style.css';
-import '@desktop/styles/themes.css';
-import '@desktop/styles/playback-controls.css';
-import '@desktop/styles/recording-workspace.css';
-import '@desktop/styles/readability.css';
+import '@desktop/styles/app.css';
 import './shell.css';
 
 function Demo() {

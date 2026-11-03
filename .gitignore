@@ -23,3 +23,9 @@ __pycache__/
 test-output/
 docs/site/tryout/
 *.log
+
+# Local reference originals and ad-hoc agent probes (never publish pairing data).
+/pic/
+/zz-build/
+/probe-*.txt
+/docs/zz-probe.md

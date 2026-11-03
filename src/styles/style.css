@@ -1769,13 +1769,6 @@ nav button.active svg {
   line-height: 1.9;
 }
 
-.chord-diagram {
-  width: 145px;
-  height: 140px;
-  display: block;
-  margin: 16px auto;
-  color: var(--tone-d2c4d9, #d2c4d9);
-}
 .remote-transfer {
   border-top: 1px solid var(--tone-39303e, #39303e);
   margin-top: 26px;

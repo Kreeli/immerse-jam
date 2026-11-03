@@ -150,10 +150,7 @@ const wait = (ms) => page.waitForTimeout(ms);
     ) < 0.03,
   );
   assert.ok(await page.locator('.count-in-badge').count());
-  await wait(2200);
-  assert.ok(
-    Number(await page.getByRole('slider', { name: '播放进度', exact: true }).inputValue()) > 21,
-  );
+  await page.waitForFunction(() => Number(document.querySelector('.seek').value) > 21);
   assert.equal(
     await page.evaluate(() => window.__countClicks),
     2,
@@ -161,12 +158,8 @@ const wait = (ms) => page.waitForTimeout(ms);
   );
   await page.getByRole('button', { name: '暂停', exact: true }).click();
   await page.getByRole('checkbox', { name: '启用预备拍', exact: true }).uncheck();
-  await page.locator('.analysis-meta button').nth(1).click();
-  await page.getByRole('spinbutton', { name: '校准 BPM', exact: true }).fill('125.5');
-  await page.locator('.analysis-editor').getByRole('button', { name: '保存', exact: true }).click();
-  await require('./ui-gestures.cjs').saved(() => store.get(p.id).analysis.bpm === 125.5);
-  assert.equal(store.get(p.id).analysis.bpm, 125.5);
-  assert.equal(store.get(p.id).analysis.tempoReviewed, true);
+  assert.ok((await page.locator('.analysis-meta').innerText()).includes('120 BPM'));
+  assert.equal(await page.getByRole('spinbutton', { name: '校准 BPM', exact: true }).count(), 0);
   await page.screenshot({ path: 'test-output/v013-controls.png' });
   assert.deepEqual(errors, []);
   console.log(
@@ -179,7 +172,7 @@ const wait = (ms) => page.waitForTimeout(ms);
       loopPosition,
       markers: true,
       countInOnly: true,
-      manualBpm: true,
+      staticBpm: true,
       errors,
     }),
   );

@@ -10,14 +10,21 @@ const files = [
 ].filter((file) => fs.existsSync(file) && fs.statSync(file).isFile());
 const errors = [];
 for (const file of files) {
+  const publicDemoAudio =
+    /^docs\/site\/assets\/audio\/fabulous-rehearsal\/(original|vocals|drums|bass|piano|guitar|other)\.mp3$/.test(
+      file,
+    );
   if (
-    /^(\.runtime|\.research|release|dist|node_modules|test-output)\//.test(file) ||
-    /\.(wav|mp3|flac|aum|ijam|ckpt|onnx|safetensors|exe)$/i.test(file)
+    /^(\.runtime|\.research|release|dist(?:-android)?|node_modules|test-output|pic|zz-build)\//.test(
+      file,
+    ) ||
+    /^(?:probe-[^/]*\.txt|docs\/zz-probe\.md)$/.test(file) ||
+    (/\.(wav|mp3|flac|aum|ijam|ckpt|onnx|safetensors|exe)$/i.test(file) && !publicDemoAudio)
   )
     errors.push(file + ': private/generated binary must not be committed');
   const data = fs.readFileSync(file);
   if (data.length > 8 * 1024 ** 2) errors.push(file + ': unexpected large source artifact');
-  if (!/\.(png|ico)$/.test(file)) {
+  if (!/\.(png|ico|jpe?g|ttf|woff2?|mp3)$/.test(file)) {
     const content = data.toString();
     if (
       /gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,}|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/.test(
@@ -36,5 +43,5 @@ if (errors.length) {
 console.log(
   'Source audit passed:',
   files.length,
-  'files; no private media, runtime, model weights or credential patterns.',
+  'files; only declared public demo audio allowed; no private runtime, model weights or credential patterns.',
 );

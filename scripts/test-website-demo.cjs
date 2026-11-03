@@ -10,8 +10,9 @@ async function main() {
     headless: true,
     ...(process.platform === 'win32' ? { channel: 'msedge' } : {}),
   });
+  let page;
   try {
-    const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+    page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
     const errors = [];
     page.on('pageerror', (error) => errors.push(error.message));
     page.on('response', (response) => {
@@ -57,9 +58,9 @@ async function main() {
         (await window.jam.call('library'))[0].tracks.find((t) => t.name === 'guitar').mute,
     );
     await page.getByRole('button', { name: '以这首歌创建', exact: true }).click();
-    await page.getByRole('button', { name: '跟练', exact: true }).click();
+    await page.getByRole('menuitem', { name: '跟练', exact: true }).click();
     await page
-      .locator('.session-create')
+      .locator('.session-create-dialog')
       .getByRole('button', { name: /创建|开始跟练/ })
       .click();
     await page.getByRole('button', { name: '练琴录音', exact: true }).waitFor();
@@ -80,8 +81,13 @@ async function main() {
     await page.screenshot({ path: 'test-output/website-demo-recording.png' });
     assert.equal(await page.evaluate(() => window.__microphoneCalls), 0);
     await page.getByRole('button', { name: '和弦', exact: true }).click();
-    await page.getByRole('button', { name: /^新建自制(和弦)?谱$/ }).click();
+    await page.getByRole('button', { name: '当前和弦谱', exact: true }).click();
+    await page.getByRole('menuitem', { name: '新建和弦谱', exact: true }).click();
     await page.getByRole('textbox', { name: '和弦谱名称', exact: true }).fill('我的演示和弦谱');
+    await page
+      .locator('.mobile-chart-create')
+      .getByRole('button', { name: '创建', exact: true })
+      .click();
     await page.waitForFunction(async () =>
       (await window.jam.call('library')).some((p) => p.chordCharts.length > 0),
     );
@@ -95,7 +101,7 @@ async function main() {
     await page.getByRole('button', { name: '音乐库', exact: true }).click();
     await page.getByRole('button', { name: '新建创作', exact: true }).click();
     await page
-      .locator('.session-create')
+      .locator('.session-create-dialog')
       .getByRole('button', { name: '创建', exact: true })
       .click();
     await page.waitForFunction(async () =>
@@ -133,6 +139,9 @@ async function main() {
     console.log(
       'PASS: analysis, audible playback timeline, mute, practice, recorded fixture, chord editing, score rendering/alignment, creation groups, no microphone, lazy iframe lifecycle, responsive host.',
     );
+  } catch (error) {
+    await page?.screenshot({ path: 'test-output/website-demo-failed.png' }).catch(() => {});
+    throw error;
   } finally {
     await browser.close();
     await new Promise((resolve) => server.close(resolve));

@@ -61,7 +61,7 @@ node scripts/preview-website.cjs
 - 改颜色和布局：`docs/site/styles.css`。
 - 改五步导览的图片、文字和按钮坐标：`docs/site/app.js` 中的 `steps`。第一步的默认文字也同步保留在 HTML 中，供不运行 JavaScript 时阅读。
 - 更新截图：替换 `docs/site/assets/` 中对应 PNG。如尺寸变化，同步调整 HTML 的图片宽高与导览热点百分比。点击截图可在弹窗放大，手机上可横向滚动查看细节。
-- 当前截图来自 Windows。本机原图在 `pic/`；`Win_star.png` 展示分类文件夹，网站据此标注分类管理。`Win_send.png` 含本机地址与临时配对码，没有复制到网站，设备互传使用页面绘制的流程示意图。
+- 公开截图在 `docs/site/assets/`；`Win_star.png` 展示分类文件夹。根目录重复原图已清理；含本机地址与临时配对码的 `Win_send.png` 仅保留在被忽略的本地归档中，没有复制到网站，设备互传使用页面绘制的流程示意图。
 - 下载按钮统一链接到 `releases/latest`，不锁死某个安装文件。发布新版时检查 Android 版本说明、系统要求与网站文案是否仍准确。
 - 自动演示是截图导览，不是真实操作录像；没有使用商业歌曲音频。可在以后加入自己录制并有权分享的 WebM / MP4 视频，用原生 `<video controls playsinline preload="metadata" poster="...">` 嵌入。不要用大体积 GIF 替代长视频。
 

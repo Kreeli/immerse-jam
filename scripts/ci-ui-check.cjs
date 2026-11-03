@@ -101,10 +101,7 @@ let browser;
       ),
   );
   await page.getByRole('checkbox', { name: '启用预备拍', exact: true }).check();
-  for (const message of [
-    '预备拍与音乐使用同一播放时钟和音频路径。',
-    '导入乐谱 / MIDI 并自动对齐后生效',
-  ])
+  for (const message of ['预备拍与音乐使用同一播放时钟和音频路径。'])
     assert.ok(
       await page
         .getByText(message, { exact: true })
@@ -112,11 +109,7 @@ let browser;
     );
   await page.getByRole('checkbox', { name: '启用预备拍', exact: true }).uncheck();
   await page.getByRole('button', { name: '和弦', exact: true }).click();
-  assert.ok(
-    await page
-      .locator('.chart-help')
-      .evaluate((el) => parseFloat(getComputedStyle(el).fontSize) >= 12),
-  );
+  assert.equal(await page.locator('.chord-bank,.chart-help').count(), 0);
   assert.ok(
     await page
       .locator('.measure-number')

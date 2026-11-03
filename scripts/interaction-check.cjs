@@ -103,15 +103,20 @@ async function waitReady() {
   await page.getByRole('button', { name: '暂停', exact: true }).click();
   await page.screenshot({ path: 'test-output/v012-wave.png' });
   await page.getByRole('button', { name: '和弦', exact: true }).click();
-  await page.getByRole('button', { name: '新建自制谱', exact: true }).click();
+  await page.getByRole('button', { name: '当前和弦谱', exact: true }).click();
+  await page.getByRole('menuitem', { name: '新建和弦谱', exact: true }).click();
   await page.getByRole('textbox', { name: '和弦谱名称', exact: true }).fill('我的练习谱');
+  await page
+    .locator('.mobile-chart-create')
+    .getByRole('button', { name: '创建', exact: true })
+    .click();
   await range('播放进度', 0);
   await page.locator('.practice-area').evaluate((element) => (element.scrollTop = 0));
   const bar0 = page.locator('[data-bar-id="bar-0"]'),
     bar2 = page.locator('[data-bar-id="bar-2"]');
   await bar0.getByRole('button', { name: '第 1 小节第 1 个空位', exact: true }).click();
   await page.getByRole('textbox', { name: '和弦名称', exact: true }).fill('Am7');
-  await page.getByRole('button', { name: '保存和弦', exact: true }).click();
+  await page.getByRole('textbox', { name: '和弦名称', exact: true }).press('Enter');
   await page.getByRole('button', { name: '第 3 小节添加空位', exact: true }).click();
   await bar0.locator('.chord-token').first().dragTo(bar2.locator('.chord-slot').nth(1));
   await page.waitForFunction(
@@ -129,10 +134,9 @@ async function waitReady() {
   assert.equal(await bar2.locator('.chord-slot').count(), 1);
   assert.equal(await bar2.getAttribute('data-start'), '4');
   assert.equal(await bar2.getAttribute('data-end'), '6');
-  await page
-    .locator('.bank-chords button')
-    .filter({ hasText: /^G$/ })
-    .dragTo(bar2.locator('.chord-slot').first());
+  await bar2.locator('.chord-token').first().dblclick();
+  await page.getByRole('textbox', { name: '和弦名称', exact: true }).fill('G');
+  await page.getByRole('textbox', { name: '和弦名称', exact: true }).press('Enter');
   await page.waitForFunction(
     () =>
       document.querySelector('[data-bar-id="bar-2"]').querySelector('.chord-token').textContent ===
@@ -185,7 +189,7 @@ async function waitReady() {
   await page.getByRole('button', { name: '打开 交互验收', exact: true }).click();
   await waitReady();
   assert.equal(
-    await page.getByRole('textbox', { name: '和弦谱名称', exact: true }).inputValue(),
+    await page.getByRole('button', { name: '当前和弦谱', exact: true }).innerText(),
     '我的练习谱',
   );
   assert.equal(await page.locator('[data-bar-id="bar-2"] .chord-token').first().innerText(), 'G');

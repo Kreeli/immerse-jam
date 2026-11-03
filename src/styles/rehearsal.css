@@ -1175,6 +1175,10 @@ textarea {
 html[data-platform='android'] .chart-toolbar .chart-picker {
   max-width: none;
 }
+html[data-platform='android'] .chart-header {
+  padding: 4px 0;
+  margin-bottom: 8px;
+}
 html[data-platform='android'] .chart-toolbar > .icon-button {
   width: 36px;
   height: 36px;

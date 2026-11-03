@@ -18,6 +18,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+      - name: Keep generated and private materials out of source
+        run: node scripts/audit-source.cjs
       - run: npm run format:check
       - run: npm test
       - run: npm run build
@@ -31,6 +33,14 @@ jobs:
         run: node scripts/interaction-check.cjs
       - run: npx vite build --mode android
       - run: node scripts/android-shared-ui-check.cjs
+      - name: Save failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-check-failure-screenshots
+          path: test-output/*.png
+          if-no-files-found: ignore
+          retention-days: 7
   backend:
     runs-on: ubuntu-latest
     steps:

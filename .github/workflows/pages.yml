@@ -74,3 +74,11 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+      - name: Save demo failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: website-demo-failure-screenshots
+          path: test-output/website-demo-*.png
+          if-no-files-found: ignore
+          retention-days: 7
