@@ -19,6 +19,8 @@ import RehearsalCover from '../../shared/RehearsalCover';
 import { trackColor } from '../../styles/palette';
 import { keyLabel } from '../analysis/transposition';
 import ProjectMenu from './ProjectMenu';
+import LayoutPicker from './LayoutPicker';
+import { usePreferences } from '../../app/preferences';
 type Props = Pick<
   WorkspaceController,
   | 'page'
@@ -58,6 +60,7 @@ export default function LibraryPage({
   notify,
   setEditingProject,
 }: Props) {
+  const { libraryLayout } = usePreferences();
   const recent = library
     .filter((p) => !p.kind && p.practice.lastPlayedAt)
     .sort((a, b) =>
@@ -116,6 +119,7 @@ export default function LibraryPage({
               onChange={(e) => setQuery(e.target.value)}
             />
           </label>
+          <LayoutPicker />
           <span className="nr-hint">
             <Upload size={14} />
             {tr('支持拖入音频、视频、.aum 或 .ijam 项目')}
@@ -136,7 +140,7 @@ export default function LibraryPage({
             </button>
           </div>
         ) : (
-          <div className="songs nr-lib-grid">
+          <div className="songs nr-lib-grid" data-layout={libraryLayout}>
             {songList.map((p) => {
               const folder = folders.find((f) => f.projectIds.includes(p.id));
               return (
@@ -146,7 +150,11 @@ export default function LibraryPage({
                     aria-label={tr('打开 {0}', [p.title])}
                     onClick={() => openProject(p)}
                   />
-                  <RehearsalCover id={p.id} cover={p.cover} />
+                  <RehearsalCover
+                    id={p.id}
+                    cover={p.cover}
+                    size={libraryLayout === 'list' ? 44 : 64}
+                  />
                   <div className="nr-song-copy">
                     <h3 className="nr-ellipsis">{p.broken ? tr('歌曲数据需要恢复') : p.title}</h3>
                     <div className="nr-meta nr-ellipsis">{p.artist || tr('本地音乐')}</div>

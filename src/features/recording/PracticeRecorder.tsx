@@ -22,6 +22,7 @@ import { t as tr } from '../../i18n';
 import { time, type Project, type RecordingSettings } from '../../shared/types';
 import LatencyCalibration from './LatencyCalibration';
 import { requestTakeRemoval, requestTakeTrash } from './TakeRemoval';
+import { reconcileRecordingDevices } from './device-selection';
 const defaults: RecordingSettings = {
   mode: 'instrument',
   inputDeviceId: 'default',
@@ -67,12 +68,15 @@ export default function PracticeRecorder({
     }),
     [active, setActive] = useState(false),
     [busy, setBusy] = useState(false),
+    [routeNotice, setRouteNotice] = useState(''),
     [importPosition, setImportPosition] = useState('0');
   const lastDialog = useRef(dialog);
   if (dialog) lastDialog.current = dialog;
   const shownDialog = dialog || lastDialog.current;
   const props = useRef({ project, onProject, onSaved, onError, onActive });
   props.current = { project, onProject, onSaved, onError, onActive };
+  const currentSettings = useRef(settings);
+  currentSettings.current = settings;
   useEffect(() => {
     if (project.kind === 'practice')
       setSettings((previous) => ({ ...previous, mode: project.practiceMode || 'instrument' }));
@@ -92,16 +96,13 @@ export default function PracticeRecorder({
   const refreshDevices = async (permission = false) => {
     const available = await recordingDevices(permission);
     setDevices(available);
-    if (isAndroid)
-      setSettings((old) => ({
-        ...old,
-        inputDeviceId:
-          old.inputDeviceId.startsWith('android:') &&
-          available.some((d) => d.deviceId === old.inputDeviceId)
-            ? old.inputDeviceId
-            : 'default',
-        outputDeviceId: 'default',
-      }));
+    const checked = reconcileRecordingDevices(currentSettings.current, available);
+    if (checked.changed) {
+      setSettings(checked.settings);
+      setRouteNotice(
+        tr('原录音设备不可用，已恢复系统默认。请确认输入、输出设备，并重新检查延迟后开始录音。'),
+      );
+    }
   };
   useEffect(() => {
     if (!dialog) return;
@@ -183,18 +184,34 @@ export default function PracticeRecorder({
     restoredLoop.current = player.captureLoop;
     const wasPlaying = player.playing;
     let releaseAudio: (() => void) | undefined;
+    let phase: 'input' | 'output' | 'prepare' = 'prepare';
     props.current.onActive(true);
     try {
+      const available = await recordingDevices();
+      setDevices(available);
+      const checked = reconcileRecordingDevices(settings, available);
+      if (checked.changed) {
+        setSettings(checked.settings);
+        setRouteNotice(
+          tr('原录音设备不可用，已恢复系统默认。请确认输入、输出设备，并重新检查延迟后开始录音。'),
+        );
+        props.current.onActive(false);
+        setDialog('settings');
+        return;
+      }
       if (!Number.isFinite(settings.latencyMs) || Math.abs(settings.latencyMs) > 2000)
         throw new Error(tr('延迟校正范围为 −2000 到 2000 毫秒'));
       await jamCall('audio-tools-ensure');
       await player.init();
+      phase = 'output';
       await player.setOutputDevice(settings.outputDeviceId);
+      phase = 'prepare';
       releaseAudio = await player.acquireAudio();
-      const input = devices.find(
+      const input = available.find(
           (device) => device.kind === 'audioinput' && device.deviceId === settings.inputDeviceId,
         ),
         label = input?.label || tr('系统默认输入');
+      phase = 'input';
       capture.current = await AudioCapture.open(
         player.context!,
         settings,
@@ -213,6 +230,7 @@ export default function PracticeRecorder({
         () => {},
         () => void stop(),
       );
+      phase = 'prepare';
       player.loop = null;
       player.captureActive = true;
       if (!player.playing) await player.play(!wasPlaying && !!project.practice.countIn);
@@ -255,6 +273,7 @@ export default function PracticeRecorder({
       });
       props.current.onSaved(updated);
       setActive(true);
+      setRouteNotice('');
       setDialog(null);
     } catch (error) {
       live.current = null;
@@ -268,7 +287,21 @@ export default function PracticeRecorder({
       player.captureActive = false;
       player.restoreLoopAfterCapture(restoredLoop.current);
       props.current.onActive(false);
-      props.current.onError((error as Error).message);
+      const failure = error as Error;
+      if (phase !== 'prepare' && ['NotFoundError', 'OverconstrainedError'].includes(failure.name)) {
+        changeDevice(phase === 'output' ? 'outputDeviceId' : 'inputDeviceId', 'default');
+        setRouteNotice(
+          tr('原录音设备不可用，已恢复系统默认。请确认输入、输出设备，并重新检查延迟后开始录音。'),
+        );
+        setDialog('settings');
+      } else
+        props.current.onError(
+          failure.name === 'NotAllowedError'
+            ? tr('无法使用录音设备。请检查系统麦克风权限和所选设备的访问权限。')
+            : failure.name === 'NotReadableError'
+              ? tr('无法打开录音设备，请检查设备连接，或关闭正在独占设备的其他软件。')
+              : failure.message,
+        );
     } finally {
       releaseAudio?.();
       setBusy(false);
@@ -382,6 +415,11 @@ export default function PracticeRecorder({
         </div>
         {shownDialog === 'settings' ? (
           <>
+            {routeNotice && (
+              <p className="recording-route-notice" role="status">
+                {routeNotice}
+              </p>
+            )}
             <div className="recording-mode-options" hidden={project.kind === 'practice'}>
               <button
                 className={settings.mode === 'instrument' ? 'selected' : ''}

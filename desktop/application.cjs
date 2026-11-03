@@ -185,6 +185,7 @@ app.whenReady().then(async () => {
     title: 'Immerse Jam',
     icon: path.join(app.isPackaged ? process.resourcesPath : root, 'assets', 'app-icon.ico'),
     autoHideMenuBar: true,
+    frame: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
@@ -193,6 +194,13 @@ app.whenReady().then(async () => {
       backgroundThrottling: false,
     },
   });
+  win.removeMenu();
+  const emitWindowState = () => {
+    if (!win.isDestroyed())
+      emit({ type: 'window-state', result: { maximized: win.isMaximized() } });
+  };
+  win.on('maximize', emitWindowState);
+  win.on('unmaximize', emitWindowState);
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   let closing = false,
     allowClose = false;
@@ -616,12 +624,17 @@ app.whenReady().then(async () => {
   });
   handle('reveal', ({ id }) => shell.showItemInFolder(path.join(store.dir(id), 'project.json')));
   handle('window', ({ action }) => {
+    if (action === 'close') {
+      win.close();
+      return;
+    }
     if (action === 'close-ready' && closing) {
       allowClose = true;
       setImmediate(() => win.close());
     }
     if (action === 'minimize') win.minimize();
     else if (action === 'maximize') win.isMaximized() ? win.unmaximize() : win.maximize();
+    return { maximized: win.isMaximized() };
   });
   if (process.env.IMMERSE_DEV_URL) await win.loadURL(process.env.IMMERSE_DEV_URL);
   else await win.loadFile(path.join(root, 'dist', 'index.html'));

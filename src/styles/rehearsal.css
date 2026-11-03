@@ -136,17 +136,110 @@ html[data-platform='android'] .mobile-dialog.metadata-dialog {
   white-space: nowrap;
 }
 .folder-project {
+  display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  margin: 0;
 }
 .folder-project-open {
   display: flex;
+  flex-direction: row;
   align-items: center;
+  justify-content: flex-start;
+  text-align: left;
   gap: 12px;
   min-width: 0;
+  padding: 0;
+}
+.folder-project-open > .nr-cover {
+  flex: none;
 }
 .folder-project-open > span:last-child {
   display: grid;
   min-width: 0;
+  gap: 4px;
+}
+.folder-project-open strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.folder-project-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.folder-project-meta > span:first-child,
+.folder-project-meta time {
+  flex: none;
+}
+.folder-project-artist {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.folder-project-list {
+  display: grid;
+  gap: 12px;
+}
+.folder-project-list[data-layout='grid'] {
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+}
+.folder-project-list > .empty {
+  grid-column: 1 / -1;
+}
+.folder-view-tools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+.folder-view-tools > .select-button {
+  min-width: 110px;
+}
+.layout-switch {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-m);
+  background: var(--surface-2);
+}
+.layout-switch button[aria-pressed='true'] {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.nr-lib-grid[data-layout='list'] {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+.nr-lib-grid[data-layout='list'] .nr-song {
+  grid-template-columns: 44px minmax(0, 1fr) minmax(150px, auto);
+  align-items: center;
+  padding: 10px 14px;
+}
+.nr-lib-grid[data-layout='list'] .nr-song > .nr-cover {
+  width: 44px;
+  height: 44px;
+}
+.nr-lib-grid[data-layout='list'] .nr-foot {
+  grid-column: 3;
+  grid-row: 1;
+  border: 0;
+  padding: 0;
+}
+.nr-lib-grid[data-layout='list'] .nr-stems {
+  margin-top: 5px;
+}
+.recording-route-notice {
+  padding: 12px;
+  border: 1px solid var(--accent-line);
+  border-radius: var(--r-m);
+  background: var(--accent-soft);
+  color: var(--text);
 }
 .folder-manager-list {
   display: grid;
@@ -562,6 +655,66 @@ textarea {
   min-height: 46px;
   flex: none;
   overflow: visible;
+}
+.desktop-toolbar-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.desktop-toolbar-actions button {
+  width: 32px;
+  height: 32px;
+  padding: 7px;
+}
+.desktop-toolbar-actions button.pressed {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.desktop-window-controls {
+  position: fixed;
+  top: 12px;
+  right: 8px;
+  z-index: 1000;
+  display: flex;
+  gap: 2px;
+  pointer-events: auto;
+  -webkit-app-region: no-drag;
+}
+.desktop-window-controls button {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  color: var(--text-2);
+  background: transparent;
+}
+.desktop-window-controls button:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+.desktop-window-controls .window-close:hover {
+  background: #c42b3b;
+  color: white;
+}
+.has-window-controls .nr-ph.player-header {
+  padding-right: 140px;
+  -webkit-app-region: drag;
+}
+.has-window-controls .library-header {
+  padding-right: 132px;
+  -webkit-app-region: drag;
+}
+.has-window-controls .nr-nav-brand {
+  -webkit-app-region: drag;
+}
+.has-window-controls
+  :is(.nr-ph, .library-header, .nr-nav-brand)
+  :is(button, a, input, select, [role='combobox'], .project-title) {
+  -webkit-app-region: no-drag;
 }
 .nr-ptool .view-switch {
   margin: 0;

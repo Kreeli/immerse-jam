@@ -3,12 +3,14 @@ import { jamCall } from '../../platform/project-call';
 import { ChevronRight, Folder, FolderPlus, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { t as tr } from '../../i18n';
-import type { Project, ProjectFolder } from '../../shared/types';
+import { time, type Project, type ProjectFolder } from '../../shared/types';
 import CoverPicker from '../../shared/CoverPicker';
 import RehearsalCover from '../../shared/RehearsalCover';
 import ModalFrame from '../../shared/ModalFrame';
 import ProjectMenu from './ProjectMenu';
 import { isAndroid } from '../../platform/environment';
+import LayoutPicker from './LayoutPicker';
+import { usePreferences } from '../../app/preferences';
 export interface FolderProps {
   folders: ProjectFolder[];
   onFolders: (folders: ProjectFolder[]) => void;
@@ -122,6 +124,7 @@ export default function FolderPage({
   onCreate: () => void;
   onEdit: (project: Project) => void;
 }) {
+  const { libraryLayout } = usePreferences();
   const folder = props.folders.find((item) => item.id === id),
     [editing, setEditing] = useState(false),
     [deleting, setDeleting] = useState(false),
@@ -179,23 +182,31 @@ export default function FolderPage({
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
-        <Select
-          aria-label={tr('内容类型')}
-          value={filter}
-          onChange={(event) => setFilter(event.target.value)}
-        >
-          <option value="all">{tr('全部')}</option>
-          <option value="music">{tr('分轨歌曲')}</option>
-          <option value="practice">{tr('跟练')}</option>
-          <option value="creation">{tr('创作')}</option>
-        </Select>
+        <div className="folder-view-tools">
+          <LayoutPicker />
+          <Select
+            menu
+            aria-label={tr('内容类型')}
+            value={filter}
+            onChange={(event) => setFilter(event.target.value)}
+          >
+            <option value="all">{tr('全部')}</option>
+            <option value="music">{tr('分轨歌曲')}</option>
+            <option value="practice">{tr('跟练')}</option>
+            <option value="creation">{tr('创作')}</option>
+          </Select>
+        </div>
       </div>
-      <div className="folder-project-list">
+      <div className="folder-project-list" data-layout={libraryLayout}>
         {projects.length ? (
           projects.map((project) => (
             <article className="folder-project" key={project.id}>
               <button className="folder-project-open" onClick={() => onOpen(project)}>
-                <RehearsalCover id={project.id} cover={project.cover} size={40} />
+                <RehearsalCover
+                  id={project.id}
+                  cover={project.cover}
+                  size={libraryLayout === 'grid' ? 56 : 40}
+                />
                 <span>
                   <strong>{project.title}</strong>
                   {project.description && (
@@ -203,13 +214,16 @@ export default function FolderPage({
                       {project.description}
                     </small>
                   )}
-                  <small>
-                    {project.kind === 'practice'
-                      ? tr('跟练')
-                      : project.kind === 'creation'
-                        ? tr('创作')
-                        : tr('分轨歌曲')}
-                    {project.artist ? ' · ' + project.artist : ''}
+                  <small className="folder-project-meta">
+                    <span>
+                      {project.kind === 'practice'
+                        ? tr('跟练')
+                        : project.kind === 'creation'
+                          ? tr('创作')
+                          : tr('分轨歌曲')}
+                    </span>
+                    <span className="folder-project-artist">{project.artist || '—'}</span>
+                    <time>{time(project.duration)}</time>
                   </small>
                 </span>
               </button>

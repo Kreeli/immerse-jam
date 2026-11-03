@@ -90,8 +90,9 @@ export default function Waveform({
     let max = 0;
     for (const value of peaks) if (Number.isFinite(value)) max = Math.max(max, Math.abs(value));
     return {
-      // Preserve peaks rather than flattening the loudest 2% at a percentile.
-      normal: Math.max(0.01, max * 1.08),
+      // Keep the true peak envelope, with headroom so loud passages do not
+      // look pinned to the top/bottom edge. This changes display only.
+      normal: Math.max(0.01, max * 1.45),
       max,
     };
   }, [peaks, amplitudeScale]);

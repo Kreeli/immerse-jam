@@ -1047,5 +1047,16 @@
   "滚轮": "Wheel",
   "缩放时间窗口": "Zoom timeline",
   "无效指针样式": "Invalid pointer style",
-  "显示所有音轨": "Show all tracks"
+  "显示所有音轨": "Show all tracks",
+  "窗口控制": "Window controls",
+  "最小化": "Minimize",
+  "还原窗口": "Restore window",
+  "最大化": "Maximize",
+  "关闭应用": "Close app",
+  "显示布局": "View layout",
+  "列表视图": "List view",
+  "方格视图": "Grid view",
+  "原录音设备不可用，已恢复系统默认。请确认输入、输出设备，并重新检查延迟后开始录音。": "The saved audio device is unavailable. System defaults are selected. Confirm the input and output devices and check latency before recording.",
+  "无法使用录音设备。请检查系统麦克风权限和所选设备的访问权限。": "Cannot access the audio device. Check microphone permissions and access to the selected device.",
+  "无法打开录音设备，请检查设备连接，或关闭正在独占设备的其他软件。": "Cannot open the recording device. Check its connection or close other software using it exclusively."
 }

@@ -1,5 +1,6 @@
 import RehearsalCover from '../shared/RehearsalCover';
 import ModalFrame from '../shared/ModalFrame';
+import WindowControls from '../shared/WindowControls';
 import Select from '../shared/Select';
 import MobileActions from '../platform/android/MobileActions';
 import UsageHelp from '../features/settings/UsageHelp';
@@ -28,7 +29,7 @@ import {
   Heart,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { isAndroid } from '../platform/environment';
+import { isAndroid, isDesktop } from '../platform/environment';
 import AndroidTransferSharing from '../platform/android/TransferSharing';
 import donation from '../../assets/author-wechat.png';
 import type { LiveEnvelope } from '../audio/live-envelope';
@@ -321,6 +322,7 @@ export default function App() {
     <div
       className={
         'app nr-app ' +
+        (isDesktop ? 'has-window-controls ' : '') +
         (recording ? 'is-recording ' : '') +
         (mobileMixer ? 'mobile-mixer-open ' : '')
       }
@@ -478,26 +480,6 @@ export default function App() {
                       {tr('拆分音轨')}
                     </button>
                   )}
-                  <button
-                    className="icon-button nr-icon-btn"
-                    title={tr('导出歌曲项目')}
-                    onClick={() =>
-                      void act(async () => {
-                        await controller.flushEdits();
-                        await controller.flushNotes();
-                        setModal('export');
-                      })
-                    }
-                  >
-                    <Download size={18} />
-                  </button>
-                  <button
-                    className={'icon-button ' + (mix ? 'pressed' : '')}
-                    title={tr('混音面板')}
-                    onClick={() => setMix(!mix)}
-                  >
-                    <SlidersHorizontal size={18} />
-                  </button>
                 </header>
               )}
               {!isAndroid ? (
@@ -525,6 +507,28 @@ export default function App() {
                     ))}
                   </div>
                   {practiceTools}
+                  <div className="desktop-toolbar-actions">
+                    <button
+                      className="icon-button nr-icon-btn"
+                      title={tr('导出歌曲项目')}
+                      onClick={() =>
+                        void act(async () => {
+                          await controller.flushEdits();
+                          await controller.flushNotes();
+                          setModal('export');
+                        })
+                      }
+                    >
+                      <Download size={17} />
+                    </button>
+                    <button
+                      className={'icon-button nr-icon-btn ' + (mix ? 'pressed' : '')}
+                      title={tr('混音面板')}
+                      onClick={() => setMix(!mix)}
+                    >
+                      <SlidersHorizontal size={17} />
+                    </button>
+                  </div>
                 </div>
               ) : (
                 view === 'wave' && practiceTools
@@ -1436,6 +1440,7 @@ export default function App() {
         </div>
       )}
       <TakeRemoval onProject={controller.adoptIfCurrent} onError={notify} />
+      {isDesktop && <WindowControls onError={notify} />}
     </div>
   );
 }

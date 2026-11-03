@@ -6,6 +6,7 @@ export type Preferences = {
   accent: 'rose' | 'blue' | 'green' | 'purple';
   waveColor: string;
   pointerStyle: 'arrow' | 'ring' | 'crosshair' | 'system';
+  libraryLayout: 'grid' | 'list';
 };
 const listeners = new Set<() => void>();
 const defaults: Preferences = {
@@ -17,6 +18,7 @@ const defaults: Preferences = {
   accent: 'rose',
   waveColor: '',
   pointerStyle: 'arrow',
+  libraryLayout: 'grid',
 };
 let preferences: Preferences = defaults;
 try {
@@ -29,6 +31,7 @@ try {
     pointerStyle: ['arrow', 'ring', 'crosshair', 'system'].includes(saved.pointerStyle)
       ? saved.pointerStyle
       : 'arrow',
+    libraryLayout: saved.libraryLayout === 'list' ? 'list' : 'grid',
   };
 } catch {}
 if (typeof window !== 'undefined' && window.jam?.language)

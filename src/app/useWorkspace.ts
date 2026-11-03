@@ -756,7 +756,7 @@ export function useWorkspace() {
       const target = e.target instanceof HTMLElement ? e.target : null;
       if (
         target?.closest(
-          'input,textarea,select,[contenteditable="true"],[role="combobox"],[role="menu"]',
+          'input,textarea,select,[contenteditable="true"],[role="combobox"],[role="menu"],.desktop-window-controls,.layout-switch',
         ) ||
         modal ||
         creatingSession ||
