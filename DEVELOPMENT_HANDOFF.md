@@ -5,7 +5,7 @@
 ## 当前决定
 
 - 作者已允许清理仓库、修复失败的检查、编写交接并上传 Git。
-- 本轮没有要求新 Release、Setup 或重新安装应用；正式版本仍为 Windows 0.1.11 / Android 0.1.0-preview.3。
+- 正式版本现为 Windows 0.1.12 / Android 0.1.0-preview.3（沿用已验收更新包）；Release v0.1.12 与官网同步均已完成。
 - 最近 UI 小改动曾明确要求不跑测试；本轮只因失败工作流而复跑相关脚本，没有重复模型分离、安装依赖或私人工程的录音测试。
 - 不大改操作逻辑。保持单色总波形，点击声部切换单轨 / 总波形；单击波形不跳转，拖动定位，PC Ctrl＋滚轮 / Android 双指连续缩放。
 
@@ -95,3 +95,5 @@
 ## 发布 0.1.12（2026-11-04）
 
 作者已明确授权提交源码、推送 Git、发布 Release 并更新官网。Windows 提升到 0.1.12；Android 沿用已验收 preview.3 更新包。官网由 Pages 工作流重新构建发布。最后侧栏调整不追加 UI 核对。
+
+发布完成记录：tag `v0.1.12` 指向 main `c2fd80e`，附件为 Setup 0.1.12、preview.3 双架构 APK 与 `SHA256SUMS.txt`。期间修复两处 CI 失败：`DEVELOPMENT_HANDOFF.md` 未过格式检查、`tests/content-removal.test.cjs` 夹具假定 `.runtime/test-workspaces` 已存在；修复后 Source checks 在 main 与工作分支均为绿。官网静态文案已更新，下载链接由 Pages 工作流在 Release 发布后自动刷新，线上已验证全部指向 v0.1.12。`release/win-unpacked` 已更新为 0.1.12，原入口 `Start-Immerse-Jam.cmd` 可直接使用。
