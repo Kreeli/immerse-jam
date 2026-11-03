@@ -366,7 +366,7 @@
 
       const win = findAsset(releases, /setup.*\.exe$/i);
       if (win && versionEls.windows) {
-        versionEls.windows.textContent = win.release.tag_name || 'v0.1.11';
+        versionEls.windows.textContent = win.release.tag_name || 'v0.1.12';
       }
       if (win && releaseDateEl && win.release.published_at) {
         releaseDateEl.textContent = `发布于 ${formatDate(win.release.published_at)}`;
