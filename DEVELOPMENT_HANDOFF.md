@@ -61,3 +61,7 @@
 3. 只运行改动相关检查，不重下模型或对私人曲库做破坏性操作。网页流程用 `scripts/test-website-demo.cjs`；预先构建 `web-demo/vite.config.mjs`。
 4. 当前上传没有发布 Release。后续是否 release、是否制作新 Setup 由作者决定。
 5. 更详细的行为、验证边界与回退位置见 `docs/RESULT-MENU-2026-11-03.md`、`docs/REVIEW-CHORD-SCORE-2026-11-03.md`、`docs/REVIEW-DETAILS-RECORDING-2026-11-03.md`。
+
+## 补充：Android 编辑卡片居中
+
+作者补充反馈平板竖屏时编辑项目卡片落在左下角。原因是 700 px 断点以下使用底部定位，但元数据卡片仍限制为 510 px 宽。现将 Android 元数据编辑卡片统一置于可见视口中心，保留键盘避让与内容滚动，并采用淡入淡出，移除底部拖动提示条。按作者要求不运行该项界面测试，仅构建测试包供自行查看。

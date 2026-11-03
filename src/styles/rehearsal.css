@@ -54,13 +54,23 @@
   max-width: 510px;
 }
 html[data-platform='android'] .mobile-dialog.metadata-dialog {
+  left: 50%;
+  bottom: var(--dialog-center-from-bottom, 50%);
+  transform: translate(-50%, 50%);
+  width: calc(100% - 24px);
+  max-width: 510px;
   max-height: calc(var(--dialog-visible-height, 100dvh) - 24px);
-  bottom: var(--dialog-keyboard-inset, 0px);
+  border: 1px solid var(--line);
+  border-radius: 24px;
 }
-@media (min-width: 700px) {
-  html[data-platform='android'] .mobile-dialog.metadata-dialog {
-    bottom: var(--dialog-center-from-bottom, 50%);
-  }
+html[data-platform='android'] .mobile-dialog.metadata-dialog[data-state='open'] {
+  animation: mobile-fade-in 180ms ease;
+}
+html[data-platform='android'] .mobile-dialog.metadata-dialog[data-state='closed'] {
+  animation: mobile-fade-out 140ms ease;
+}
+html[data-platform='android'] .mobile-dialog.metadata-dialog::before {
+  display: none;
 }
 .metadata-dialog form,
 .metadata-dialog label {
