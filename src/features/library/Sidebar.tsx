@@ -18,6 +18,7 @@ import { isAndroid, platformVersion } from '../../platform/environment';
 import type { WorkspaceController } from '../../app/useWorkspace';
 import { t as tr } from '../../i18n';
 import RehearsalCover from '../../shared/RehearsalCover';
+import FolderActions from './FolderActions';
 type Props = Pick<
   WorkspaceController,
   | 'page'
@@ -31,6 +32,8 @@ type Props = Pick<
   | 'setSelected'
   | 'setModal'
   | 'folders'
+  | 'setFolders'
+  | 'notify'
 >;
 
 // PR #6 navHTML(): the original nav-brand / nav-scroll / nav-foot composition.
@@ -46,6 +49,8 @@ export default function Sidebar({
   setSelected,
   setModal,
   folders,
+  setFolders,
+  notify,
   onCreateFolder,
 }: Props & { onCreateFolder: () => void }) {
   const navigate = (id: string) => {
@@ -124,20 +129,43 @@ export default function Sidebar({
               <span className="nr-badge-count">{library.filter((p) => p.starred).length}</span>
             </button>
             {[{ id: 'unfiled', name: tr('默认分类'), projectIds: [] }, ...folders].map((folder) => (
-              <button
+              <div
+                className="sidebar-folder-row"
+                data-current={page === 'folder:' + folder.id && !showPlayer}
                 key={folder.id}
-                className="nr-nav-item nr-sub"
-                aria-current={page === 'folder:' + folder.id && !showPlayer ? 'page' : undefined}
-                title={folder.name}
-                onClick={() => navigate('folder:' + folder.id)}
               >
-                {'cover' in folder && folder.cover ? (
-                  <RehearsalCover id={folder.id} size={18} cover={folder.cover} folder />
-                ) : (
-                  <Folder size={18} />
+                <button
+                  className="nr-nav-item nr-sub"
+                  aria-current={page === 'folder:' + folder.id && !showPlayer ? 'page' : undefined}
+                  aria-label={folder.name}
+                  title={folder.name}
+                  onClick={() => navigate('folder:' + folder.id)}
+                >
+                  {'cover' in folder && folder.cover ? (
+                    <RehearsalCover id={folder.id} size={18} cover={folder.cover} folder />
+                  ) : (
+                    <Folder size={18} />
+                  )}
+                  <span className="nr-ellipsis">{folder.name}</span>
+                  <span className="sidebar-folder-count">
+                    {folder.id === 'unfiled'
+                      ? library.filter((p) => !folders.some((f) => f.projectIds.includes(p.id)))
+                          .length
+                      : folder.projectIds.length}
+                  </span>
+                </button>
+                {folder.id !== 'unfiled' && (
+                  <FolderActions
+                    folder={folder}
+                    folders={folders}
+                    onFolders={setFolders}
+                    onError={notify}
+                    onDeleted={() => {
+                      if (page === 'folder:' + folder.id) navigate('folder:unfiled');
+                    }}
+                  />
                 )}
-                <span className="nr-ellipsis">{folder.name}</span>
-              </button>
+              </div>
             ))}
           </div>
         )}
@@ -193,6 +221,7 @@ export default function Sidebar({
         <div className="nr-nav-mini">
           <button
             className="nr-btn nr-ghost"
+            aria-label={tr('第一次使用？')}
             title={tr('第一次使用？')}
             onClick={() => setModal('help')}
           >

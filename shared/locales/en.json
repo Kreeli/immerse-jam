@@ -1074,5 +1074,8 @@
   "移除分轨项目“{0}”及其全部声部？原音乐库项目和录音会保留。": "Remove “{0}” and all its stems? The source library project and recordings will be kept.",
   "删除附件": "Delete attachment",
   "删除附件 {0}": "Delete attachment {0}",
-  "永久删除附件“{0}”？只删除项目内的副本，不影响导入前的原文件。": "Permanently delete “{0}”? Only the project copy is deleted; the original imported file is kept."
+  "永久删除附件“{0}”？只删除项目内的副本，不影响导入前的原文件。": "Permanently delete “{0}”? Only the project copy is deleted; the original imported file is kept.",
+  "管理分类 {0}": "Manage category {0}",
+  "使用帮助": "Help",
+  "请作者喝冰可乐": "Buy me a cola"
 }

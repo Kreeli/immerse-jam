@@ -1,6 +1,7 @@
 import Select from '../../shared/Select';
 import { Clock } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { isAndroid } from '../../platform/environment';
 import { t as tr } from '../../i18n';
 import type { Practice } from '../../shared/types';
 export default function CountInControl({
@@ -57,28 +58,31 @@ export default function CountInControl({
       </label>
       {practice.countIn && (
         <div className="count-in-options">
-          <label>
-            {tr('原速 BPM')}
-            <input
-              aria-label={tr('预备拍 BPM')}
-              type="number"
-              min="20"
-              max="350"
-              step=".1"
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              onBlur={apply}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.preventDefault();
-                  event.currentTarget.blur();
-                }
-              }}
-            />
-          </label>
+          {isAndroid && (
+            <label>
+              {tr('原速 BPM')}
+              <input
+                aria-label={tr('预备拍 BPM')}
+                type="number"
+                min="20"
+                max="350"
+                step=".1"
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                onBlur={apply}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    event.currentTarget.blur();
+                  }
+                }}
+              />
+            </label>
+          )}
           <label>
             {tr('拍数')}
             <Select
+              menu
               aria-label={tr('预备拍拍数')}
               value={practice.countInBeats || 4}
               onChange={(event) => onChange({ countInBeats: +event.target.value })}

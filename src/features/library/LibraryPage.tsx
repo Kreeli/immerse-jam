@@ -7,18 +7,14 @@ import {
   Play,
   Plus,
   Search,
-  Star,
   Upload,
   Waves,
-  Folder,
 } from 'lucide-react';
 import type { WorkspaceController } from '../../app/useWorkspace';
 import { t as tr } from '../../i18n';
 import { time, type Project } from '../../shared/types';
 import RehearsalCover from '../../shared/RehearsalCover';
-import { trackColor } from '../../styles/palette';
-import { keyLabel } from '../analysis/transposition';
-import ProjectMenu from './ProjectMenu';
+import ProjectCard from './ProjectCard';
 import LayoutPicker from './LayoutPicker';
 import { usePreferences } from '../../app/preferences';
 type Props = Pick<
@@ -78,16 +74,6 @@ export default function LibraryPage({
               </span>
             </h1>
           </div>
-          <div className="nr-actions">
-            <button className="nr-btn" onClick={() => setCreatingSession('creation')}>
-              <Mic2 size={16} />
-              {tr('新建创作')}
-            </button>
-            <button className="nr-btn nr-primary" onClick={() => void importSongs()}>
-              <Plus size={18} />
-              {tr('导入音乐')}
-            </button>
-          </div>
         </header>
         {recent && page === 'library' && !query && (
           <div className="nr-resume">
@@ -119,10 +105,20 @@ export default function LibraryPage({
               onChange={(e) => setQuery(e.target.value)}
             />
           </label>
+          <div className="nr-actions">
+            <button className="nr-btn" onClick={() => setCreatingSession('creation')}>
+              <Mic2 size={16} />
+              {tr('新建创作')}
+            </button>
+            <button className="nr-btn nr-primary" onClick={() => void importSongs()}>
+              <Plus size={18} />
+              {tr('导入音乐')}
+            </button>
+          </div>
           <LayoutPicker />
-          <span className="nr-hint">
+          <span className="nr-hint" title={tr('支持拖入音频、视频、.aum 或 .ijam 项目')}>
             <Upload size={14} />
-            {tr('支持拖入音频、视频、.aum 或 .ijam 项目')}
+            <span className="drag-import-copy">{tr('支持拖入音频、视频、.aum 或 .ijam 项目')}</span>
           </span>
         </div>
         {!songList.length ? (
@@ -141,85 +137,27 @@ export default function LibraryPage({
           </div>
         ) : (
           <div className="songs nr-lib-grid" data-layout={libraryLayout}>
-            {songList.map((p) => {
-              const folder = folders.find((f) => f.projectIds.includes(p.id));
-              return (
-                <article className="song nr-song" key={p.id} onDoubleClick={() => openProject(p)}>
-                  <button
-                    className="nr-open-hit"
-                    aria-label={tr('打开 {0}', [p.title])}
-                    onClick={() => openProject(p)}
-                  />
-                  <RehearsalCover
-                    id={p.id}
-                    cover={p.cover}
-                    size={libraryLayout === 'list' ? 44 : 64}
-                  />
-                  <div className="nr-song-copy">
-                    <h3 className="nr-ellipsis">{p.broken ? tr('歌曲数据需要恢复') : p.title}</h3>
-                    <div className="nr-meta nr-ellipsis">{p.artist || tr('本地音乐')}</div>
-                    {p.description && (
-                      <div className="project-description nr-ellipsis" title={p.description}>
-                        {p.description}
-                      </div>
-                    )}
-                    <div className="nr-meta nr-mono">
-                      {time(p.duration)}
-                      {p.analysis
-                        ? ` · ${Math.round(p.analysis.bpm * 10) / 10} BPM · ${keyLabel(p.analysis.key)}`
-                        : ''}
-                    </div>
-                    <div className="nr-stems">
-                      {p.tracks.map((t) => (
-                        <i
-                          key={t.id}
-                          style={{ '--c': trackColor(t.name) } as React.CSSProperties}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <div className="nr-foot">
-                    <span className={'nr-chip ' + (p.tracks.length ? 'nr-ok' : 'nr-warn')}>
-                      {p.tracks.length ? tr('{0} 条分轨', [p.tracks.length]) : tr('原曲')}
-                    </span>
-                    {folder && (
-                      <span className="nr-chip">
-                        <Folder size={12} />
-                        {folder.name}
-                      </span>
-                    )}
-                    <div className="nr-card-actions">
-                      <button
-                        className="nr-icon-btn nr-sm nr-fav"
-                        aria-label={tr('收藏歌曲')}
-                        aria-pressed={p.starred}
-                        title={tr('收藏歌曲')}
-                        onClick={() =>
-                          void act(async () => {
-                            const updated = await jamCall<Project>('update', {
-                              id: p.id,
-                              patch: { starred: !p.starred },
-                            });
-                            setLibrary((list) => list.map((x) => (x.id === p.id ? updated : x)));
-                          })
-                        }
-                      >
-                        <Star size={16} fill={p.starred ? 'currentColor' : 'none'} />
-                      </button>
-                      <ProjectMenu
-                        project={p}
-                        folders={folders}
-                        onFolders={setFolders}
-                        onError={notify}
-                        onEdit={setEditingProject}
-                        onDelete={setDeletingProject}
-                        onOpen={openProject}
-                      />
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
+            {songList.map((p) => (
+              <ProjectCard
+                key={p.id}
+                project={p}
+                folders={folders}
+                onFolders={setFolders}
+                onError={notify}
+                onOpen={openProject}
+                onEdit={setEditingProject}
+                onDelete={setDeletingProject}
+                onFavorite={() =>
+                  void act(async () => {
+                    const updated = await jamCall<Project>('update', {
+                      id: p.id,
+                      patch: { starred: !p.starred },
+                    });
+                    setLibrary((list) => list.map((x) => (x.id === p.id ? updated : x)));
+                  })
+                }
+              />
+            ))}
           </div>
         )}
         <div className="library-footer nr-library-footer">

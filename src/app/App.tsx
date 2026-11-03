@@ -201,6 +201,13 @@ export default function App() {
   const lastModal = useRef(modal);
   if (modal) lastModal.current = modal;
   const shownModal = modal || lastModal.current;
+  const closeModal = () => {
+    setModal(null);
+    if (shownModal === 'transfer' && !isAndroid) {
+      setPair(null);
+      void jamCall('pair-stop').catch(() => {});
+    }
+  };
   const timeline = {
     player: player.current,
     position,
@@ -367,7 +374,6 @@ export default function App() {
               library={library}
               onOpen={openProject}
               onDelete={setDeletingProject}
-              onCreate={() => setCreatingFolder(true)}
               onEdit={controller.setEditingProject}
             />
           ) : page === 'practice' ? (
@@ -829,13 +835,15 @@ export default function App() {
       )}
       <ModalFrame
         open={!!modal}
-        onClose={() => setModal(null)}
+        onClose={closeModal}
         className={
           shownModal === 'separate'
             ? 'wide separation-dialog'
-            : shownModal === 'settings'
-              ? 'wide'
-              : ''
+            : shownModal === 'transfer'
+              ? 'transfer-dialog'
+              : shownModal === 'settings'
+                ? 'wide'
+                : ''
         }
       >
         <div className="modal-heading">
@@ -860,7 +868,7 @@ export default function App() {
           <button
             className="icon-button nr-icon-btn"
             aria-label={tr('关闭窗口')}
-            onClick={() => setModal(null)}
+            onClick={closeModal}
           >
             <X size={22} />
           </button>

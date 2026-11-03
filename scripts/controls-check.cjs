@@ -130,9 +130,8 @@ const wait = (ms) => page.waitForTimeout(ms);
     .getByRole('button', { name: '控制台', exact: true })
     .click();
   await page.getByRole('checkbox', { name: '启用预备拍', exact: true }).check();
-  await page.getByRole('spinbutton', { name: '预备拍 BPM', exact: true }).fill('120');
-  await page.getByRole('spinbutton', { name: '预备拍 BPM', exact: true }).blur();
-  await page.getByRole('combobox', { name: '预备拍拍数', exact: true }).selectOption('2');
+  assert.equal(await page.getByRole('spinbutton', { name: '预备拍 BPM', exact: true }).count(), 0);
+  await require('./ui-gestures.cjs').choose(page, '预备拍拍数', '2');
   await range('播放进度', 20);
   await page.evaluate(() => {
     window.__countClicks = 0;

@@ -1801,3 +1801,224 @@ html[data-platform='android'] .track-name-actions .nr-icon-btn {
   line-height: 1;
   align-self: center;
 }
+
+/* Desktop browse tools: fixed-size menus share a single compact action row. */
+html:not([data-platform='android']) .library-tools.nr-lib-tools {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 10px;
+}
+html:not([data-platform='android']) .library-tools .nr-search {
+  width: auto;
+  flex: 0 1 280px;
+  min-width: 180px;
+}
+html:not([data-platform='android']) .library-tools .nr-actions {
+  display: flex;
+  gap: 8px;
+  flex: none;
+}
+html:not([data-platform='android']) .library-tools .nr-btn {
+  white-space: nowrap;
+}
+html:not([data-platform='android']) .library-tools .layout-picker {
+  width: 128px;
+  min-width: 128px;
+  flex: 0 0 128px;
+}
+html:not([data-platform='android']) .folder-view-tools {
+  margin-left: 0;
+  gap: 10px;
+  flex: none;
+}
+html:not([data-platform='android']) .folder-view-tools > .nr-choice-trigger:not(.layout-picker) {
+  width: 112px;
+  min-width: 112px;
+}
+html:not([data-platform='android']) .nr-lib-tools .nr-hint {
+  margin-left: auto;
+  white-space: nowrap;
+  font-size: 11px;
+}
+.folder-page .nr-page-head h1 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.folder-page .nr-page-head h1 > span:last-child {
+  font: 400 12px var(--font-ui);
+  color: var(--text-3);
+}
+.folder-page .nr-page-head p {
+  margin: 8px 0 0;
+  color: var(--text-3);
+  font-size: 13px;
+}
+.folder-project-list.nr-lib-grid[data-layout='grid'] {
+  grid-template-columns: repeat(auto-fill, minmax(258px, 1fr));
+  gap: 14px;
+}
+.nr-lib-grid[data-layout='grid'] > .nr-song {
+  min-height: 164px;
+}
+.nr-lib-grid[data-layout='grid'] .nr-stems {
+  min-height: 4px;
+}
+/* Category menus live beside their sidebar row, leaving the page header clear. */
+.sidebar-folder-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 2px;
+  border-radius: var(--r-s);
+}
+.sidebar-folder-row > .nr-nav-item {
+  flex: 1;
+  width: auto;
+}
+.sidebar-folder-row[data-current='true'] {
+  background: var(--surface-3);
+}
+.sidebar-folder-count {
+  margin-left: auto;
+  color: var(--text-3);
+  font: 400 11px var(--font-mono);
+}
+.nr-nav .sidebar-folder-menu {
+  flex: none;
+  width: 26px;
+  height: 28px;
+  margin-right: 4px;
+  color: var(--text-3);
+}
+.nr-nav .sidebar-folder-menu:hover,
+.nr-nav .sidebar-folder-menu[data-state='open'] {
+  background: var(--surface-4);
+  color: var(--text);
+}
+html:not([data-platform='android']) .nr-nav-scroll {
+  gap: 14px;
+  padding: 4px 10px 10px;
+}
+html:not([data-platform='android']) .nr-nav-group > .nr-row {
+  padding: 0 8px 3px;
+  min-height: 24px;
+}
+html:not([data-platform='android']) .nr-nav-foot {
+  gap: 4px;
+  padding: 10px;
+}
+html:not([data-platform='android']) .nr-nav .nr-donate {
+  padding-block: 6px;
+}
+html:not([data-platform='android']) .desktop-window-controls {
+  z-index: 100;
+}
+html:not([data-platform='android']) .modal-backdrop {
+  z-index: 400;
+  -webkit-app-region: no-drag;
+}
+html:not([data-platform='android']) .modal-heading > button {
+  flex: none;
+  position: relative;
+  z-index: 1;
+  -webkit-app-region: no-drag;
+}
+html:not([data-platform='android']) .transfer-dialog .modal-heading {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  background: var(--surface-2);
+}
+html:not([data-platform='android']) .count-in-options .nr-choice-trigger {
+  width: 112px;
+  min-width: 112px;
+  flex: none;
+}
+@media (max-width: 1390px) {
+  html:not([data-platform='android']) .drag-import-copy {
+    display: none;
+  }
+}
+
+html:not([data-platform='android']) .nr-page {
+  scrollbar-gutter: stable;
+}
+
+/* Use the sidebar's height: browsing above, flexible categories, tools below. */
+html:not([data-platform='android']) .nr-app {
+  grid-template-columns: 236px minmax(0, 1fr);
+}
+html:not([data-platform='android']) .nr-nav-brand {
+  height: 64px;
+  padding-inline: 18px;
+  gap: 10px;
+}
+html:not([data-platform='android']) .nr-nav-brand b {
+  font-size: 17px;
+}
+html:not([data-platform='android']) .nr-nav-scroll {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  align-content: stretch;
+  gap: clamp(16px, 2.4dvh, 28px);
+  padding: 8px 10px 16px;
+  overflow: hidden;
+}
+html:not([data-platform='android']) .nr-nav-group {
+  gap: 6px;
+}
+html:not([data-platform='android']) .nr-nav-group > .nr-row {
+  min-height: 28px;
+  padding-bottom: 6px;
+}
+html:not([data-platform='android']) .nr-nav-item {
+  height: clamp(36px, 4.4dvh, 44px);
+  padding-inline: 10px;
+  gap: 10px;
+}
+html:not([data-platform='android']) .nr-nav-item.nr-sub {
+  height: clamp(34px, 4dvh, 40px);
+}
+html:not([data-platform='android']) .nr-folder-list {
+  min-height: 0;
+  max-height: none;
+  align-content: start;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+html:not([data-platform='android']) .nr-folder-list > .nr-row {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface-1);
+}
+html:not([data-platform='android']) .nr-nav-foot {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  padding: 12px 10px;
+}
+html:not([data-platform='android']) .nr-engine {
+  padding: 10px;
+}
+html:not([data-platform='android']) .nr-nav-mini .nr-btn {
+  height: 34px;
+  font-size: 12px;
+  gap: 6px;
+  padding-inline: 6px;
+}
+html:not([data-platform='android']) .nr-nav .nr-donate {
+  min-width: 0;
+  padding: 8px 10px;
+  font-size: 12px;
+  gap: 8px;
+}
+html:not([data-platform='android']) .nr-nav-foot .nr-ver {
+  padding: 0 10px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
