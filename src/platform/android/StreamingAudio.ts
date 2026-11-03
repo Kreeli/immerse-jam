@@ -23,6 +23,22 @@ export class StreamingAudio {
     });
     return new StreamingAudio(data.id, tracks, data.tracks);
   }
+  async append(tracks: Track[], removed: string[] = []) {
+    if (this.closed) throw new Error('Playback closed');
+    const result = await window.jam.call('android-stream-append', {
+      session: this.id,
+      tracks: tracks.map(({ id, file }) => ({ id, file })),
+      removed,
+    });
+    if (this.closed) throw new Error('Playback closed');
+    for (const id of removed) {
+      const index = this.tracks.findIndex((t) => t.id === id);
+      if (index >= 0) this.tracks[index] = { ...this.tracks[index], id: '' };
+      this.durations.delete(id);
+    }
+    for (const track of tracks) this.tracks.push(track);
+    for (const track of result.tracks) this.durations.set(track.id, track.duration);
+  }
   private key(track: string, index: number) {
     return `${track}|${index}`;
   }

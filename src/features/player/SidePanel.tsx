@@ -1,4 +1,3 @@
-import Select from '../../shared/Select';
 import * as Dialog from '@radix-ui/react-dialog';
 import type { ComponentProps, ReactNode } from 'react';
 import { Bookmark, Repeat2, SlidersHorizontal, X } from 'lucide-react';
@@ -44,16 +43,23 @@ export default function SidePanel({
           </button>
         </div>
       ) : (
-        <div className="side-panel-selector">
-          <Select
-            aria-label={tr('右侧面板')}
-            value={tab}
-            onChange={(event) => onTab(event.target.value as PanelTab)}
-          >
-            <option value="mixer">{tr('控制台')}</option>
-            <option value="ranges">{tr('循环段落')}</option>
-            <option value="points">{tr('标记点')}</option>
-          </Select>
+        <div className="console-tabs" role="group" aria-label={tr('右侧面板')}>
+          {(
+            [
+              ['mixer', tr('控制台')],
+              ['ranges', tr('循环段落')],
+              ['points', tr('标记点')],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              aria-pressed={tab === id}
+              className={tab === id ? 'selected' : ''}
+              onClick={() => onTab(id)}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       )}
       {tab === 'mixer' ? (

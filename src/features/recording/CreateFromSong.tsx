@@ -12,7 +12,13 @@ export default function CreateFromSong({
   const [open, setOpen] = useState(false);
   return (
     <div className="create-from-song">
-      <button className="small" aria-expanded={open} onClick={() => setOpen(!open)}>
+      <button
+        className="small"
+        aria-label={tr('以这首歌创建')}
+        title={tr('以这首歌创建')}
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+      >
         <Plus size={15} />
         {tr('以这首歌创建')}
       </button>

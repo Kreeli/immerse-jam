@@ -43,6 +43,7 @@ import Sidebar from '../features/library/Sidebar';
 import DatabaseMigration from '../features/migration/DatabaseMigration';
 import { compatible } from '../features/models/compatibility';
 import ModelManager from '../features/models/ModelManager';
+import ResultPicker from '../features/models/ResultPicker';
 import Mixer from '../features/player/Mixer';
 import PracticeToolbar from '../features/player/PracticeToolbar';
 import SidePanel from '../features/player/SidePanel';
@@ -289,6 +290,26 @@ export default function App() {
   useEffect(() => {
     if (isAndroid && !showPlayer) player.current.pause();
   }, [showPlayer]);
+  const practiceTools = (
+    <PracticeToolbar
+      pendingRange={pendingRange}
+      loop={loop}
+      onRange={captureRange}
+      onPoint={addPoint}
+      onStop={() => setLoop(false)}
+      onCancel={() => {
+        setPendingRange(null);
+        setLoopA(null);
+        setLoopB(null);
+      }}
+      recording={recording}
+      onMixer={() => {
+        setMix(true);
+        setSidePanel('mixer');
+        setMobileMixer(true);
+      }}
+    />
+  );
   return (
     <div
       className={
@@ -411,27 +432,15 @@ export default function App() {
                         ? tr('保存失败，点此重试')
                         : tr('已保存')}
                   </button>
-                  <div className="view-switch">
-                    {[
-                      {
-                        id: 'wave',
-                        label: project.kind === 'creation' ? tr('音轨') : tr('波形'),
-                        icon: AudioLines,
-                      },
-                      { id: 'chords', label: tr('和弦'), icon: Library },
-                      { id: 'score', label: tr('乐谱'), icon: FileMusic },
-                      { id: 'attachments', label: tr('附件'), icon: Bookmark },
-                    ].map(({ id, label, icon: Icon }) => (
-                      <button
-                        key={id}
-                        className={view === id ? 'selected' : ''}
-                        onClick={() => setView(id)}
-                      >
-                        <Icon size={16} />
-                        {label}
-                      </button>
-                    ))}
-                  </div>
+                  {project.kind !== 'creation' && (
+                    <ResultPicker
+                      compact
+                      project={project}
+                      onProject={adopt}
+                      onError={notify}
+                      loading={loading}
+                    />
+                  )}
                   {!project.kind && (
                     <CreateFromSong
                       project={project}
@@ -473,25 +482,33 @@ export default function App() {
                   </button>
                 </header>
               )}
-              {(!isAndroid || view === 'wave') && (
-                <PracticeToolbar
-                  pendingRange={pendingRange}
-                  loop={loop}
-                  onRange={captureRange}
-                  onPoint={addPoint}
-                  onStop={() => setLoop(false)}
-                  onCancel={() => {
-                    setPendingRange(null);
-                    setLoopA(null);
-                    setLoopB(null);
-                  }}
-                  recording={recording}
-                  onMixer={() => {
-                    setMix(true);
-                    setSidePanel('mixer');
-                    setMobileMixer(true);
-                  }}
-                />
+              {!isAndroid ? (
+                <div className="desktop-view-toolbar">
+                  <div className="view-switch">
+                    {[
+                      {
+                        id: 'wave',
+                        label: project.kind === 'creation' ? tr('音轨') : tr('波形'),
+                        icon: AudioLines,
+                      },
+                      { id: 'chords', label: tr('和弦'), icon: Library },
+                      { id: 'score', label: tr('乐谱'), icon: FileMusic },
+                      { id: 'attachments', label: tr('附件'), icon: Bookmark },
+                    ].map(({ id, label, icon: Icon }) => (
+                      <button
+                        key={id}
+                        className={view === id ? 'selected' : ''}
+                        onClick={() => setView(id)}
+                      >
+                        <Icon size={16} />
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  {practiceTools}
+                </div>
+              ) : (
+                view === 'wave' && practiceTools
               )}
               <div className="player-body">
                 <div className="practice-area">

@@ -10,6 +10,32 @@ const { test } = require('node:test'),
 const { Store } = require('../desktop/store.cjs'),
   { Takes, wavHeader, wavDuration } = require('../desktop/takes.cjs'),
   { pack, importArchive } = require('../desktop/archive.cjs');
+
+test('original-speed capture saves the existing WAV without a converter or duplicate audio', async (t) => {
+  const root = fs.mkdtempSync(path.resolve('.runtime/test-workspaces/direct-take-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const store = new Store(path.join(root, 'data')),
+    source = path.join(root, 'backing.wav');
+  fs.writeFileSync(source, Buffer.concat([wavHeader(48000, 48000), Buffer.alloc(48000 * 8)]));
+  const project = store.create(source),
+    manager = new Takes(store, path.join(root, 'no-converter.exe'));
+  const session = manager.start(project.id, {
+    anchorTime: 10,
+    anchorPosition: 12,
+    tempo: 1,
+    pitch: 0,
+    latencyMs: 0,
+    sampleRate: 48000,
+    mode: 'instrument',
+  });
+  manager.append(session.id, 0, 10, new Uint8Array(new Float32Array(4800 * 2).fill(0.1).buffer));
+  const saved = await manager.finish(session.id),
+    take = saved.takes[0];
+  assert.equal(take.file, take.rawFile);
+  assert.equal(take.start, 12);
+  assert.equal(wavDuration(store.asset(saved.id, take.file)), 0.1);
+  assert.ok(!fs.existsSync(store.asset(saved.id, `recordings/${take.id}/track.wav`)));
+});
 test('follow-along calibration estimates a stable offset and rejects silence', async () => {
   const { analyzeLatency } = await import('../src/audio/latency.ts');
   const sampleRate = 48000,

@@ -248,9 +248,16 @@ class Takes {
     return this.commit(s, raw);
   }
   async commit(meta, raw) {
-    const file = meta.relative + '/track.wav',
+    // Native capture is already stereo float WAV. At original speed and pitch,
+    // keep it directly instead of launching FFmpeg and duplicating the recording.
+    const captured =
+        [44100, 48000, 88200, 96000].includes(meta.sampleRate) &&
+        meta.tempo === 1 &&
+        meta.pitch === 0 &&
+        raw === this.store.asset(meta.projectId, meta.relative + '/raw.wav'),
+      file = meta.relative + (captured ? '/raw.wav' : '/track.wav'),
       target = this.store.asset(meta.projectId, file);
-    await convert(this.ffmpeg, raw, target, meta.tempo, meta.pitch);
+    if (!captured) await convert(this.ffmpeg, raw, target, meta.tempo, meta.pitch);
     const duration = wavDuration(target);
     if (duration < 0.02 || duration > 14400) throw new Error('录音长度超出范围');
     const p = this.store.get(meta.projectId),

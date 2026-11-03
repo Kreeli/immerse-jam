@@ -16,6 +16,7 @@ import {
   sourceTracks,
 } from './performance';
 type Channel = {
+  recorded: boolean;
   buffer: AudioBuffer;
   duration: number;
   track: Track;
@@ -75,6 +76,7 @@ export class Player {
   }
   set captureActive(active: boolean) {
     if (this.capturing === active) return;
+    if (!active && this.playing) this.keepCaptureMix = true;
     this.capturing = active;
     if (this.project) this.apply(this.project);
     if (!active) this.scheduleIdleSuspend();
@@ -104,6 +106,7 @@ export class Player {
     return this._loop;
   }
   set loop(value: { a: number; b: number } | null) {
+    this.loopAfterCapture = undefined;
     if (this._loop?.a === value?.a && this._loop?.b === value?.b) return;
     const position = this.position();
     this._loop = value;
@@ -116,7 +119,7 @@ export class Player {
     return this.resumeRequested;
   }
   scheduledCycles = new Set<number>();
-  activeSources = new Set<{ source: AudioBufferSourceNode; gate: GainNode }>();
+  activeSources = new Set<{ source: AudioBufferSourceNode; gate: GainNode; channel: Channel }>();
   private initPromise: Promise<void> | null = null;
   private lifecycleSerial = 0;
   private idleTimer: ReturnType<typeof setTimeout> | null = null;
@@ -303,6 +306,176 @@ export class Player {
     this.mix.connect(this.dsp);
     this.dsp.connect(this.transportGain!);
   }
+  private appendTask: Promise<void> | null = null;
+  private keepCaptureMix = false;
+  private loopAfterCapture: { a: number; b: number } | null | undefined;
+  get captureLoop() {
+    return this.loopAfterCapture === undefined ? this.loop : this.loopAfterCapture;
+  }
+  get captureMix() {
+    return this.captureActive || this.keepCaptureMix;
+  }
+  restoreLoopAfterCapture(loop: { a: number; b: number } | null) {
+    if (this.playing) this.loopAfterCapture = loop;
+    else this.loop = loop;
+  }
+  private createChannel(
+    track: Track,
+    buffer: AudioBuffer,
+    stream: StreamingAudio | null,
+    recorded: boolean,
+  ): Channel {
+    const context = this.context!,
+      gain = context.createGain(),
+      pan = context.createStereoPanner();
+    gain.connect(pan);
+    pan.connect(this.mix!);
+    const split = context.createChannelSplitter(2),
+      meters = [context.createAnalyser(), context.createAnalyser()];
+    pan.connect(split);
+    meters.forEach((meter, index) => {
+      meter.fftSize = 1024;
+      split.connect(meter, index);
+    });
+    return {
+      recorded,
+      buffer,
+      track: { ...track },
+      duration: stream?.durations.get(track.id) ?? buffer.duration,
+      gain,
+      pan,
+      split,
+      meters,
+      meterData: meters.map((m) => new Float32Array(m.fftSize)),
+      stream: stream ? new StreamTrack(context, stream, track.id, gain) : undefined,
+    };
+  }
+  canAppend(project: Project) {
+    if (!this.context || this.project?.id !== project.id) return false;
+    const tracks = sourceTracks(project),
+      takeIds = new Set((project.takes || []).map((t) => t.id));
+    return (
+      (tracks.length !== this.channels.length ||
+        tracks.some((t) => !this.channels.some((c) => c.track.id === t.id))) &&
+      this.channels.every(
+        (c) =>
+          (c.recorded && !tracks.some((t) => t.id === c.track.id)) ||
+          tracks.some(
+            (t) =>
+              t.id === c.track.id &&
+              t.file === c.track.file &&
+              (t.start || 0) === (c.track.start || 0),
+          ),
+      ) &&
+      tracks
+        .filter((t) => !this.channels.some((c) => c.track.id === t.id))
+        .every((t) => takeIds.has(t.id))
+    );
+  }
+  append(project: Project): Promise<void> {
+    if (this.appendTask)
+      return this.appendTask.then(() =>
+        this.canAppend(project) ? this.append(project) : undefined,
+      );
+    if (!this.canAppend(project))
+      return Promise.reject(new Error(tr('录音音轨已变化，请重新打开工程')));
+    const generation = this.generation,
+      context = this.context!,
+      stream = this.streaming;
+    this.appendTask = (async () => {
+      const tracks = sourceTracks(project),
+        added = tracks.filter((t) => !this.channels.some((c) => c.track.id === t.id)),
+        removed = this.channels.filter((c) => !tracks.some((t) => t.id === c.track.id)),
+        loaded: Channel[] = [];
+      try {
+        if (stream)
+          await stream.append(
+            added,
+            removed.map((c) => c.track.id),
+          );
+        else
+          await window.jam.call('playback-budget', {
+            id: project.id,
+            files: tracks.map((t) => t.file),
+          });
+        for (const track of added) {
+          let buffer = context.createBuffer(2, 1, 48000);
+          if (!stream) {
+            const response = await fetch(asset(project.id, track.file));
+            if (!response.ok) throw new Error(tr('无法读取 {0}', [track.name]));
+            buffer = await context.decodeAudioData(await response.arrayBuffer());
+          }
+          loaded.push(this.createChannel(track, buffer, stream, true));
+        }
+        if (
+          this.generation !== generation ||
+          this.context !== context ||
+          this.project?.id !== project.id
+        )
+          return;
+        for (const channel of removed) {
+          for (const item of this.activeSources)
+            if (item.channel === channel) {
+              item.source.stop();
+              this.activeSources.delete(item);
+            }
+          channel.stream?.close();
+          channel.gain.disconnect();
+          channel.pan.disconnect();
+          channel.split.disconnect();
+          channel.meters.forEach((m) => m.disconnect());
+        }
+        this.channels = this.channels.filter((c) => !removed.includes(c));
+        this.channels.push(...loaded);
+        this.duration = Math.max(this.duration, sessionDuration(project, 0));
+        this.generation++;
+        this.trackWaves.clear();
+        this.mixWaves.clear();
+        this.apply(this.project!);
+        if (this.playing) {
+          if (stream) {
+            for (const channel of loaded)
+              channel.stream!.play(
+                Math.ceil(this.started * context.sampleRate),
+                this.offset,
+                this.tempo,
+                channel.track.start || 0,
+                channel.duration,
+                this.usableLoop(),
+              );
+            this.streamFillAt = -Infinity;
+            this.scheduleStreamSources();
+          } else {
+            const loop = this.usableLoop(),
+              now = context.currentTime;
+            for (const index of this.scheduledCycles) {
+              const from = index === 0 ? this.offset : (loop?.a ?? 0),
+                to = loop ? loop.b : this.duration;
+              const at =
+                index === 0
+                  ? this.started
+                  : this.started +
+                    (loop!.b - this.offset + (index - 1) * (loop!.b - loop!.a)) / this.tempo;
+              for (const channel of loaded) this.scheduleBufferChannel(channel, from, to, at, now);
+            }
+          }
+        }
+        this.onUpdate(this.position(), this.playing);
+      } finally {
+        for (const channel of loaded)
+          if (!this.channels.includes(channel)) {
+            channel.stream?.close();
+            channel.gain.disconnect();
+            channel.pan.disconnect();
+            channel.split.disconnect();
+            channel.meters.forEach((m) => m.disconnect());
+          }
+      }
+    })().finally(() => {
+      this.appendTask = null;
+    });
+    return this.appendTask;
+  }
   async load(project: Project) {
     const generation = ++this.generation;
     this.pause();
@@ -361,28 +534,14 @@ export class Player {
           }
           return;
         }
-        const gain = this.context!.createGain(),
-          pan = this.context!.createStereoPanner();
-        gain.connect(pan);
-        pan.connect(this.mix!);
-        const split = this.context!.createChannelSplitter(2),
-          meters = [this.context!.createAnalyser(), this.context!.createAnalyser()];
-        pan.connect(split);
-        meters.forEach((meter, index) => {
-          meter.fftSize = 1024;
-          split.connect(meter, index);
-        });
-        loaded.push({
-          buffer,
-          stream: streaming ? new StreamTrack(this.context, streaming, track.id, gain) : undefined,
-          duration: streaming?.durations.get(track.id) ?? buffer.duration,
-          track: { ...track },
-          gain,
-          pan,
-          split,
-          meters,
-          meterData: meters.map((meter) => new Float32Array(meter.fftSize)),
-        });
+        loaded.push(
+          this.createChannel(
+            track,
+            buffer,
+            streaming,
+            !!project.takes?.some((t) => t.id === track.id),
+          ),
+        );
       }
     } catch (error) {
       for (const c of loaded) {
@@ -443,7 +602,7 @@ export class Player {
     }
     if (this.master)
       this.master.gain.setTargetAtTime(project.practice.master, this.context!.currentTime, 0.01);
-    const tracks = playbackTracks(project, this.captureActive),
+    const tracks = playbackTracks(project, this.captureMix),
       solo = tracks.some((t) => t.solo && !t.mute);
     this.metroBeats = beatGrid(project, this.duration);
     this.metronomeGain?.gain.setTargetAtTime(
@@ -510,6 +669,8 @@ export class Player {
       : position;
   }
   async play(countIn = false) {
+    if (!this.playing && this.project && this.canAppend(this.project))
+      await this.append(this.project);
     if (!this.context || (!this.channels.length && !this.captureActive) || this.playing) return;
     this.resumeRequested = true;
     if (this.idleTimer) {
@@ -619,7 +780,9 @@ export class Player {
         throw new Error(tr('此系统暂不支持切换播放设备，请在 Windows 声音设置中选择输出'));
       return;
     }
-    await context.setSinkId(id === 'default' ? '' : id);
+    const sink = id === 'default' ? '' : id;
+    if ((context as AudioContext & { sinkId?: string }).sinkId !== sink)
+      await context.setSinkId(sink);
   }
   pause(releaseNative = true) {
     this.seekSerial++;
@@ -632,6 +795,14 @@ export class Player {
     this.resumeRequested = false;
     if (this.playing) this.offset = this.position();
     this.playing = false;
+    if (this.loopAfterCapture !== undefined) {
+      this._loop = this.loopAfterCapture;
+      this.loopAfterCapture = undefined;
+    }
+    if (this.keepCaptureMix) {
+      this.keepCaptureMix = false;
+      if (this.project) this.apply(this.project);
+    }
     const now = this.context?.currentTime || 0;
     if (this.transportGain) {
       this.transportGain.gain.cancelAndHoldAtTime(now);
@@ -905,11 +1076,57 @@ export class Player {
       channel.stream!.retain(keep.filter((e) => e.track === channel.track.id).map((e) => e.index));
     for (const e of upcoming)
       void e.channel.stream!.read(e.index).catch((error) => {
-        if (serial === this.playSerial && error.name !== 'AbortError') {
+        if (
+          serial === this.playSerial &&
+          this.channels.includes(e.channel) &&
+          error.name !== 'AbortError'
+        ) {
           this.pause();
           this.onError(error.message);
         }
       });
+  }
+  private scheduleBufferChannel(
+    channel: Channel,
+    from: number,
+    to: number,
+    at: number,
+    now: number,
+  ) {
+    const context = this.context;
+    if (!context) return;
+    const trackStart = channel.track.start || 0,
+      start = Math.max(from, trackStart),
+      end = Math.min(to, trackStart + channel.duration);
+    if (!(end > start)) return;
+    const nominal = at + (start - from) / this.tempo,
+      begins = Math.max(nominal, now + 0.003),
+      ends = at + (end - from) / this.tempo;
+    if (ends <= begins) return;
+    const source = context.createBufferSource(),
+      gate = context.createGain(),
+      fade = Math.min(0.003, (ends - begins) / 3);
+    source.buffer = channel.buffer;
+    source.playbackRate.value = this.tempo;
+    source.connect(gate);
+    gate.connect(channel.gain);
+    gate.gain.setValueAtTime(0, begins);
+    gate.gain.linearRampToValueAtTime(1, begins + fade);
+    gate.gain.setValueAtTime(1, ends - fade);
+    gate.gain.linearRampToValueAtTime(0, ends);
+    const item = { source, gate, channel };
+    this.activeSources.add(item);
+    channel.source = source;
+    source.onended = () => {
+      this.activeSources.delete(item);
+      source.disconnect();
+      gate.disconnect();
+    };
+    source.start(
+      begins,
+      start - trackStart + (begins - nominal) * this.tempo,
+      (ends - begins) * this.tempo,
+    );
   }
   private scheduleSources() {
     if (!this.context) return;
@@ -937,40 +1154,7 @@ export class Player {
       if (at > horizon && index !== 0) break;
       if (this.scheduledCycles.has(index)) continue;
       this.scheduledCycles.add(index);
-      for (const channel of this.channels) {
-        const trackStart = channel.track.start || 0,
-          start = Math.max(from, trackStart),
-          end = Math.min(to, trackStart + channel.duration);
-        if (!(end > start)) continue;
-        const nominal = at + (start - from) / this.tempo,
-          begins = Math.max(nominal, now + 0.003),
-          ends = at + (end - from) / this.tempo;
-        if (ends <= begins) continue;
-        const source = this.context.createBufferSource(),
-          gate = this.context.createGain(),
-          fade = Math.min(0.003, (ends - begins) / 3);
-        source.buffer = channel.buffer;
-        source.playbackRate.value = this.tempo;
-        source.connect(gate);
-        gate.connect(channel.gain);
-        gate.gain.setValueAtTime(0, begins);
-        gate.gain.linearRampToValueAtTime(1, begins + fade);
-        gate.gain.setValueAtTime(1, ends - fade);
-        gate.gain.linearRampToValueAtTime(0, ends);
-        const item = { source, gate };
-        this.activeSources.add(item);
-        channel.source = source;
-        source.onended = () => {
-          this.activeSources.delete(item);
-          source.disconnect();
-          gate.disconnect();
-        };
-        source.start(
-          begins,
-          start - trackStart + (begins - nominal) * this.tempo,
-          (ends - begins) * this.tempo,
-        );
-      }
+      for (const channel of this.channels) this.scheduleBufferChannel(channel, from, to, at, now);
       for (const old of this.scheduledCycles) if (old < cycle - 1) this.scheduledCycles.delete(old);
     }
   }
@@ -1250,6 +1434,13 @@ export class Player {
       : { origin: 0, duration: this.duration };
   }
   async waveform(source = 'mix', groupOverride?: SourceGroup): Promise<number[]> {
+    if (
+      source !== 'mix' &&
+      !source.startsWith('group:') &&
+      !this.channels.some((c) => c.track.id === source) &&
+      this.appendTask
+    )
+      await this.appendTask;
     if (!this.channels.length || !this.context) return [];
     const cached = this.cachedWaveform(source);
     if (cached) return cached;

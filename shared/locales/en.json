@@ -1005,5 +1005,6 @@
   "当前下载源未完成，正在切换备用源；缓存会继续复用…": "The download did not finish. Switching to a backup source and reusing cached files…",
   "正在下载依赖，首次安装可能需要几分钟…": "Downloading dependencies. First installation can take several minutes…",
   "共享网络地址": "Sharing network address",
-  "邀请两分钟内有效，仅可配对一次；连接后会话有效 30 分钟。": "The invitation lasts two minutes and can be used once. The paired session lasts 30 minutes."
+  "邀请两分钟内有效，仅可配对一次；连接后会话有效 30 分钟。": "The invitation lasts two minutes and can be used once. The paired session lasts 30 minutes.",
+  "录音音轨已变化，请重新打开工程": "Recording tracks have changed. Please reopen the project."
 }

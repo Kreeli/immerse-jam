@@ -25,9 +25,12 @@ final class StreamingAudio implements AutoCloseable {
     public void close() throws IOException { reader.close(); }
   }
   static final class Session {
-    final Map<String, Track> tracks = new LinkedHashMap<>();
+    final String project;
+    final Map<String, Track> tracks = new ConcurrentHashMap<>();
+    final List<Track> ordered = new CopyOnWriteArrayList<>();
     final Map<String, Future<byte[]>> waves = new ConcurrentHashMap<>();
     volatile boolean closed;
+    Session(String project) { this.project = project; }
   }
   StreamingAudio(ProjectStore store) { this.store = store; }
   JSONObject open(JSONObject d) throws Exception {
@@ -37,7 +40,7 @@ final class StreamingAudio implements AutoCloseable {
     Set<String> allowed = new HashSet<>(ProjectStore.media(p));
     JSONArray requested = d.getJSONArray("tracks"), result = new JSONArray();
     if (requested.length() > 64) throw new IOException("同时播放音轨过多，请分成较小的创作项目");
-    Session s = new Session();
+    Session s = new Session(project);
     try {
       for (int i = 0; i < requested.length(); i++) {
         if (closed || Thread.currentThread().isInterrupted()) throw new IOException("已取消");
@@ -60,7 +63,7 @@ final class StreamingAudio implements AutoCloseable {
           }
           source = decoded;
         }
-        Track track = new Track(key, source); s.tracks.put(key, track);
+        Track track = new Track(key, source); s.tracks.put(key, track); s.ordered.add(track);
         result.put(new JSONObject().put("id", key).put("duration", track.reader.duration()));
       }
       synchronized (this) {
@@ -69,6 +72,46 @@ final class StreamingAudio implements AutoCloseable {
       }
       return new JSONObject().put("id", id).put("tracks", result);
     } catch (Exception error) { dispose(s); throw error; }
+  }
+  JSONObject append(JSONObject d) throws Exception {
+    Session s = session(d.getString("session"));
+    JSONObject project = store.get(s.project);
+    JSONArray takes = project.optJSONArray("takes"), requested = d.getJSONArray("tracks"), removed = d.optJSONArray("removed");
+    List<Track> opened = new ArrayList<>();
+    Set<String> ids = new HashSet<>();
+    boolean committed = false;
+    try {
+      if (requested.length() > 64) throw new IOException("同时播放音轨过多，请分成较小的创作项目");
+      for (int i=0;i<requested.length();i++) {
+        JSONObject item=requested.getJSONObject(i); String id=item.getString("id"),file=item.getString("file");
+        boolean allowed=false;
+        for(int n=0;takes!=null&&n<takes.length();n++) {
+          JSONObject take=takes.getJSONObject(n);
+          if(id.equals(take.getString("id"))&&file.equals(take.getString("file"))) {allowed=true;break;}
+        }
+        if(!allowed||!ids.add(id)) throw new IOException("无效录音音轨");
+        Track track=new Track(id,store.asset(s.project,file));
+        opened.add(track); AudioFiles.checkDuration(track.reader.duration());
+      }
+      JSONArray result=new JSONArray();
+      synchronized(s) {
+        if(s.closed||closed) throw new IOException("播放已关闭");
+        Set<String> retiring = new HashSet<>();
+        for (int i = 0; removed != null && i < removed.length(); i++) retiring.add(removed.getString(i));
+        if(s.tracks.size()+opened.size()-retiring.stream().filter(s.tracks::containsKey).count()>64) throw new IOException("同时播放音轨过多，请分成较小的创作项目");
+        for(Track track:opened) if(s.tracks.containsKey(track.id)) throw new IOException("录音音轨已载入");
+        for(String id:retiring) {
+          Track track = s.tracks.remove(id);
+          if (track == null) continue;
+          int slot = s.ordered.indexOf(track);
+          if (slot >= 0) s.ordered.set(slot, null); // stable slots for all ongoing backing reads
+          synchronized(track) { try { track.close(); } catch(Exception ignored) {} }
+        }
+        for(Track track:opened) {s.tracks.put(track.id,track);s.ordered.add(track);result.put(new JSONObject().put("id",track.id).put("duration",track.reader.duration()));}
+        committed=true;
+      }
+      return new JSONObject().put("tracks",result);
+    } finally { if(!committed)for(Track track:opened)try{track.close();}catch(Exception ignored){} }
   }
   JSONObject wave(JSONObject d) throws Exception {
     Session s = session(d.getString("session"));
@@ -105,8 +148,9 @@ final class StreamingAudio implements AutoCloseable {
       } else if ((parts.length == 4 || parts.length == 5) && parts[1].equals("pcm")) {
         int index = Integer.parseInt(parts[2]); long first = Long.parseLong(parts[3]);
         int count = parts.length == 5 ? Integer.parseInt(parts[4]) : 48002;
-        if (index < 0 || index >= s.tracks.size() || first < 0 || first > 48000L * AudioFiles.MAX_SECONDS) throw new IOException("无效音频窗口");
-        Track t = new ArrayList<>(s.tracks.values()).get(index);
+        if (index < 0 || index >= s.ordered.size() || first < 0 || first > 48000L * AudioFiles.MAX_SECONDS) throw new IOException("无效音频窗口");
+        Track t = s.ordered.get(index);
+        if (t == null) throw new IOException("录音音轨已卸载");
         synchronized(t) {
           if (s.closed) throw new IOException("播放已关闭");
           bytes = PcmWindow.read(t.reader, first, count);
@@ -121,7 +165,7 @@ final class StreamingAudio implements AutoCloseable {
     StringBuilder stamp = new StringBuilder();
     JSONObject layout = new JSONObject(d.toString()); layout.remove("session");
     stamp.append(layout.toString());
-    for (Track track : s.tracks.values()) stamp.append(track.file.getAbsolutePath()).append(':').append(track.file.length()).append(':').append(track.file.lastModified());
+    for (Track track : s.ordered) if(track != null) stamp.append(track.file.getAbsolutePath()).append(':').append(track.file.length()).append(':').append(track.file.lastModified());
     String key = UUID.nameUUIDFromBytes(stamp.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
     File folder = new File(store.context.getCacheDir(), "playback-waves"); folder.mkdirs();
     File file = new File(folder, key + ".bin");
@@ -182,7 +226,7 @@ final class StreamingAudio implements AutoCloseable {
     } finally { for(WaveReader r:readers) r.close(); }
   }
   void dispose(Session s) {
-    s.closed=true; for (Future<byte[]> wave : s.waves.values()) wave.cancel(true); s.waves.clear();
+    synchronized(s) {s.closed=true;} for (Future<byte[]> wave : s.waves.values()) wave.cancel(true); s.waves.clear();
     for(Track t:s.tracks.values()) synchronized(t) { try {t.close();}catch(Exception ignored){} }
   }
   void close(String id) { Session s=sessions.remove(id); if(s!=null) dispose(s); }

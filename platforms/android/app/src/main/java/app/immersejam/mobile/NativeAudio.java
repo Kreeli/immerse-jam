@@ -239,7 +239,10 @@ final class NativeAudio implements AutoCloseable {
   JSONObject startTake(String id) throws Exception {
     if (closed || !sessions.isEmpty()) throw new IOException("已有音频处理正在进行，请稍后恢复录音");
     NativeTakes.Session recording = takes.seal(id);
-    if (recording.frames == 0)
+    // The capture file is already final at 1x / original pitch. Avoid copying
+    // every PCM block through WebView while the accompaniment is still playing.
+    if (recording.frames == 0 || (recording.options.optDouble("tempo", 1) == 1
+        && recording.options.optDouble("pitch", 0) == 0))
       return new JSONObject()
           .put("project", takes.commit(recording, recording.relative + "/raw.wav"));
     Session s = new Session();

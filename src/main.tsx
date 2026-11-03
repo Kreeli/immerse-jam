@@ -8,6 +8,7 @@ import './styles/playback-controls.css';
 import './styles/recording-workspace.css';
 import './styles/readability.css';
 import './platform/android/mobile.css';
+import './styles/rehearsal.css';
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />

@@ -47,6 +47,7 @@ export default function TrackControl({
     [name, setName] = useState('');
   return (
     <div
+      style={{ '--track-color': color } as React.CSSProperties}
       className={
         'track-control ' + (t.mute ? 'muted-track ' : '') + (selected ? 'wave-selected' : '')
       }

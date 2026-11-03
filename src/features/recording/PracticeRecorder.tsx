@@ -143,9 +143,6 @@ export default function PracticeRecorder({
     try {
       await capture.current?.stop();
       player.duration = Math.max(player.duration, player.position());
-      player.pause();
-      player.captureActive = false;
-      player.loop = restoredLoop.current;
       const id = session.current;
       session.current = null;
       const saved = await jamCall<Project>('take-finish', { sessionId: id });
@@ -160,6 +157,9 @@ export default function PracticeRecorder({
     } catch (error) {
       props.current.onError((error as Error).message);
     } finally {
+      player.duration = Math.max(player.duration, player.position());
+      player.captureActive = false;
+      player.restoreLoopAfterCapture(restoredLoop.current);
       live.current = null;
       onLive(null);
       capture.current = null;
@@ -174,7 +174,7 @@ export default function PracticeRecorder({
     if (busy || active) return;
     setBusy(true);
     stopping.current = false;
-    restoredLoop.current = player.loop;
+    restoredLoop.current = player.captureLoop;
     const wasPlaying = player.playing;
     let releaseAudio: (() => void) | undefined;
     props.current.onActive(true);
@@ -265,7 +265,7 @@ export default function PracticeRecorder({
         session.current = null;
       }
       player.captureActive = false;
-      player.loop = restoredLoop.current;
+      player.restoreLoopAfterCapture(restoredLoop.current);
       props.current.onActive(false);
       props.current.onError((error as Error).message);
     } finally {
@@ -333,11 +333,7 @@ export default function PracticeRecorder({
             aria-label={project.kind === 'creation' ? tr('录音') : tr('练琴录音')}
             onClick={() => (project.recordingSettings ? void start() : setDialog('settings'))}
           >
-            {isAndroid ? (
-              <Circle size={20} fill="currentColor" strokeWidth={0} />
-            ) : (
-              <Mic2 size={13} />
-            )}
+            <Circle size={isAndroid ? 20 : 14} fill="currentColor" strokeWidth={0} />
             <span className="record-action-label">
               {busy ? tr('准备录音…') : project.kind === 'creation' ? tr('录音') : tr('练琴录音')}
             </span>

@@ -64,7 +64,7 @@ public class NativeBridge {
                   "android-back-result",
                   "android-playback-state",
                   "android-capture-devices", "android-capture-open", "android-capture-clock", "android-capture-stop", "android-capture-close",
-                  "android-stream-open", "android-stream-close", "android-stream-wave",
+                  "android-stream-open", "android-stream-close", "android-stream-wave", "android-stream-append",
                   "android-playback-budget",
                   "android-device",
                   "android-render-start",
@@ -162,6 +162,7 @@ public class NativeBridge {
       case "android-capture-stop": capture.stop(d.getString("session")); return true;
       case "android-capture-close": capture.dispose(d.getString("session")); return true;
       case "android-stream-open": return streaming.open(d);
+      case "android-stream-append": return streaming.append(d);
       case "android-stream-wave": return streaming.wave(d);
       case "android-stream-close": streaming.close(d.getString("session")); return true;
       case "android-playback-state":

@@ -5,3 +5,8 @@ export function themeColor(color: string) {
       .trim() || color
   );
 }
+
+export function trackColor(name: string) {
+  const role = ['vocals', 'drums', 'bass', 'piano', 'guitar'].includes(name) ? name : 'other';
+  return `var(--stem-${role})`;
+}

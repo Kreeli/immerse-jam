@@ -14,7 +14,7 @@ import { requestTakeRemoval } from '../recording/TakeRemoval';
 import CountInControl from './CountInControl';
 import PresetControls from './PresetControls';
 import TrackControl from './TrackControl';
-const colors = ['#ed7894', '#d9a86c', '#91bda9', '#a092cd', '#7fa8d3', '#8e949d'];
+import { trackColor } from '../../styles/palette';
 interface Props {
   project: Project;
   player: Player;
@@ -103,9 +103,6 @@ export default function Mixer({
           <RefreshCw size={14} />
         </button>
       </div>
-      {!isAndroid && project.kind !== 'creation' && (
-        <ResultPicker project={project} onProject={onAdopt} onError={onError} loading={loading} />
-      )}
       {!isAndroid && (
         <PracticeModeControl
           project={project}
@@ -145,7 +142,7 @@ export default function Mixer({
                 onSelect={() => onWaveSource((source) => (source === t.id ? 'mix' : t.id))}
                 meterPlayer={player}
                 onState={(action) => onTrackState(t, action)}
-                color={colors[i % colors.length]}
+                color={trackColor(t.name)}
                 onChange={(patch) => onTrackChange(t, patch)}
               />
               {project.takes?.some((take) => take.id === t.id) && (

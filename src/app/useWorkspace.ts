@@ -402,6 +402,7 @@ export function useWorkspace() {
       player.current.dispose();
     };
   }, []);
+  const [audioRevision, setAudioRevision] = useState(0);
   const fingerprint = project
     ? project.id +
       '|' +
@@ -419,6 +420,19 @@ export function useWorkspace() {
       previous = player.current.position(),
       resume = same && player.current.playing;
 
+    if (player.current.canAppend(project)) {
+      void player.current
+        .append(project)
+        .then(() => {
+          if (!disposed) setAudioRevision((value) => value + 1);
+        })
+        .catch((error) => {
+          if (!disposed) notify(error.message);
+        });
+      return () => {
+        disposed = true;
+      };
+    }
     setLoading(true);
 
     setPeaks([]);
@@ -475,6 +489,8 @@ export function useWorkspace() {
   const waveformMixKey = project
     ? JSON.stringify([
         project.practice.master,
+        audioRevision,
+        player.current.captureMix,
 
         sourceTracks(project).map((t) => [t.id, t.gain, t.pan, t.mute, t.solo, t.start]),
 

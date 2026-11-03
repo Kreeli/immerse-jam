@@ -10,11 +10,13 @@ export default function ResultPicker({
   onProject,
   onError,
   loading,
+  compact = false,
 }: {
   project: Project;
   onProject: (project: Project) => void;
   onError: (message: string) => void;
   loading: boolean;
+  compact?: boolean;
 }) {
   const result = project.results?.find((item) => item.id === project.activeResultId);
   const [renaming, setRenaming] = useState(false),
@@ -24,7 +26,7 @@ export default function ResultPicker({
     setName(result?.name || '');
   }, [result?.id, result?.name]);
   return (
-    <div className="result-picker">
+    <div className={'result-picker' + (compact ? ' compact-result' : '')}>
       <label>
         {tr('分离结果')}
         <Select
