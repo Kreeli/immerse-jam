@@ -344,6 +344,12 @@ app.whenReady().then(async () => {
     }
     return store.save(p);
   });
+  handle('attachment-delete', ({ id, attachmentId }) =>
+    require('./content-removal.cjs').removeContent(store, id, attachmentId, 'attachment'),
+  );
+  handle('creation-remove-group', ({ id, groupId }) =>
+    require('./content-removal.cjs').removeContent(store, id, groupId, 'group'),
+  );
   handle('read-attachment', ({ id, attachmentId }) => {
     const p = store.get(id),
       a = p.attachments.find((x) => x.id === attachmentId);

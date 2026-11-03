@@ -19,7 +19,15 @@ export default defineConfig({
     {
       name: 'browser-demo-adapters',
       enforce: 'pre',
-      resolveId(source) {
+      resolveId(source, importer) {
+        if (
+          importer &&
+          path
+            .resolve(path.dirname(importer), source)
+            .replaceAll('\\', '/')
+            .endsWith('/platform/environment')
+        )
+          return path.join(here, 'environment.ts');
         if (/\/audio\/capture$/.test(source)) return path.join(here, 'capture.ts');
         if (/\/android\/NativeCapture$/.test(source)) return path.join(here, 'devices.ts');
         if (/app-icon\.png$/.test(source)) return path.join(repo, 'docs/site/assets/app-icon.ico');

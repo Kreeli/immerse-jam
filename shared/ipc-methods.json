@@ -63,5 +63,7 @@
   "window",
   "folders-list",
   "folders-edit",
-  "feedback-open"
+  "feedback-open",
+  "attachment-delete",
+  "creation-remove-group"
 ]

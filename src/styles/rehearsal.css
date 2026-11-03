@@ -1724,3 +1724,80 @@ html[data-platform='android'] .mobile-panel-tabs button.selected {
     animation: none;
   }
 }
+
+/* File menus and compact track actions share the chart controls. */
+.attachment-picker-menu .chart-picker-choice {
+  grid-template-columns: minmax(0, 1fr) 36px;
+}
+.score-toolbar > .chart-picker {
+  min-width: 0;
+  max-width: min(420px, 100%);
+}
+.track-name-actions {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+}
+.track-name-actions .nr-icon-btn {
+  color: var(--text-3);
+}
+.track-name-actions .nr-icon-btn:hover {
+  color: var(--text);
+  background: var(--surface-3);
+}
+.nr-strip-top .track-name {
+  min-width: 0;
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nr-strip-top .nr-pct {
+  margin-left: auto;
+}
+.creation-tracks .object-expand {
+  min-width: 0;
+  flex: 1 1 120px;
+}
+.creation-tracks .object-expand strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.creation-tracks .group-volume {
+  margin-left: auto;
+}
+.creation-tracks .nr-ms-btn {
+  flex: none;
+}
+html[data-platform='android'] .track-name-actions .nr-icon-btn {
+  width: 36px;
+  height: 36px;
+}
+
+.creation-tracks .source-object > .creation-object-heading > .object-expand {
+  flex: 0 1 auto;
+  max-width: calc(100% - 84px);
+}
+.creation-tracks .take-object .object-expand {
+  flex: 0 0 46px;
+  gap: 8px;
+}
+.creation-tracks .track-name-actions .nr-icon-btn {
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.creation-tracks .creation-object-heading > .nr-ms-btn {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  min-height: 26px;
+  padding: 0;
+  line-height: 1;
+  align-self: center;
+}

@@ -1,3 +1,4 @@
+import { isAndroid } from './environment';
 import './bridge';
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -7,7 +8,9 @@ import './shell.css';
 
 function Demo() {
   const [notice, setNotice] = useState(
-    '已打开 Fabulous 排练片段。点击「开始分析」体验模拟六轨分离，再创建跟练。',
+    isAndroid
+      ? '已载入 Fabulous 预置六轨。打开控制台调节声部，或创建跟练与创作。'
+      : '已打开 Fabulous 排练片段。点击「开始分析」体验模拟六轨分离，再创建跟练。',
   );
   const [help, setHelp] = useState(false);
   useEffect(() => {
@@ -20,7 +23,11 @@ function Demo() {
       <header className="demo-banner">
         <div>
           <b>网页试用</b>
-          <span>PC 原版界面 · 模拟分析 · 预置六轨 · 不使用麦克风</span>
+          <span>
+            {isAndroid
+              ? 'Android 界面 · 预置六轨 · 不使用麦克风'
+              : 'PC 原版界面 · 模拟分析 · 预置六轨 · 不使用麦克风'}
+          </span>
         </div>
         <nav>
           <button onClick={() => setHelp(!help)}>体验说明</button>
@@ -37,8 +44,8 @@ function Demo() {
         <div className="demo-help">
           <strong>真实操作，示例数据。</strong>
           <p>
-            播放、音量、选听、声像、变速移调、段落循环、标记、和弦编辑、跟练与创作使用 PC
-            界面与播放器。分轨分析显示模拟进度，始终载入同一组预置六轨，不代表模型间的音质差异。和弦／节拍／谱例仅用于演示，非本曲准确转写。
+            播放、音量、选听、声像、变速移调、段落循环、标记、和弦编辑、跟练与创作使用对应平台
+            界面与共享播放器。分轨分析显示模拟进度，始终载入同一组预置六轨，不代表模型间的音质差异。和弦／节拍／谱例仅用于演示，非本曲准确转写。
           </p>
           <p>
             录音不使用麦克风，停止后载入预置吉他片段。导出、设备互传、本机文件导入和迁移仅展示入口；不访问文件或建立设备连接。所有修改仅保留在本页，重置即可恢复。
@@ -46,7 +53,7 @@ function Demo() {
           <button onClick={() => setHelp(false)}>开始体验</button>
         </div>
       )}
-      <div className="demo-desktop">
+      <div className={isAndroid ? 'demo-desktop demo-android' : 'demo-desktop'}>
         <App />
       </div>
     </>

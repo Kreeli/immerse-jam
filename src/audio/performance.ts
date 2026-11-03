@@ -53,8 +53,10 @@ export function groupWaveRegion(group: SourceGroup, durations: Map<string, numbe
   return { origin: group.start + start, duration: Math.max(0.01, end - start) };
 }
 export function activeTakes(project: Project) {
-  return (project.takes || []).filter(
-    (take) => project.kind === 'creation' || (project.selectedTakeIds || []).includes(take.id),
+  return (project.takes || []).filter((take) =>
+    project.kind === 'creation'
+      ? !take.libraryOnly
+      : (project.selectedTakeIds || []).includes(take.id),
   );
 }
 export function backingTracks(project: Project): Track[] {

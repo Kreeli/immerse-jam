@@ -1,7 +1,17 @@
 import Select from '../../shared/Select';
 import { jamCall } from '../../platform/project-call';
 import { isAndroid } from '../../platform/environment';
-import { ChevronDown, ChevronRight, Layers, Mic2, Plus, Upload, X } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronRight,
+  Layers,
+  Mic2,
+  Pencil,
+  Trash2,
+  Plus,
+  Upload,
+  X,
+} from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { LiveEnvelope } from '../../audio/live-envelope';
 import { creationGroups } from '../../audio/performance';
@@ -11,7 +21,8 @@ import { trackColor } from '../../styles/palette';
 import type { Project, SourceGroup, Track } from '../../shared/types';
 import TrackControl from '../player/TrackControl';
 import TakeTiming from './TakeTiming';
-import { requestTakeRemoval } from './TakeRemoval';
+import ModalFrame from '../../shared/ModalFrame';
+import NameDialog from '../../shared/NameDialog';
 import TrackWave, { LiveWave, type TimelineProps } from './TrackWave';
 function AddSource({
   project,
@@ -151,7 +162,10 @@ export default function CreationTracks({
       () => new Set((project.takes || []).slice(-2).map((take) => take.id)),
     ),
     [expandedStems, setExpandedStems] = useState<Set<string>>(() => new Set()),
-    [adding, setAdding] = useState(false);
+    [adding, setAdding] = useState(false),
+    [renaming, setRenaming] = useState<SourceGroup | null>(null),
+    [removing, setRemoving] = useState<SourceGroup | null>(null),
+    [removingBusy, setRemovingBusy] = useState(false);
   const known = useRef(new Set(project.takes?.map((take) => take.id) || []));
   const endAnchor = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -270,6 +284,26 @@ export default function CreationTracks({
               <strong>{group.label || group.name}</strong>
               <small>{tr('{0} 条分轨', [group.tracks.length])}</small>
             </button>
+            <span className="track-name-actions">
+              <button
+                className="nr-icon-btn nr-sm"
+                disabled={timeline.recording}
+                aria-label={tr('重命名音轨 {0}', [group.label || group.name])}
+                title={tr('重命名音轨')}
+                onClick={() => setRenaming(group)}
+              >
+                <Pencil size={14} />
+              </button>
+              <button
+                className="nr-icon-btn nr-sm"
+                disabled={timeline.recording}
+                aria-label={tr('删除分轨项目 {0}', [group.label || group.name])}
+                title={tr('删除分轨项目')}
+                onClick={() => setRemoving(group)}
+              >
+                <Trash2 size={14} />
+              </button>
+            </span>
             <label className="group-volume">
               <span>
                 {isAndroid ? tr('分组总音量') : tr('音量')}
@@ -288,18 +322,22 @@ export default function CreationTracks({
               />
             </label>
             <button
-              className="track-switch"
+              className="track-switch nr-ms-btn nr-s"
+              aria-label={tr('选听')}
+              title={tr('选听')}
               aria-pressed={group.solo}
               onClick={() => groupState(group, 'listen')}
             >
-              {tr('选听')}
+              S
             </button>
             <button
-              className="track-switch"
+              className="track-switch nr-ms-btn nr-m"
+              aria-label={tr('关闭声音')}
+              title={tr('关闭声音')}
               aria-pressed={group.mute}
               onClick={() => groupState(group, 'close')}
             >
-              {tr('关闭声音')}
+              M
             </button>
           </div>
           {expanded.has(group.id) && (
@@ -359,47 +397,67 @@ export default function CreationTracks({
           )}
         </section>
       ))}
-      {(project.takes || []).map((take) => (
-        <section className="creation-audio-object take-object" key={take.id} data-take-id={take.id}>
-          <div className="creation-object-heading">
-            <button
-              className="object-expand"
-              aria-label={tr('展开录音 {0}', [take.label || take.name])}
-              aria-expanded={expanded.has(take.id)}
-              onClick={() => toggle(take.id)}
-            >
-              {expanded.has(take.id) ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-              <Mic2 size={18} />
-            </button>
-            <TrackControl
-              track={take}
-              selected={false}
-              onSelect={() => toggle(take.id)}
-              meterPlayer={timeline.player}
-              onState={(action) => onTrackState(take, action)}
-              color="#ed7894"
-              onChange={(patch) => onTrackChange(take, patch)}
-            />
-          </div>
-          {expanded.has(take.id) && (
-            <div className="creation-object-content">
-              <TrackWave
-                {...timeline}
-                source={take.id}
-                signature={String(take.start) + '|' + take.offsetMs}
-              />
-              <TakeTiming
-                take={take}
-                creation
+      {(project.takes || [])
+        .filter((take) => !take.libraryOnly)
+        .map((take) => (
+          <section
+            className="creation-audio-object take-object"
+            key={take.id}
+            data-take-id={take.id}
+          >
+            <div className="creation-object-heading">
+              <button
+                className="object-expand"
+                aria-label={tr('展开录音 {0}', [take.label || take.name])}
+                aria-expanded={expanded.has(take.id)}
+                onClick={() => toggle(take.id)}
+              >
+                {expanded.has(take.id) ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                <Mic2 size={18} />
+              </button>
+              <TrackControl
+                track={take}
+                editingDisabled={timeline.recording}
+                onRemove={() =>
+                  onProject({
+                    ...project,
+                    takes: project.takes!.map((t) =>
+                      t.id === take.id ? { ...t, libraryOnly: true } : t,
+                    ),
+                  })
+                }
+                selected={false}
+                onSelect={() => toggle(take.id)}
+                meterPlayer={timeline.player}
+                onState={(action) => onTrackState(take, action)}
+                color="#ed7894"
                 onChange={(patch) => onTrackChange(take, patch)}
-                onRemove={() => {
-                  requestTakeRemoval(project, take);
-                }}
               />
             </div>
-          )}
-        </section>
-      ))}
+            {expanded.has(take.id) && (
+              <div className="creation-object-content">
+                <TrackWave
+                  {...timeline}
+                  source={take.id}
+                  signature={String(take.start) + '|' + take.offsetMs}
+                />
+                <TakeTiming
+                  take={take}
+                  creation
+                  onChange={(patch) => onTrackChange(take, patch)}
+                  onRemove={() =>
+                    onProject({
+                      ...project,
+                      takes: project.takes!.map((t) =>
+                        t.id === take.id ? { ...t, libraryOnly: true } : t,
+                      ),
+                    })
+                  }
+                />
+              </div>
+            )}
+          </section>
+        ))}
       {live && (
         <section className="creation-audio-object live-object">
           <div className="creation-object-heading">
@@ -419,6 +477,60 @@ export default function CreationTracks({
         </div>
       )}
       <div ref={endAnchor} />
+      {renaming && (
+        <NameDialog
+          name={renaming.label || renaming.name}
+          onSave={(label) => updateGroup(renaming, { label })}
+          onClose={() => setRenaming(null)}
+        />
+      )}
+      <ModalFrame
+        open={!!removing}
+        onClose={() => !removingBusy && setRemoving(null)}
+        className="metadata-dialog"
+        label={tr('删除分轨项目')}
+      >
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            if (!removing || removingBusy) return;
+            setRemovingBusy(true);
+            try {
+              onProject(
+                await jamCall<Project>('creation-remove-group', {
+                  id: project.id,
+                  groupId: removing.id,
+                }),
+              );
+              setRemoving(null);
+            } catch (error) {
+              onError((error as Error).message);
+            } finally {
+              setRemovingBusy(false);
+            }
+          }}
+        >
+          <h2>{tr('删除分轨项目')}</h2>
+          <p>
+            {tr('移除分轨项目“{0}”及其全部声部？原音乐库项目和录音会保留。', [
+              removing?.label || removing?.name || '',
+            ])}
+          </p>
+          <footer>
+            <button
+              className="nr-btn"
+              type="button"
+              disabled={removingBusy}
+              onClick={() => setRemoving(null)}
+            >
+              {tr('取消')}
+            </button>
+            <button className="nr-btn result-delete-confirm" type="submit" disabled={removingBusy}>
+              {tr('删除')}
+            </button>
+          </footer>
+        </form>
+      </ModalFrame>
       {adding && (
         <AddSource
           project={project}

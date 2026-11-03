@@ -75,7 +75,7 @@ final class NativeAudio implements AutoCloseable {
         if (groups.getJSONObject(i).optBoolean("solo")
             && !groups.getJSONObject(i).optBoolean("mute")) outerSolo = true;
       for (int i = 0; i < takes.length(); i++)
-        if (takes.getJSONObject(i).optBoolean("solo") && !takes.getJSONObject(i).optBoolean("mute"))
+        if (!takes.getJSONObject(i).optBoolean("libraryOnly") && takes.getJSONObject(i).optBoolean("solo") && !takes.getJSONObject(i).optBoolean("mute"))
           outerSolo = true;
       for (int i = 0; i < groups.length(); i++) {
         JSONObject g = groups.getJSONObject(i);
@@ -98,6 +98,7 @@ final class NativeAudio implements AutoCloseable {
     for (int i = 0; i < takes.length(); i++) {
       JSONObject t = new JSONObject(takes.getJSONObject(i).toString());
       if (!creation && !selected.contains(t.getString("id"))) continue;
+      if (creation && t.optBoolean("libraryOnly")) continue;
       if (creation && outerSolo && !t.optBoolean("solo")) continue;
       t.put("start", t.optDouble("start", 0) + t.optDouble("offsetMs", 0) / 1000);
       if (creation) t.put("solo", false);
@@ -386,7 +387,7 @@ final class NativeAudio implements AutoCloseable {
     JSONArray takes = p.getJSONArray("takes");
     for (int i = 0; i < takes.length(); i++) {
       JSONObject take = takes.getJSONObject(i);
-      if (creation || selected.contains(take.getString("id"))) files.add(take.getString("file"));
+      if ((creation && !take.optBoolean("libraryOnly")) || (!creation && selected.contains(take.getString("id")))) files.add(take.getString("file"));
     }
     try (ZipOutputStream out = new ZipOutputStream(new FileOutputStream(file))) {
       int index = 0;

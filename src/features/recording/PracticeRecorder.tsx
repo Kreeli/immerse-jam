@@ -647,7 +647,22 @@ export default function PracticeRecorder({
                       {new Date(take.createdAt).toLocaleDateString()}
                     </small>
                   </div>
-                  {project.kind !== 'creation' && (
+                  {project.kind === 'creation' ? (
+                    <button
+                      className="nr-btn nr-sm"
+                      disabled={busy}
+                      onClick={() =>
+                        props.current.onProject({
+                          ...project,
+                          takes: project.takes!.map((t) =>
+                            t.id === take.id ? { ...t, libraryOnly: !t.libraryOnly } : t,
+                          ),
+                        })
+                      }
+                    >
+                      {take.libraryOnly ? tr('加入音轨') : tr('移回录音库')}
+                    </button>
+                  ) : (
                     <button
                       className={
                         'small ' +

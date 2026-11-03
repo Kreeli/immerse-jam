@@ -11,6 +11,8 @@ const ordered = new Set([
   'creation-add-group',
   'creation-import-group',
   'attach',
+  'attachment-delete',
+  'creation-remove-group',
   'session-create',
   'project-delete',
   'export',

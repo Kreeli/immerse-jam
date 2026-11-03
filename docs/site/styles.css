@@ -443,7 +443,7 @@ p {
 /* 卖点条 */
 .selling {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 18px;
   padding-top: 24px;
   padding-bottom: 72px;
@@ -850,7 +850,7 @@ input[type='range']::-moz-range-thumb {
 }
 .android-shots {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 18px;
 }
 .android-shots figure {
@@ -1413,4 +1413,35 @@ dialog#image-dialog::backdrop {
     width: 100%;
     justify-content: center;
   }
+}
+
+.tryout-platforms {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+.tryout-platforms button {
+  padding: 8px 18px;
+  border: 1px solid var(--line, #45404e);
+  border-radius: 8px;
+  background: #211d27;
+  color: #ddd7e6;
+  cursor: pointer;
+}
+.tryout-platforms button[aria-pressed='true'] {
+  background: #ff5c7a;
+  color: #160e13;
+  border-color: #ff5c7a;
+}
+.android-tryout #tryout-mount {
+  max-width: 540px;
+  margin: auto;
+  height: 780px;
+  max-height: 85dvh;
+}
+.android-tryout #tryout-mount iframe {
+  min-width: 0;
+  width: 100%;
+  height: 100%;
 }

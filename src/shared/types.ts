@@ -41,6 +41,7 @@ export interface SourceGroup extends SourceMix {
   sourceTitle: string;
 }
 export interface Take extends Track {
+  libraryOnly?: boolean;
   duration: number;
   offsetMs: number;
   rawFile?: string;

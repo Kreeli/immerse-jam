@@ -92,7 +92,8 @@ async function main() {
       (await window.jam.call('library')).some((p) => p.chordCharts.length > 0),
     );
     await page.getByRole('button', { name: '乐谱', exact: true }).click();
-    await page.getByRole('button', { name: '导入乐谱', exact: true }).click();
+    await page.getByRole('button', { name: '选择乐谱 / MIDI', exact: true }).click();
+    await page.getByRole('menuitem', { name: '导入乐谱', exact: true }).click();
     await page.getByText('乐谱已展开，可自动对齐', { exact: true }).waitFor();
     await page.getByRole('button', { name: '自动对齐原曲', exact: true }).click();
     await page.waitForFunction(async () =>

@@ -70,9 +70,11 @@ export default function TakeTiming({
         </div>
         <small>{tr('长度不足的部分自动留空；时间调整不裁切原文件。')}</small>
       </details>
-      <button className="text-button" onClick={onRemove}>
-        {creation ? tr('删除录音') : tr('移回录音库')}
-      </button>
+      {!creation && (
+        <button className="text-button" onClick={onRemove}>
+          {tr('移回录音库')}
+        </button>
+      )}
     </div>
   );
 }

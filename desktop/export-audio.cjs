@@ -42,7 +42,9 @@ function exportMix(store, id, ffmpeg, dest, region) {
         ? p.tracks
         : [p.originalMix || { file: p.playback || p.original, gain: 1, pan: 0 }]),
     ...(p.takes || [])
-      .filter((t) => p.kind === 'creation' || (p.selectedTakeIds || []).includes(t.id))
+      .filter((t) =>
+        p.kind === 'creation' ? !t.libraryOnly : (p.selectedTakeIds || []).includes(t.id),
+      )
       .map((t) => ({ ...t, start: (t.start || 0) + (t.offsetMs || 0) / 1000 })),
   ];
   if (p.kind === 'creation') tracks = require('./groups.cjs').creationTracks(p);
@@ -94,8 +96,8 @@ function exportStems(store, id, folder) {
     ...(p.kind === 'creation' && !p.sessionSource ? [] : [{ name: 'original', file: p.original }]),
     ...p.tracks,
     ...(p.sourceGroups || []).flatMap((group) => group.tracks),
-    ...(p.takes || []).filter(
-      (t) => p.kind === 'creation' || (p.selectedTakeIds || []).includes(t.id),
+    ...(p.takes || []).filter((t) =>
+      p.kind === 'creation' ? !t.libraryOnly : (p.selectedTakeIds || []).includes(t.id),
     ),
   ])
     fs.copyFileSync(

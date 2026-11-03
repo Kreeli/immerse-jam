@@ -1,4 +1,5 @@
 import Select from '../../shared/Select';
+import AttachmentPicker from '../library/AttachmentPicker';
 import { jamCall } from '../../platform/project-call';
 import { isAndroid } from '../../platform/environment';
 import * as alphaTab from '@coderline/alphatab';
@@ -37,8 +38,8 @@ export default function Score({
     /\.(gp[345x]?|gtp|musicxml|mxl|xml|mid|midi)$/i.test(a.name),
   );
   useEffect(() => {
-    setActive(scores[0] || null);
-  }, [project.id, project.attachments.length]);
+    setActive((before) => scores.find((a) => a.id === before?.id) || scores[0] || null);
+  }, [project.id, project.attachments]);
   useEffect(() => {
     if (!active || !host.current) return;
     let disposed = false;
@@ -141,17 +142,15 @@ export default function Score({
   return (
     <div className="score-panel">
       <div className="score-toolbar">
-        <Select
+        <AttachmentPicker
+          score
+          project={project}
+          items={scores}
           value={active?.id || ''}
-          onChange={(e) => setActive(scores.find((a) => a.id === e.target.value) || null)}
-        >
-          <option value="">{tr('选择乐谱 / MIDI')}</option>
-          {scores.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.name}
-            </option>
-          ))}
-        </Select>
+          onChoose={(id) => setActive(scores.find((a) => a.id === id) || null)}
+          onProject={onProject}
+          onError={onError}
+        />
         {tracks.length > 0 && (
           <Select value={visibleTrack} onChange={(e) => setVisibleTrack(+e.target.value)}>
             <option value={-1}>{tr('全部谱轨')}</option>
@@ -168,17 +167,6 @@ export default function Score({
             {tr('自动对齐原曲')}
           </button>
         )}
-        <button
-          className="small"
-          onClick={() =>
-            void jamCall<Project>('attach', { id: project.id })
-              .then(onProject)
-              .catch((e) => onError(e.message))
-          }
-        >
-          <Plus size={15} />
-          {tr('导入乐谱')}
-        </button>
       </div>
       {!active && (
         <div className="empty">

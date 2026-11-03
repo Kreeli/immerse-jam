@@ -154,7 +154,7 @@ function creationTracks(p) {
       : []),
     ...(p.sourceGroups || []),
   ];
-  const takes = p.takes || [],
+  const takes = (p.takes || []).filter((take) => !take.libraryOnly),
     solo =
       groups.some((group) => group.solo && !group.mute) ||
       takes.some((take) => take.solo && !take.mute);

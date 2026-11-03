@@ -6,11 +6,26 @@
   const launch = document.getElementById('tryout-launch');
   const mount = document.getElementById('tryout-mount');
   if (!start || !close || !full || !host || !launch || !mount) return;
+  let platform = 'desktop';
+  const standalone = document.querySelector('.tryout-toolbar a');
+  document.querySelectorAll('[data-demo-platform]').forEach((button) =>
+    button.addEventListener('click', () => {
+      platform = button.dataset.demoPlatform;
+      document
+        .querySelectorAll('[data-demo-platform]')
+        .forEach((b) => b.setAttribute('aria-pressed', String(b === button)));
+      const url = 'tryout/index.html' + (platform === 'android' ? '?platform=android' : '');
+      standalone.href = url;
+      document.querySelector('.tryout-pill').textContent =
+        (platform === 'android' ? 'Android' : 'PC') + ' 原版界面 · 预置六轨 · 无需安装';
+    }),
+  );
   start.addEventListener('click', () => {
     window.dispatchEvent(new Event('immerse-demo-start'));
     const frame = document.createElement('iframe');
-    frame.src = 'tryout/index.html';
-    frame.title = 'Immerse Jam PC 在线试用工作台';
+    frame.src = 'tryout/index.html' + (platform === 'android' ? '?platform=android' : '');
+    host.classList.toggle('android-tryout', platform === 'android');
+    frame.title = 'Immerse Jam ' + (platform === 'android' ? 'Android' : 'PC') + ' 在线试用工作台';
     frame.allow = 'autoplay; fullscreen';
     frame.allowFullscreen = true;
     frame.addEventListener('load', () => frame.contentWindow?.focus());

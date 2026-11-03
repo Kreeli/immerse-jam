@@ -1066,5 +1066,13 @@
   "重命名分离结果 {0}": "Rename separation result {0}",
   "删除分离结果 {0}": "Delete separation result {0}",
   "确定删除分离结果“{0}”吗？原曲、录音和已创建的工程会保留。": "Delete separation result “{0}”? The original audio, recordings and existing projects will be kept.",
-  "请先结束当前处理或录音，再删除分离结果": "Finish processing or recording before deleting a separation result."
+  "请先结束当前处理或录音，再删除分离结果": "Finish processing or recording before deleting a separation result.",
+  "重命名音轨": "Rename track",
+  "重命名音轨 {0}": "Rename track {0}",
+  "删除分轨项目": "Remove multitrack project",
+  "删除分轨项目 {0}": "Remove multitrack project {0}",
+  "移除分轨项目“{0}”及其全部声部？原音乐库项目和录音会保留。": "Remove “{0}” and all its stems? The source library project and recordings will be kept.",
+  "删除附件": "Delete attachment",
+  "删除附件 {0}": "Delete attachment {0}",
+  "永久删除附件“{0}”？只删除项目内的副本，不影响导入前的原文件。": "Permanently delete “{0}”? Only the project copy is deleted; the original imported file is kept."
 }

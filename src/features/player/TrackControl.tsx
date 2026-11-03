@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { Pencil, Trash2 } from 'lucide-react';
+import NameDialog from '../../shared/NameDialog';
 import type { Player } from '../../audio/Player';
 import { t as tr, message as translateMessage } from '../../i18n';
 import type { Track } from '../../shared/types';
@@ -33,6 +35,8 @@ export default function TrackControl({
   meterPlayer,
   onState,
   grouped = false,
+  onRemove,
+  editingDisabled = false,
 }: {
   track: Track;
   color: string;
@@ -42,9 +46,10 @@ export default function TrackControl({
   meterPlayer: Player;
   onState: (action: 'listen' | 'close') => void;
   grouped?: boolean;
+  onRemove?: () => void;
+  editingDisabled?: boolean;
 }) {
-  const [renaming, setRenaming] = useState(false),
-    [name, setName] = useState('');
+  const [renaming, setRenaming] = useState(false);
   // PR #6 stripHTML(): meter + compact header + volume/pan line.
   return (
     <div
@@ -67,15 +72,33 @@ export default function TrackControl({
             aria-label={tr('显示{0}波形', [trackLabel(t)])}
             aria-pressed={selected}
             onClick={onSelect}
-            onDoubleClick={() => {
-              setName(trackLabel(t));
-              setRenaming(true);
-            }}
-            title={tr('单击显示波形，双击重命名')}
+            title={tr('显示{0}波形', [trackLabel(t)])}
           >
             <i className="nr-stem-dot" />
             {trackLabel(t)}
           </button>
+          <span className="track-name-actions">
+            <button
+              className="nr-icon-btn nr-sm"
+              disabled={editingDisabled}
+              aria-label={tr('重命名音轨 {0}', [trackLabel(t)])}
+              title={tr('重命名音轨')}
+              onClick={() => setRenaming(true)}
+            >
+              <Pencil size={14} />
+            </button>
+            {onRemove && (
+              <button
+                className="nr-icon-btn nr-sm"
+                disabled={editingDisabled}
+                aria-label={tr('移回录音库')}
+                title={tr('移回录音库')}
+                onClick={onRemove}
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
+          </span>
           {t.quiet && <small className="nr-tag-quiet">{tr('几乎无声')}</small>}
           <span className="nr-pct">{Math.round(t.gain * 100)}%</span>
           <button
@@ -129,27 +152,11 @@ export default function TrackControl({
           </span>
         </div>
         {renaming && (
-          <form
-            className="track-rename"
-            onSubmit={(event) => {
-              event.preventDefault();
-              onChange({ label: name.trim().slice(0, 60) });
-              setRenaming(false);
-            }}
-          >
-            <input
-              aria-label={tr('音轨名称')}
-              value={name}
-              autoFocus
-              onChange={(event) => setName(event.target.value)}
-            />
-            <button className="nr-btn nr-sm" type="submit">
-              {tr('保存')}
-            </button>
-            <button className="nr-btn nr-sm" type="button" onClick={() => setRenaming(false)}>
-              {tr('取消')}
-            </button>
-          </form>
+          <NameDialog
+            name={trackLabel(t)}
+            onSave={(label) => onChange({ label })}
+            onClose={() => setRenaming(false)}
+          />
         )}
       </div>
     </div>

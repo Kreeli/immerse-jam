@@ -379,6 +379,45 @@ public class NativeBridge {
             }
           return store.save(p);
         }
+      case "attachment-delete":
+      case "creation-remove-group":
+        {
+          JSONObject p = store.get(d.getString("id"));
+          java.util.Set<String> candidates = new java.util.LinkedHashSet<>();
+          boolean attachment = method.equals("attachment-delete");
+          String key = attachment ? "attachments" : "sourceGroups";
+          String itemId = d.getString(attachment ? "attachmentId" : "groupId");
+          if (!attachment && !p.optString("kind").equals("creation")) throw new IOException("分轨分组数据无效");
+          if (!attachment && itemId.equals("source") && p.has("sessionSource")) {
+            p.remove("sessionSource"); p.remove("sourceMix");
+          } else {
+            JSONArray items = p.getJSONArray(key), remaining = new JSONArray();
+            boolean found = false;
+            for (int i = 0; i < items.length(); i++) {
+              JSONObject item = items.getJSONObject(i);
+              if (!item.getString("id").equals(itemId)) { remaining.put(item); continue; }
+              found = true;
+              if (attachment) {
+                candidates.add(item.getString("file"));
+                if (item.getString("name").toLowerCase(java.util.Locale.ROOT).matches(".*\\.(gp[345x]?|gtp|musicxml|mxl|xml|mid|midi)$")) {
+                  if (!p.isNull("scoreMidi")) candidates.add(p.optString("scoreMidi"));
+                  p.put("scoreMidi", JSONObject.NULL); p.put("alignment", JSONObject.NULL);
+                }
+              } else {
+                JSONArray tracks = item.getJSONArray("tracks");
+                for (int j = 0; j < tracks.length(); j++) candidates.add(tracks.getJSONObject(j).getString("file"));
+              }
+            }
+            if (!found) throw new IOException(attachment ? "附件不存在" : "分轨分组数据无效");
+            p.put(key, remaining);
+          }
+          candidates.removeAll(ProjectStore.media(p));
+          java.util.List<File> files = new java.util.ArrayList<>();
+          for (String file : candidates) if (!file.isEmpty()) files.add(store.asset(p.getString("id"), file));
+          JSONObject saved = store.save(p);
+          for (File file : files) Files.deleteIfExists(file.toPath());
+          return saved;
+        }
       case "read-attachment":
         {
           JSONObject p = store.get(d.getString("id"));

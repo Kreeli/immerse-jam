@@ -1,4 +1,5 @@
 import { merge } from '@project-patch';
+import { isAndroid } from './environment';
 type Data = Record<string, any>;
 const clone = <T>(value: T): T => structuredClone(value);
 const names = ['vocals', 'drums', 'bass', 'piano', 'guitar', 'other'];
@@ -133,6 +134,7 @@ function result(p: Data, modelId = 'roformer-sw', separate = true) {
   };
   return save(p);
 }
+if (isAndroid) result(projects[0]);
 let sample: Promise<AudioBuffer> | null = null;
 async function sampleTake(p: Data, start: number, seconds: number) {
   sample ||= fetch(audioUrl('guitar'))
@@ -396,6 +398,14 @@ async function call(method: string, data: Data = {}): Promise<any> {
       ];
       return save(p);
     }
+    case 'creation-remove-group': {
+      const p = get(data.id);
+      if (data.groupId === 'source') {
+        delete p.sessionSource;
+        delete p.sourceMix;
+      } else p.sourceGroups = (p.sourceGroups || []).filter((g: Data) => g.id !== data.groupId);
+      return save(p);
+    }
     case 'take-start': {
       const id = makeId();
       takes.set(id, { projectId: data.id, options: data.options, at: performance.now() });
@@ -455,7 +465,9 @@ async function call(method: string, data: Data = {}): Promise<any> {
       return new TextEncoder().encode(score);
     case 'attachment-delete': {
       const p = get(data.id);
-      p.attachments = [];
+      p.attachments = p.attachments.filter((a: Data) => a.id !== data.attachmentId);
+      p.scoreMidi = null;
+      p.alignment = null;
       return save(p);
     }
     case 'export':

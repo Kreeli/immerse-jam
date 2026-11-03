@@ -97,8 +97,8 @@
             <img
               class="hero-shot"
               src="assets/Win_practice.png"
-              width="1920"
-              height="1022"
+              width="1584"
+              height="1058"
               alt="Immerse Jam 跟练工作台：上下对齐的音乐与录音波形，右侧混音控制台，底部播放和录音按钮"
               fetchpriority="high"
             /><span class="zoom-hint">查看完整界面 ↗</span>
@@ -133,12 +133,13 @@
               <h2 id="tryout-title">先点几下，<br />再决定要不要下载。</h2>
             </div>
             <p>
-              直接操作 PC 端工作台。已导入 Fabulous 排练片段，<br />选模型、模拟分析，再关闭你想练的那一轨。
+              直接操作 PC 端工作台。已导入 Fabulous 排练片段，<br />选择 Windows 或
+              Android，体验混音与跟练。
             </p>
           </div>
           <div class="tryout-frame" id="tryout-frame">
             <div class="tryout-toolbar">
-              <span><i></i> IMMERSE JAM · 可交互桌面演示</span>
+              <span><i></i> IMMERSE JAM · 可交互演示</span>
               <div>
                 <button type="button" id="tryout-fullscreen" hidden>全屏体验 ↗</button
                 ><a href="tryout/index.html" target="_blank" rel="noopener">单独打开 ↗</a
@@ -148,8 +149,8 @@
             <div class="tryout-launch" id="tryout-launch">
               <img
                 src="assets/Win_practice.png"
-                width="1920"
-                height="1022"
+                width="1584"
+                height="1058"
                 alt="即将进入的 Immerse Jam PC 工作台"
                 loading="lazy"
               />
@@ -157,6 +158,13 @@
                 <span class="tryout-pill">PC 原版界面 · 预置六轨 · 无需安装</span>
                 <h3>这一遍，让你来操作。</h3>
                 <p>已载入排练片段 → 开始分析 → 创建跟练</p>
+                <div class="tryout-platforms" role="group" aria-label="选择试用平台">
+                  <button type="button" data-demo-platform="desktop" aria-pressed="true">
+                    Windows</button
+                  ><button type="button" data-demo-platform="android" aria-pressed="false">
+                    Android
+                  </button>
+                </div>
                 <button class="button" type="button" id="tryout-start">
                   启动在线试用 <span aria-hidden="true">▶</span></button
                 ><small>点击后加载工作台和演示音频，不运行模型。</small>
@@ -165,7 +173,8 @@
             <div id="tryout-mount"></div>
           </div>
           <p class="tryout-note">
-            播放、混音、变速移调、循环与编辑可实际操作；分析使用预置结果，录音载入预置吉他片段，不使用麦克风。和弦／节拍／谱例仅作流程示意。导出、互传和本机文件操作展示入口；修改仅在本页会话中保留。手机可横向滑动桌面界面，建议电脑或横屏体验。
+            播放、混音、变速移调、循环与编辑可实际操作；分析使用预置结果，录音载入预置吉他片段，不使用麦克风。和弦／节拍／谱例仅作流程示意。导出、互传和本机文件操作展示入口；修改仅在本页会话中保留。选择
+            Android 可体验适合手机和平板的界面；Windows 演示建议电脑或横屏体验。
           </p>
         </div>
       </section>
@@ -332,8 +341,8 @@
           >
             <img
               src="assets/Win_practice.png"
-              width="1920"
-              height="1022"
+              width="1584"
+              height="1058"
               alt="跟练模式中的双波形对照与右侧音轨控制台"
               loading="lazy"
             /><span class="zoom-hint">放大查看 ↗</span>
@@ -364,8 +373,8 @@
           >
             <img
               src="assets/Win_create.png"
-              width="1920"
-              height="1022"
+              width="1584"
+              height="1058"
               alt="创作模式中的分轨项目组、混音录音和添加音频入口"
               loading="lazy"
             /><span class="zoom-hint">放大查看 ↗</span>
@@ -393,8 +402,8 @@
             >
               <img
                 src="assets/Win_model.png"
-                width="1920"
-                height="1022"
+                width="1584"
+                height="1058"
                 alt="设置与模型窗口，显示可安装的分离模型列表"
                 loading="lazy"
               /><span class="zoom-hint">放大查看 ↗</span>
@@ -490,8 +499,8 @@
                   <img
                     id="guide-image"
                     src="assets/Win_home.png"
-                    width="1920"
-                    height="1022"
+                    width="1584"
+                    height="1058"
                     alt="音乐库右上角的导入音乐按钮"
                     loading="lazy"
                   /><span
@@ -537,14 +546,14 @@
             <figure>
               <button
                 class="screenshot-button"
-                data-image="assets/android_home.jpg"
+                data-image="assets/android_home.png"
                 data-caption="Android 项目列表：跟练、创作统一管理，支持搜索和分类。"
                 aria-label="放大 Android 项目列表截图"
               >
                 <img
-                  src="assets/android_home.jpg"
-                  width="1600"
-                  height="2464"
+                  src="assets/android_home.png"
+                  width="2464"
+                  height="1600"
                   alt="Android 项目列表：全部、跟练、创作三个筛选页签和歌曲卡片"
                   loading="lazy"
                 /><span class="zoom-hint">放大 ↗</span>
@@ -554,14 +563,14 @@
             <figure>
               <button
                 class="screenshot-button"
-                data-image="assets/android_wave.jpg"
+                data-image="assets/android_wave.png"
                 data-caption="Android 播放页：波形、循环段落、变速播放，锁屏或切后台继续放。"
                 aria-label="放大 Android 播放页截图"
               >
                 <img
-                  src="assets/android_wave.jpg"
-                  width="1600"
-                  height="2464"
+                  src="assets/android_wave.png"
+                  width="2464"
+                  height="1600"
                   alt="Android 播放页：波形窗口、循环段落按钮、变速和录音按钮"
                   loading="lazy"
                 /><span class="zoom-hint">放大 ↗</span>
@@ -571,14 +580,14 @@
             <figure>
               <button
                 class="screenshot-button"
-                data-image="assets/android_chord.jpg"
+                data-image="assets/android_chord.png"
                 data-caption="Android 和弦页：识别出的和弦按小节排布，跟着播放走，可手动修正。"
                 aria-label="放大 Android 和弦页截图"
               >
                 <img
-                  src="assets/android_chord.jpg"
-                  width="1600"
-                  height="2464"
+                  src="assets/android_chord.png"
+                  width="2464"
+                  height="1600"
                   alt="Android 和弦页：按小节排列的和弦卡片，跟随播放高亮"
                   loading="lazy"
                 /><span class="zoom-hint">放大 ↗</span>
@@ -588,14 +597,14 @@
             <figure>
               <button
                 class="screenshot-button"
-                data-image="assets/android_control.jpg"
+                data-image="assets/android_control.png"
                 data-caption="Android 控制台：六个声部的音量、选听、关闭声音和声像，和桌面版同一套逻辑。"
                 aria-label="放大 Android 控制台截图"
               >
                 <img
-                  src="assets/android_control.jpg"
-                  width="1600"
-                  height="2464"
+                  src="assets/android_control.png"
+                  width="2464"
+                  height="1600"
                   alt="Android 控制台抽屉：总音量和人声、鼓、贝斯、钢琴、吉他各轨控制"
                   loading="lazy"
                 /><span class="zoom-hint">放大 ↗</span>
@@ -610,6 +619,13 @@
               <li>手机端不做本机分轨和识别，分析在电脑上一次完成</li>
             </ul>
             <div class="android-actions">
+              <a
+                class="text-link"
+                href="tryout/index.html?platform=android"
+                target="_blank"
+                rel="noopener"
+                >在线试用 Android →</a
+              >
               <a
                 class="button"
                 data-download-kind="android-arm64"
