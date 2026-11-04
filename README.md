@@ -84,3 +84,5 @@ CI 运行类型 / 语言检查、Node 单测、构建、共享界面和维护中
 原创代码采用 [PolyForm Noncommercial 1.0.0](LICENSE)：协议范围内可非商业使用、修改和分享，商业使用请联系作者。这是**非商业源码可用许可**，不是 OSI 开源许可；第三方依赖与模型各有许可，见 [许可说明](docs/LICENSING.md)。
 
 问题与建议请发到 [Issues](https://github.com/Kreeli/immerse-jam/issues)。自愿打赏不影响功能，希望它能帮助更多热爱音乐的朋友。
+
+感谢参与代码、设计和使用反馈的[贡献者](CONTRIBUTORS.md)。

@@ -1,6 +1,17 @@
 import contextlib,hashlib,os
 from pathlib import Path
 
+def reject_external_onnx(message):
+    """Inspect tensors in attributes, sparse tensors and nested graphs as well."""
+    import onnx
+    if isinstance(message,onnx.TensorProto) and (message.external_data or message.data_location==onnx.TensorProto.EXTERNAL):
+        raise ValueError('暂不支持含外部数据的 ONNX，请导出为单个完整模型文件')
+    for field,value in message.ListFields():
+        if field.type!=field.TYPE_MESSAGE:continue
+        if field.is_repeated:
+            for child in value:reject_external_onnx(child)
+        else:reject_external_onnx(value)
+
 @contextlib.contextmanager
 def custom_model_guard(model):
     if not model.get('custom'):

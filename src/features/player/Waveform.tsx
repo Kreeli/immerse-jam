@@ -300,7 +300,13 @@ export default function Waveform({
   const finish = (pointerId: number) => {
     pointers.current.delete(pointerId);
     if (pinch.current) {
-      if (!pointers.current.size) pinch.current = null;
+      if (pointers.current.size < 2) {
+        pinch.current = null;
+        const remaining = [...pointers.current.values()][0];
+        drag.current = remaining
+          ? { x: remaining.x, position: player?.displayPosition() ?? position, moved: false }
+          : null;
+      }
       return;
     }
     const state = drag.current;

@@ -7,7 +7,11 @@ function cleanTransfers(base, now = Date.now()) {
     for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
       if (!entry.isFile() || !/^[a-f0-9-]{36}\.[a-z0-9]+$/i.test(entry.name)) continue;
       const file = path.join(root, entry.name);
-      if (now - fs.statSync(file).mtimeMs > 24 * 3600000) fs.rmSync(file, { force: true });
+      try {
+        if (now - fs.statSync(file).mtimeMs > 24 * 3600000) fs.rmSync(file, { force: true });
+      } catch {
+        /* A scanner lock must not prevent application startup. */
+      }
     }
   }
 }
@@ -25,7 +29,11 @@ function pruneJobs(base) {
   for (let i = 0; i < entries.length; i++)
     if (i >= 20 || Date.now() - entries[i].time > 7 * 86400000) {
       const file = entries[i].file;
-      if (path.dirname(file) === root) fs.rmSync(file, { recursive: true, force: true });
+      if (path.dirname(file) === root) {
+        try {
+          fs.rmSync(file, { recursive: true, force: true });
+        } catch {}
+      }
     }
 }
 module.exports = { cleanTransfers, pruneJobs };

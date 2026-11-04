@@ -1,8 +1,9 @@
+const { writeAll } = require('./file-io.cjs');
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { pipeline } = require('node:stream/promises');
-const { contained } = require('./store.cjs');
+const { contained, replaceFile } = require('./store.cjs');
 const {
   validateProject,
   referencedFiles,
@@ -17,8 +18,11 @@ async function sha(file, signal) {
   return hash.digest('hex');
 }
 async function pack(store, id, dest, full = false) {
-  const project = store.get(id),
-    files = new Set([
+  const project = store.get(id);
+  const snapshot = path.join(path.dirname(dest), '.ijam-snapshot-' + crypto.randomUUID());
+  fs.mkdirSync(snapshot, { recursive: true });
+  try {
+    const files = new Set([
       project.original,
       ...project.tracks.map((t) => t.file),
       ...(project.results || []).flatMap((result) => result.tracks.map((track) => track.file)),
@@ -29,59 +33,81 @@ async function pack(store, id, dest, full = false) {
       ...(full ? project.attachments.map((a) => a.file) : []),
       ...(full && project.scoreMidi ? [project.scoreMidi] : []),
     ]);
-  const manifest = {
-    ...project,
-    schemaVersion:
-      project.kind === 'creation' && (project.sessionSource || project.sourceGroups?.length)
-        ? 2
-        : project.schemaVersion,
-    attachments: full ? project.attachments : [],
-    ...(full
-      ? {}
-      : {
-          analysis: null,
-          alignment: null,
-          bookmarks: [],
-          chordCharts: [],
-          activeChordChartId: null,
-          ...(project.kind === 'creation' ? {} : { takes: [], selectedTakeIds: [] }),
-        }),
-  };
-  delete manifest.importRevision;
-  delete manifest.recordingSettings;
-  delete manifest.playback;
-  delete manifest.scoreMidi;
-  if (full && project.scoreMidi) manifest.scoreMidi = project.scoreMidi;
-  for (const file of referencedFiles(manifest)) files.add(file);
-  const virtual = {};
-  for (const result of project.results || [])
-    virtual[result.directory + '/result.json'] = JSON.stringify({
-      ...result,
-      tracks: result.tracks.map((track) => ({
-        ...track,
-        file: 'tracks/' + path.basename(track.file),
-      })),
+    const manifest = {
+      ...project,
+      schemaVersion:
+        project.kind === 'creation' && (project.sessionSource || project.sourceGroups?.length)
+          ? 2
+          : project.schemaVersion,
+      attachments: full ? project.attachments : [],
+      ...(full
+        ? {}
+        : {
+            analysis: null,
+            alignment: null,
+            bookmarks: [],
+            chordCharts: [],
+            activeChordChartId: null,
+            ...(project.kind === 'creation' ? {} : { takes: [], selectedTakeIds: [] }),
+          }),
+    };
+    delete manifest.importRevision;
+    delete manifest.recordingSettings;
+    delete manifest.trackOrder;
+    delete manifest.playback;
+    delete manifest.scoreMidi;
+    if (full && project.scoreMidi) manifest.scoreMidi = project.scoreMidi;
+    for (const file of referencedFiles(manifest)) files.add(file);
+    const virtual = {};
+    for (const result of project.results || [])
+      virtual[result.directory + '/result.json'] = JSON.stringify({
+        ...result,
+        tracks: result.tracks.map((track) => ({
+          ...track,
+          file: 'tracks/' + path.basename(track.file),
+        })),
+      });
+    const hashes = {};
+    for (const file of files) {
+      const copy = contained(snapshot, file);
+      fs.mkdirSync(path.dirname(copy), { recursive: true });
+      await fs.promises.copyFile(store.asset(id, file), copy);
+      hashes[file] = await sha(copy);
+    }
+    for (const [file, content] of Object.entries(virtual))
+      hashes[file] = crypto.createHash('sha256').update(content).digest('hex');
+    const temp = dest + '.' + crypto.randomUUID() + '.part';
+    const archive = require('archiver')('zip', { zlib: { level: 3 } }),
+      output = fs.createWriteStream(temp, { flags: 'wx' });
+    const done = new Promise((resolve, reject) => {
+      output.on('close', resolve);
+      output.on('error', reject);
+      archive.on('error', reject);
+      archive.on('warning', reject);
     });
-  const hashes = {};
-  for (const file of files) hashes[file] = await sha(store.asset(id, file));
-  for (const [file, content] of Object.entries(virtual))
-    hashes[file] = crypto.createHash('sha256').update(content).digest('hex');
-  const archive = require('archiver')('zip', { zlib: { level: 3 } }),
-    output = fs.createWriteStream(dest);
-  const done = new Promise((resolve, reject) => {
-    output.on('close', resolve);
-    output.on('error', reject);
-    archive.on('error', reject);
-  });
-  archive.pipe(output);
-  archive.append(JSON.stringify(manifest), { name: 'project.json' });
-  archive.append(JSON.stringify(hashes), { name: 'checksums.json' });
-  for (const file of files)
-    archive.file(store.asset(id, file), { name: file.replaceAll('\\', '/') });
-  for (const [file, content] of Object.entries(virtual)) archive.append(content, { name: file });
-  await archive.finalize();
-  await done;
-  return dest;
+    // Attach rejection handling before finalize: streams can fail first.
+    void done.catch(() => {});
+    archive.pipe(output);
+    archive.append(JSON.stringify(manifest), { name: 'project.json' });
+    archive.append(JSON.stringify(hashes), { name: 'checksums.json' });
+    for (const file of files)
+      archive.file(contained(snapshot, file), { name: file.replaceAll('\\', '/') });
+    for (const [file, content] of Object.entries(virtual)) archive.append(content, { name: file });
+    try {
+      await Promise.all([archive.finalize(), done]);
+      replaceFile(temp, dest);
+    } finally {
+      archive.abort();
+      if (!output.closed) {
+        output.destroy();
+        await new Promise((resolve) => output.once('close', resolve));
+      }
+      fs.rmSync(temp, { force: true });
+    }
+    return dest;
+  } finally {
+    fs.rmSync(snapshot, { recursive: true, force: true });
+  }
 }
 function extract(file, dir, { signal, onProgress = () => {} } = {}) {
   signal?.throwIfAborted();
@@ -178,7 +204,7 @@ function extractLocal(file, dir, onProgress = () => {}) {
           let written = 0,
             crc = 0;
           const write = (data) => {
-            fs.writeSync(output, data);
+            writeAll(output, data);
             written += data.length;
             crc = require('node:zlib').crc32(data, crc);
             if (written > entry.uncompressedSize) throw new Error('解压大小与清单不符');

@@ -6,6 +6,7 @@ import app.immersejam.mobile.processing.RecordingMath;
 import app.immersejam.mobile.processing.WaveReader;
 import java.io.*;
 import java.nio.*;
+import java.nio.file.Files;
 import java.util.*;
 import org.json.*;
 
@@ -20,6 +21,7 @@ final class NativeTakes {
     int sequence;
     long frames;
     double first = -1;
+    boolean recovered;
   }
 
   NativeTakes(ProjectStore store) {
@@ -44,6 +46,7 @@ final class NativeTakes {
     s.relative = "recordings/" + s.id;
     File file = store.asset(projectId, s.relative + "/raw.wav");
     file.getParentFile().mkdirs();
+    if (file.getParentFile().getUsableSpace() < 100L * 1048576) throw new IOException("剩余存储空间不足；请腾出空间后录音");
     s.out = new RandomAccessFile(file, "rw");
     try {
       AudioFiles.header(s.out, 0, options.getInt("sampleRate"), 32, 3);
@@ -99,6 +102,8 @@ final class NativeTakes {
       s.out.write(new byte[(int) (target - s.frames) * 8]);
       s.frames = target;
     }
+    if (store.dir(s.projectId).getUsableSpace() < bytes.length + 20L * 1048576)
+      throw new IOException("剩余存储空间不足；原始录音已保留，可稍后恢复");
     s.out.write(bytes);
     s.frames += bytes.length / 8;
     s.sequence++;
@@ -172,15 +177,17 @@ final class NativeTakes {
   }
 
   JSONObject importUri(JSONObject p, Uri uri, double start) throws Exception {
+    if (!Double.isFinite(start) || start < 0 || start > 14400) throw new IOException("导入位置无效");
     String id = UUID.randomUUID().toString(),
         file =
             "recordings/" + id + "/input-" + store.name(uri).replaceAll("[^\\p{L}\\p{N}._ -]", "_");
     File source = store.copyUri(uri, store.asset(p.getString("id"), file));
     String wave = "recordings/" + id + "/audio.wav";
+    try {
     File decoded = AudioFiles.decode(source, store.asset(p.getString("id"), wave), () -> false);
     double duration = (decoded.length() - 44) / 176400.0;
     JSONObject take =
-        ProjectStore.track(id, store.name(uri), wave)
+        ProjectStore.track(id, store.name(uri).substring(0, Math.min(120, store.name(uri).length())), wave)
             .put("duration", duration)
             .put("start", start)
             .put("offsetMs", 0)
@@ -194,11 +201,13 @@ final class NativeTakes {
     if (p.optString("kind").equals("creation"))
       p.put("duration", Math.max(p.optDouble("duration", 0), start + duration));
     return store.save(p);
+    } finally { Files.deleteIfExists(source.toPath()); }
   }
 
   JSONArray restore(String projectId) throws Exception {
     JSONArray restored = new JSONArray();
-    if (!sessions.isEmpty()) return restored;
+    if (sessions.values().stream().anyMatch(s -> !s.recovered)) return restored;
+    for (Session s : sessions.values()) if (s.projectId.equals(projectId)) restored.put(s.id);
     File folder = store.asset(projectId, "recordings");
     File[] directories = folder.listFiles();
     if (directories != null)
@@ -206,6 +215,8 @@ final class NativeTakes {
         File marker = new File(directory, "pending.json"), raw = new File(directory, "raw.wav");
         if (!marker.isFile() || !raw.isFile() || !directory.getName().matches("[a-f0-9-]{36}"))
           continue;
+        if (sessions.containsKey(directory.getName())) continue;
+        try {
         JSONObject pending = ProjectStore.read(marker);
         JSONObject options = pending.getJSONObject("options");
         int rate = options.getInt("sampleRate");
@@ -223,6 +234,7 @@ final class NativeTakes {
           continue;
         }
         Session s = new Session();
+        s.recovered = true;
         s.id = directory.getName();
         s.projectId = projectId;
         s.relative = "recordings/" + s.id;
@@ -239,8 +251,18 @@ final class NativeTakes {
         s.out = new RandomAccessFile(raw, "rw");
         sessions.put(s.id, s);
         restored.put(s.id);
+        } catch (Exception error) {
+          android.util.Log.w("ImmerseTakes", "Skipped damaged recovery entry " + directory.getName(), error);
+          // Keep all original bytes available for manual recovery.
+          marker.renameTo(new File(directory, "pending.bad-" + System.currentTimeMillis()));
+        }
       }
     return restored;
+  }
+
+  void releaseRecovery(String id) throws IOException {
+    Session s = sessions.get(id);
+    if (s != null && s.recovered && sessions.remove(id, s)) s.out.close();
   }
 
   JSONObject remove(String projectId, String id) throws Exception {

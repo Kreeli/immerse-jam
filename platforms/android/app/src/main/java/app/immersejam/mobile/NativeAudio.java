@@ -89,6 +89,7 @@ final class NativeAudio implements AutoCloseable {
           JSONObject t = new JSONObject(tracks.getJSONObject(j).toString());
           if (t.optBoolean("mute") || (innerSolo && !t.optBoolean("solo"))) continue;
           t.put("gain", t.getDouble("gain") * g.optDouble("gain", 1))
+              .put("pan", Math.max(-1, Math.min(1, t.optDouble("pan", 0) + g.optDouble("pan", 0))))
               .put("start", t.optDouble("start", 0) + g.optDouble("start", 0))
               .put("solo", false);
           all.put(t);

@@ -8,6 +8,7 @@ function validateMix(mix) {
     ![mix.gain, mix.start].every(Number.isFinite) ||
     mix.gain < 0 ||
     mix.gain > 1 ||
+    (mix.pan !== undefined && (!Number.isFinite(mix.pan) || Math.abs(mix.pan) > 1)) ||
     Math.abs(mix.start) > 14400 ||
     typeof mix.mute !== 'boolean' ||
     typeof mix.solo !== 'boolean' ||
@@ -20,7 +21,7 @@ function validateGroups(p) {
     validateMix(p.sourceMix);
     if (
       Object.keys(p.sourceMix).some(
-        (key) => !['gain', 'mute', 'solo', 'start', 'label'].includes(key),
+        (key) => !['gain', 'pan', 'mute', 'solo', 'start', 'label'].includes(key),
       )
     )
       throw new Error('分轨分组设置无效');
@@ -112,6 +113,7 @@ function addGroup(store, id, sourceStore, source, resultId, position = 0) {
         sourceTitle: source.title,
         tracks,
         gain: 1,
+        pan: 0,
         mute: false,
         solo: false,
         start: position,
@@ -165,6 +167,7 @@ function creationTracks(p) {
         ...track,
         groupId: group.id,
         gain: track.gain * group.gain,
+        pan: Math.max(-1, Math.min(1, track.pan + (group.pan || 0))),
         start: (track.start || 0) + group.start,
         mute: track.mute || group.mute || (inner && !track.solo) || (solo && !group.solo),
         solo: false,

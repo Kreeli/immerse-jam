@@ -1,3 +1,4 @@
+const { writeAll } = require('./file-io.cjs');
 const { text: t } = require('./locale.cjs');
 const fs = require('node:fs'),
   path = require('node:path'),
@@ -196,8 +197,14 @@ class Takes {
         createdAt: new Date().toISOString(),
       },
       fd = fs.openSync(path.join(folder, 'raw.wav'), 'w');
-    fs.writeSync(fd, wavHeader(0, options.sampleRate));
-    atomicJson(path.join(folder, 'pending.json'), meta);
+    try {
+      writeAll(fd, wavHeader(0, options.sampleRate));
+      atomicJson(path.join(folder, 'pending.json'), meta);
+    } catch (error) {
+      fs.closeSync(fd);
+      throw error;
+    }
+
     this.sessions.set(id, { ...meta, fd });
     return { id };
   }
@@ -224,7 +231,7 @@ class Takes {
         fd: undefined,
       });
     }
-    fs.writeSync(s.fd, buffer, 0, buffer.length, 44 + s.frames * 8);
+    writeAll(s.fd, buffer, 44 + s.frames * 8);
     s.frames += buffer.length / 8;
     s.sequence++;
     return s.frames;
@@ -234,7 +241,7 @@ class Takes {
     if (!s) throw new Error('录音已停止');
     this.sessions.delete(id);
     try {
-      fs.writeSync(s.fd, wavHeader(s.frames, s.sampleRate), 0, 44, 0);
+      writeAll(s.fd, wavHeader(s.frames, s.sampleRate), 0);
     } finally {
       fs.closeSync(s.fd);
     }
@@ -298,14 +305,14 @@ class Takes {
       !['instrument', 'mixed'].includes(mode)
     )
       throw new Error('导入位置无效');
-    const before = this.store.get(projectId),
-      created = [];
+    this.store.get(projectId);
+    const created = [];
     try {
       for (const source of files) {
         const id = crypto.randomUUID(),
           relative = `recordings/${id}`,
           folder = this.store.asset(projectId, relative);
-        created.push(folder);
+        created.push({ folder, id });
         fs.mkdirSync(folder, { recursive: true });
         const raw = path.join(folder, 'source' + path.extname(source).toLowerCase());
         fs.copyFileSync(source, raw);
@@ -330,8 +337,14 @@ class Takes {
         this.store.save(p);
       }
     } catch (error) {
-      this.store.save(before);
-      for (const folder of created)
+      // Roll back only this import. Other edits may have committed while audio
+      // conversion was running; never restore an old whole-project snapshot.
+      const ids = new Set(created.map((item) => item.id));
+      const current = this.store.get(projectId);
+      current.takes = (current.takes || []).filter((take) => !ids.has(take.id));
+      current.selectedTakeIds = (current.selectedTakeIds || []).filter((id) => !ids.has(id));
+      this.store.save(current);
+      for (const { folder } of created)
         if (path.dirname(folder) === this.store.asset(projectId, 'recordings'))
           fs.rmSync(folder, { recursive: true, force: true });
       throw error;
@@ -422,36 +435,54 @@ class Takes {
       if (!entry.isDirectory() || !ID.test(entry.name) || this.sessions.has(entry.name)) continue;
       const pending = path.join(root, entry.name, 'pending.json');
       if (!fs.existsSync(pending)) continue;
-      const meta = JSON.parse(fs.readFileSync(pending, 'utf8'));
-      if (
-        meta.projectId !== projectId ||
-        meta.id !== entry.name ||
-        meta.relative !== `recordings/${entry.name}`
-      )
-        throw new Error('未完成录音的清单无效');
-      if ((this.store.get(projectId).takes || []).some((t) => t.id === meta.id)) {
-        fs.rmSync(pending, { force: true });
-        continue;
-      }
-      const raw = path.join(root, entry.name, 'raw.wav'),
-        frames = Math.floor((fs.statSync(raw).size - 44) / 8);
-      if (frames < 1) continue;
-      const fd = fs.openSync(raw, 'r+');
       try {
-        fs.writeSync(fd, wavHeader(frames, meta.sampleRate), 0, 44, 0);
-      } finally {
-        fs.closeSync(fd);
+        const meta = JSON.parse(fs.readFileSync(pending, 'utf8'));
+        if (
+          meta.projectId !== projectId ||
+          meta.id !== entry.name ||
+          meta.relative !== `recordings/${entry.name}`
+        )
+          throw new Error('未完成录音的清单无效');
+        if ((this.store.get(projectId).takes || []).some((t) => t.id === meta.id)) {
+          fs.rmSync(pending, { force: true });
+          continue;
+        }
+        const raw = path.join(root, entry.name, 'raw.wav'),
+          frames = Math.floor((fs.statSync(raw).size - 44) / 8);
+        if (frames < 1) throw new Error('未完成录音没有有效音频帧');
+        const fd = fs.openSync(raw, 'r+');
+        try {
+          writeAll(fd, wavHeader(frames, meta.sampleRate), 0);
+        } finally {
+          fs.closeSync(fd);
+        }
+        await this.commit(meta, raw);
+      } catch (error) {
+        // Preserve raw audio and malformed metadata for manual recovery. One
+        // damaged entry must not prevent recovery of the remaining sessions.
+        console.warn('Recording recovery skipped:', entry.name, error.message);
+        if (
+          fs.existsSync(pending) &&
+          error.code !== 'ENOSPC' &&
+          error.code !== 'EACCES' &&
+          error.code !== 'EPERM'
+        )
+          fs.renameSync(pending, pending + '.bad-' + Date.now());
       }
-      await this.commit(meta, raw);
     }
     return this.store.get(projectId);
   }
   close() {
     for (const s of this.sessions.values()) {
       try {
-        fs.writeSync(s.fd, wavHeader(s.frames, s.sampleRate), 0, 44, 0);
-        fs.closeSync(s.fd);
-      } catch {}
+        writeAll(s.fd, wavHeader(s.frames, s.sampleRate), 0);
+      } catch {
+        /* Keep the raw recording and pending manifest for recovery. */
+      } finally {
+        try {
+          fs.closeSync(s.fd);
+        } catch {}
+      }
     }
     this.sessions.clear();
   }

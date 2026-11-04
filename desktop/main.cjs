@@ -80,10 +80,38 @@ if (process.argv.includes('--prepare-installation')) {
     failed(error);
   }
 } else {
+  require('electron').protocol.registerSchemesAsPrivileged([
+    {
+      scheme: 'immerse',
+      privileges: {
+        standard: true,
+        secure: true,
+        supportFetchAPI: true,
+        stream: true,
+        corsEnabled: true,
+      },
+    },
+  ]);
   const installRoot = path.dirname(process.execPath);
   try {
     require('./locations.cjs').configure(app, installRoot);
-    require('./application.cjs');
+    if (process.env.IMMERSE_PROFILE_DIR) {
+      require('node:fs').mkdirSync(process.env.IMMERSE_PROFILE_DIR, { recursive: true });
+      app.setPath('userData', path.resolve(process.env.IMMERSE_PROFILE_DIR));
+    }
+    if (!app.requestSingleInstanceLock()) {
+      app.quit();
+    } else {
+      app.on('second-instance', () => {
+        const window = require('electron').BrowserWindow.getAllWindows()[0];
+        if (window) {
+          if (window.isMinimized()) window.restore();
+          window.show();
+          window.focus();
+        }
+      });
+      require('./application.cjs');
+    }
   } catch (initialError) {
     app.whenReady().then(async () => {
       const { dialog } = require('electron'),

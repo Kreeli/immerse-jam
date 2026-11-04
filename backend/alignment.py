@@ -27,10 +27,12 @@ def align(file,midi_file,emit):
     import tempfile
     from audio_io import pcm, chroma_blocks
     # Store decoded audio on disk; only the 12-bin feature series stays in RAM.
-    with tempfile.TemporaryDirectory() as temporary:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temporary:
         y=pcm(file,temporary,11025,1);sr=11025;hop=1102
-        audio=chroma_blocks(y,sr,hop)
-        del y
+        try:audio=chroma_blocks(y,sr,hop)
+        finally:
+            if isinstance(y,np.memmap):y._mmap.close()
+            del y
     emit(.2,'计算原曲音高特征')
     audio=median_filter(audio,size=(1,3));score=median_filter(score,size=(1,3))
     # Bound every DTW array even for hour-long inputs (not a single /2 pass).

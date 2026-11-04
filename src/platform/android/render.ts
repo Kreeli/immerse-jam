@@ -31,10 +31,22 @@ export async function exportMix(data: any, call: NativeCall) {
 export async function finishTake(data: any, call: NativeCall) {
   return transform(await call('android-take-normalize', data), call);
 }
-export async function recoverTakes(data: any, call: NativeCall) {
+export async function recoverTakes(
+  data: any,
+  call: NativeCall,
+  onError: (message: string) => void = console.warn,
+) {
   const ids = await call('android-take-recovery-list', data);
   let project;
-  for (const id of ids) project = await finishTake({ sessionId: id }, call);
+  for (const id of ids) {
+    try {
+      project = await finishTake({ sessionId: id }, call);
+    } catch (error) {
+      onError((error as Error).message);
+    } finally {
+      await call('android-take-recovery-release', { sessionId: id }).catch(() => {});
+    }
+  }
   if (project) return project;
   const library = await call('library');
   const existing = library.find((p: any) => p.id === data.id);

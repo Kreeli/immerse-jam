@@ -31,6 +31,8 @@ class Updates {
     this.fetchFile = fetchFile;
   }
   async check() {
+    this.installer = undefined;
+    this.release = undefined;
     let last;
     for (const source of [
       'https://api.github.com/repos/Kreeli/immerse-jam/releases/latest',
@@ -75,6 +77,7 @@ class Updates {
   async download(onEvent) {
     if (this.downloading) throw new Error('更新正在下载中');
     this.downloading = true;
+    this.installer = undefined;
     try {
       if (!this.release) await this.check();
       const { tag, asset, sums } = this.release;
@@ -91,14 +94,23 @@ class Updates {
       if (!line) throw new Error('更新安装包缺少 SHA-256 校验，已取消下载');
       const file = path.join(this.base, 'updates', asset.name);
       await this.fetchFile(assetUrl(asset.browser_download_url, tag), file, line[1], onEvent);
-      this.installer = { file, sha256: line[1] };
+      if (
+        this.release?.tag !== tag ||
+        this.release?.asset.browser_download_url !== asset.browser_download_url
+      )
+        throw new Error('更新版本已变化，请重新下载');
+      this.installer = { file, sha256: line[1], tag };
       return true;
     } finally {
       this.downloading = false;
     }
   }
   async verifiedInstaller() {
-    if (!this.installer || (await hash(this.installer.file)) !== this.installer.sha256)
+    if (
+      !this.installer ||
+      this.installer.tag !== this.release?.tag ||
+      (await hash(this.installer.file)) !== this.installer.sha256
+    )
       throw new Error('更新安装包未就绪，请重新下载');
     return this.installer.file;
   }

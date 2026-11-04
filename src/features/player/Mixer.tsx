@@ -1,7 +1,7 @@
 import { jamCall } from '../../platform/project-call';
 import { isAndroid } from '../../platform/environment';
 import { ChevronRight, RefreshCw, SlidersHorizontal, Volume2 } from 'lucide-react';
-import type { Dispatch, SetStateAction } from 'react';
+import { useState, type Dispatch, type SetStateAction } from 'react';
 import type { Player } from '../../audio/Player';
 import { sourceTracks } from '../../audio/performance';
 import { t as tr } from '../../i18n';
@@ -10,10 +10,10 @@ import { keyLabel, transpose } from '../analysis/transposition';
 import ResultPicker from '../models/ResultPicker';
 import PracticeModeControl from '../recording/PracticeModeControl';
 import TakeTiming from '../recording/TakeTiming';
-import { requestTakeRemoval } from '../recording/TakeRemoval';
 import CountInControl from './CountInControl';
 import PresetControls from './PresetControls';
-import TrackControl from './TrackControl';
+import TrackControl, { trackLabel } from './TrackControl';
+import SortableTracks from '../../shared/SortableTracks';
 import { trackColor } from '../../styles/palette';
 interface Props {
   project: Project;
@@ -43,6 +43,7 @@ export default function Mixer({
   onTrackChange,
   recording,
 }: Props) {
+  const [timingIds, setTimingIds] = useState<Set<string>>(() => new Set());
   const act = async (work: () => Promise<unknown>) => {
     try {
       return await work();
@@ -73,11 +74,12 @@ export default function Mixer({
             onProject({
               ...project,
               sourceMix: project.sourceMix
-                ? { ...project.sourceMix, gain: 1, mute: false, solo: false }
+                ? { ...project.sourceMix, gain: 1, pan: 0, mute: false, solo: false }
                 : undefined,
               sourceGroups: project.sourceGroups?.map((group) => ({
                 ...group,
                 gain: 1,
+                pan: 0,
                 mute: false,
                 solo: false,
                 tracks: group.tracks.map((track) => ({
@@ -148,43 +150,62 @@ export default function Mixer({
             {tr('音轨')}
             <span>{sourceTracks(project).length}</span>
           </div>
-          {sourceTracks(project).map((t, i) => (
-            <div key={t.id} className="mixer-track-entry">
-              <TrackControl
-                key={t.id}
-                track={t}
-                selected={waveSource === t.id}
-                onSelect={() => onWaveSource((source) => (source === t.id ? 'mix' : t.id))}
-                meterPlayer={player}
-                onState={(action) => onTrackState(t, action)}
-                color={trackColor(t.name)}
-                onChange={(patch) => onTrackChange(t, patch)}
-              />
-              {project.takes?.some((take) => take.id === t.id) && (
-                <TakeTiming
-                  take={project.takes.find((take) => take.id === t.id)!}
-                  creation={project.kind === 'creation'}
-                  onChange={(patch) => onTrackChange(t, patch)}
-                  onRemove={() =>
-                    void act(async () => {
-                      if (project.kind === 'creation') {
-                        requestTakeRemoval(
-                          project,
-                          project.takes!.find((take) => take.id === t.id)!,
-                        );
-                        return;
-                      }
-                      const p = await jamCall<Project>('take-select', {
-                        id: project.id,
-                        takeIds: (project.selectedTakeIds || []).filter((id) => id !== t.id),
-                      });
-                      onAdopt(p);
-                    })
-                  }
-                />
-              )}
-            </div>
-          ))}
+          <SortableTracks
+            items={sourceTracks(project)}
+            projectId={project.id}
+            scope="mixer"
+            label={trackLabel}
+            disabled={loading || recording}
+          >
+            {(track) => {
+              const take = project.takes?.find((take) => take.id === track.id);
+              const open = timingIds.has(track.id);
+              return (
+                <div className="mixer-track-entry">
+                  <TrackControl
+                    track={track}
+                    selected={waveSource === track.id}
+                    editingDisabled={recording || loading}
+                    onSelect={() =>
+                      onWaveSource((source) => (source === track.id ? 'mix' : track.id))
+                    }
+                    meterPlayer={player}
+                    onState={(action) => onTrackState(track, action)}
+                    color={trackColor(track.name)}
+                    onChange={(patch) => onTrackChange(track, patch)}
+                    onTiming={
+                      take
+                        ? () =>
+                            setTimingIds((before) => {
+                              const next = new Set(before);
+                              next.has(track.id) ? next.delete(track.id) : next.add(track.id);
+                              return next;
+                            })
+                        : undefined
+                    }
+                    timingOpen={open}
+                    onRemove={
+                      take
+                        ? () =>
+                            void act(async () => {
+                              const p = await jamCall<Project>('take-select', {
+                                id: project.id,
+                                takeIds: (project.selectedTakeIds || []).filter(
+                                  (id) => id !== track.id,
+                                ),
+                              });
+                              onAdopt(p);
+                            })
+                        : undefined
+                    }
+                  />
+                  {take && open && (
+                    <TakeTiming take={take} onChange={(patch) => onTrackChange(track, patch)} />
+                  )}
+                </div>
+              );
+            }}
+          </SortableTracks>
         </>
       )}
       {isAndroid && (
@@ -211,7 +232,10 @@ export default function Mixer({
           </span>
         </div>
         <div className="pitch-buttons">
-          <button onClick={() => onPractice({ pitch: Math.max(-12, project.practice.pitch - 1) })}>
+          <button
+            disabled={recording || loading}
+            onClick={() => onPractice({ pitch: Math.max(-12, project.practice.pitch - 1) })}
+          >
             −
           </button>
           <strong>
@@ -219,7 +243,10 @@ export default function Mixer({
               ? keyLabel(transpose(project.analysis.key, project.practice.pitch))
               : tr('原调')}
           </strong>
-          <button onClick={() => onPractice({ pitch: Math.min(12, project.practice.pitch + 1) })}>
+          <button
+            disabled={recording || loading}
+            onClick={() => onPractice({ pitch: Math.min(12, project.practice.pitch + 1) })}
+          >
             +
           </button>
         </div>

@@ -305,6 +305,7 @@ export class Player {
   }
   private appendTask: Promise<void> | null = null;
   private keepCaptureMix = false;
+  captureOwner: symbol | null = null;
   private loopAfterCapture: { a: number; b: number } | null | undefined;
   get captureLoop() {
     return this.loopAfterCapture === undefined ? this.loop : this.loopAfterCapture;
@@ -313,8 +314,8 @@ export class Player {
     return this.captureActive || this.keepCaptureMix;
   }
   restoreLoopAfterCapture(loop: { a: number; b: number } | null) {
-    if (this.playing) this.loopAfterCapture = loop;
-    else this.loop = loop;
+    this.loopAfterCapture = undefined;
+    this.loop = loop;
   }
   private createChannel(
     track: Track,
@@ -424,7 +425,15 @@ export class Player {
         }
         this.channels = this.channels.filter((c) => !removed.includes(c));
         this.channels.push(...loaded);
-        this.duration = Math.max(this.duration, sessionDuration(project, 0));
+        this.duration = sessionDuration(
+          project,
+          Math.max(
+            0,
+            ...this.channels
+              .filter((channel) => !channel.recorded)
+              .map((channel) => (channel.track.start || 0) + channel.duration),
+          ),
+        );
         this.generation++;
         this.trackWaves.clear();
         this.mixWaves.clear();
@@ -476,6 +485,8 @@ export class Player {
   async load(project: Project) {
     const generation = ++this.generation;
     this.pause();
+    this.loopAfterCapture = undefined;
+    this.keepCaptureMix = false;
     this.onLoadProgress(tr('正在准备音轨'));
     const same = this.project?.id === project.id,
       oldBuffers = new Map(
@@ -589,10 +600,14 @@ export class Player {
     this.project = project;
     const was = this.playing || this.resumeRequested;
     const position = this.position();
-    const changed = this.tempo !== project.practice.tempo || this.pitch !== project.practice.pitch;
+    const changed =
+      !this.captureActive &&
+      (this.tempo !== project.practice.tempo || this.pitch !== project.practice.pitch);
     if (changed) this.pause(false);
-    this.tempo = project.practice.tempo;
-    this.pitch = project.practice.pitch;
+    if (!this.captureActive) {
+      this.tempo = project.practice.tempo;
+      this.pitch = project.practice.pitch;
+    }
     if (this.dsp) {
       this.dsp.playbackRate.value = this.tempo;
       this.dsp.pitchSemitones.value = this.pitch;
@@ -601,6 +616,7 @@ export class Player {
       this.master.gain.setTargetAtTime(project.practice.master, this.context!.currentTime, 0.01);
     const tracks = playbackTracks(project, this.captureMix),
       solo = tracks.some((t) => t.solo && !t.mute);
+    let timingChanged = false;
     this.metroBeats = beatGrid(project, this.duration);
     this.metronomeGain?.gain.setTargetAtTime(
       project.practice.metronome ? (project.practice.metronomeVolume ?? 0.5) : 0,
@@ -618,6 +634,11 @@ export class Player {
       const track =
         tracks.find((t) => t.id === channel.track.id && t.file === channel.track.file) ||
         channel.track;
+      if (channel.track.start !== track.start) {
+        timingChanged = true;
+        this.trackWaves.delete(track.id);
+        this.mixWaves.clear();
+      }
       channel.track = track;
       channel.gain.gain.setTargetAtTime(
         track.mute || (solo && !track.solo) ? 0 : track.gain,
@@ -631,7 +652,9 @@ export class Player {
       this.mixWarmTimer = setTimeout(() => void this.waveform('mix').catch(() => {}), 200);
     if (changed && was) {
       this.offset = position;
-      void this.play();
+      void this.play().catch((error) => this.onError(error.message));
+    } else if (timingChanged && this.playing && !this.captureActive) {
+      this.seek(position);
     }
   }
   position() {
@@ -666,8 +689,10 @@ export class Player {
       : position;
   }
   async play(countIn = false) {
+    const serial = ++this.playSerial;
     if (!this.playing && this.project && this.canAppend(this.project))
       await this.append(this.project);
+    if (serial !== this.playSerial) return;
     if (!this.context || (!this.channels.length && !this.captureActive) || this.playing) return;
     this.resumeRequested = true;
     if (this.idleTimer) {
@@ -678,8 +703,7 @@ export class Player {
       clearTimeout(this.scrubWarmTimer);
       this.scrubWarmTimer = null;
     }
-    const serial = ++this.playSerial,
-      context = this.context;
+    const context = this.context;
     try {
       await this.nativePlayback(true);
       if (serial !== this.playSerial) return;
@@ -780,8 +804,8 @@ export class Player {
     if ((context as AudioContext & { sinkId?: string }).sinkId !== sink)
       await context.setSinkId(sink);
   }
-  pause(releaseNative = true) {
-    this.seekSerial++;
+  pause(releaseNative = true, preserveSeek = false) {
+    if (!preserveSeek) this.seekSerial++;
     this.preview = null;
     this.seekTarget = null;
     if (this.scrubWarmTimer) clearTimeout(this.scrubWarmTimer);
@@ -906,7 +930,7 @@ export class Player {
     if (this.tempo !== 1 || this.pitch !== 0) {
       // Time stretching owns a FIFO; clear it to prevent old-position residue.
       // Only the short DSP reset remains silent, never the storage request.
-      this.pause(false);
+      this.pause(false, true);
       this.offset = target;
       await this.play();
       return;
@@ -1237,7 +1261,45 @@ export class Player {
         )
       : 0;
   }
+  private groupMeterSamples: Float32Array<ArrayBuffer>[] = [];
   trackLevel(id: string) {
+    if (id.startsWith('group:')) {
+      const groupId = id.slice(6);
+      const channels = this.channels.filter((channel) => channel.track.groupId === groupId);
+      if (
+        !channels.length ||
+        !this.playing ||
+        !this.context ||
+        this.context.currentTime < this.started
+      )
+        return { peak: 0, rms: 0 };
+      let peak = 0,
+        power = 0,
+        count = 0;
+      for (let side = 0; side < 2; side++) {
+        const size = Math.max(
+          0,
+          ...channels.map((channel) => channel.meterData[side]?.length || 0),
+        );
+        if (!size) continue;
+        if (this.groupMeterSamples[side]?.length !== size)
+          this.groupMeterSamples[side] = new Float32Array(size);
+        const mixed = this.groupMeterSamples[side];
+        mixed.fill(0);
+        for (const channel of channels) {
+          const data = channel.meterData[side];
+          if (!data) continue;
+          channel.meters[side].getFloatTimeDomainData(data);
+          for (let sample = 0; sample < data.length; sample++) mixed[sample] += data[sample];
+        }
+        for (const sample of mixed) {
+          peak = Math.max(peak, Math.abs(sample));
+          power += sample * sample;
+        }
+        count += size;
+      }
+      return { peak, rms: Math.sqrt(power / Math.max(1, count)) };
+    }
     const channel = this.channels.find((channel) => channel.track.id === id);
     if (!channel || !this.playing || !this.context || this.context.currentTime < this.started)
       return { peak: 0, rms: 0 };
@@ -1308,7 +1370,7 @@ export class Player {
     master: number,
     valid: () => boolean,
   ) {
-    if (this.streaming) return this.streaming.envelope(tracks, origin, duration, master);
+    if (this.streaming) return this.streaming.envelope(tracks, origin, duration, master, valid);
     const rate = this.context!.sampleRate,
       values: number[] = [];
     // One two-second PCM buffer at a time, with a global queue across mix keys.
@@ -1396,6 +1458,21 @@ export class Player {
         )
       : { origin: 0, duration: this.duration };
   }
+  private groupWaveKey(source: string, group: SourceGroup) {
+    return JSON.stringify([
+      source,
+      this.generation,
+      groupTracks(group).map((track) => [
+        track.id,
+        track.file,
+        track.start,
+        track.gain,
+        track.pan,
+        track.mute,
+        track.solo,
+      ]),
+    ]);
+  }
   async waveform(source = 'mix', groupOverride?: SourceGroup): Promise<number[]> {
     if (
       source !== 'mix' &&
@@ -1431,9 +1508,7 @@ export class Player {
       ? groupOverride || creationGroups(this.project!).find((g) => g.id === source.slice(6))
       : undefined;
     if (source !== 'mix' && !group) return [];
-    const key = group
-        ? source + '|' + generation + '|' + JSON.stringify(groupTracks(group))
-        : this.waveKey(),
+    const key = group ? this.groupWaveKey(source, group) : this.waveKey(),
       found = this.mixWaves.get(key),
       existing = this.mixInFlight.get(key);
     if (found) return found;
@@ -1461,7 +1536,13 @@ export class Player {
     const task = this.waveQueue
       .catch(() => {})
       .then(async () => {
-        const valid = () => generation === this.generation && (group || key === this.waveKey());
+        const valid = () => {
+          if (generation !== this.generation) return false;
+          if (!group) return key === this.waveKey();
+          const current =
+            this.project && creationGroups(this.project).find((item) => item.id === group.id);
+          return !!current && key === this.groupWaveKey(source, current);
+        };
         if (!valid()) return [];
         const values = await this.renderEnvelope(
           audible,

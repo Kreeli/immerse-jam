@@ -1,6 +1,7 @@
 // A small UTF-16 INI snapshot lets the native installer display real download
 // events without a second window or blocking its UI thread.
 const fs = require('node:fs');
+const { replaceFile } = require('./store.cjs');
 const clean = (value) =>
   String(value ?? '')
     .replace(/[\r\n\0]/g, ' ')
@@ -59,20 +60,39 @@ function create(file, english = false) {
         : '',
       message: (e.message || '').replace(/\x1b\[[0-9;]*m/g, ''),
     };
-    const temp = file + '.tmp';
-    fs.writeFileSync(
-      temp,
-      '\ufeff[Progress]\r\n' +
-        Object.entries(fields)
-          .map(([key, value]) => key + '=' + clean(value))
-          .join('\r\n') +
-        '\r\n',
-      'utf16le',
-    );
-    fs.renameSync(temp, file);
+    const temp = file + '.' + require('node:crypto').randomUUID() + '.tmp';
+    try {
+      fs.writeFileSync(
+        temp,
+        '\ufeff[Progress]\r\n' +
+          Object.entries(fields)
+            .map(([key, value]) => key + '=' + clean(value))
+            .join('\r\n') +
+          '\r\n',
+        'utf16le',
+      );
+      replaceFile(temp, file);
+    } catch (error) {
+      // Progress is observational: an installer read lock must not fail the
+      // download itself or escape from a timer as an uncaught exception.
+      if (!['EPERM', 'EACCES', 'EBUSY'].includes(error.code)) console.error(error);
+      if (!timer) timer = setTimeout(write, 250);
+    } finally {
+      try {
+        fs.rmSync(temp, { force: true });
+      } catch {}
+    }
   };
   return {
     send(event) {
+      if (
+        !event.stage &&
+        !event.file &&
+        !event.message?.trim() &&
+        !Number.isFinite(event.progress) &&
+        !Number.isFinite(event.received)
+      )
+        return;
       if (event.stage) stage = event.stage;
       pending = event;
       // "complete" is committed only after prepare() itself resolves.
@@ -82,7 +102,7 @@ function create(file, english = false) {
     finish(error) {
       state = error ? 'failed' : 'complete';
       pending = error
-        ? { message: error.message || String(error) }
+        ? { message: require('./install-errors.cjs').errorMessage(error, english) }
         : {
             progress: 1,
             file: english ? 'Selected components are ready' : '所选组件已就绪',

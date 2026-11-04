@@ -17,6 +17,7 @@ interface Props {
   browsing?: boolean;
   onReturn?: () => void;
   recorder: ReactNode;
+  task?: ReactNode;
 }
 export default function Transport({
   project,
@@ -31,12 +32,23 @@ export default function Transport({
   browsing,
   onReturn,
   recorder,
+  task,
 }: Props) {
   const [speedOpen, setSpeedOpen] = useState(false);
   const scrub = useRef<boolean>(false);
   const [scrubPosition, setScrubPosition] = useState<number | null>(null);
   const [visualPosition, setVisualPosition] = useState(position);
   const [starting, setStarting] = useState(false);
+  const audition = useRef<{ position: number; playing: boolean } | null>(null);
+  const finishAudition = () => {
+    const before = audition.current;
+    if (!before) return;
+    audition.current = null;
+    player.pause();
+    player.seek(before.position);
+    if (before.playing) void player.play().catch((error) => player.onError(error.message));
+  };
+  useEffect(() => () => finishAudition(), [player]);
   useEffect(() => {
     let frame = 0;
     const draw = () => {
@@ -101,6 +113,7 @@ export default function Transport({
           />
           <span>{time(Math.max(project.duration, position))}</span>
         </div>
+        {task}
         <div className="mobile-transport-controls nr-m-dock-row">
           <div className="mobile-primary-controls">
             <button
@@ -137,6 +150,7 @@ export default function Transport({
                   </output>
                   <input
                     aria-label={tr('播放速度')}
+                    disabled={recording}
                     type="range"
                     min=".25"
                     max="2"
@@ -145,7 +159,11 @@ export default function Transport({
                     onChange={(e) => onPractice({ tempo: +e.target.value })}
                   />
                 </div>
-                <button className="small" onClick={() => onPractice({ tempo: 1 })}>
+                <button
+                  className="small"
+                  disabled={recording}
+                  onClick={() => onPractice({ tempo: 1 })}
+                >
                   {tr('重置')}
                 </button>
               </div>
@@ -172,6 +190,7 @@ export default function Transport({
           </span>
         )}
         <div className="transport-spacer" />
+        {task}
         <label className="tempo">
           <Gauge size={16} />
           <input
@@ -247,13 +266,12 @@ export default function Transport({
           title={tr('按住试听，松开返回')}
           onPointerDown={(event) => {
             event.currentTarget.setPointerCapture(event.pointerId);
-            (event.currentTarget as any)._start = position;
-            void player.play();
+            audition.current = { position: player.position(), playing: player.playing };
+            void player.play().catch((error) => player.onError(error.message));
           }}
-          onPointerUp={(event) => {
-            player.pause();
-            player.seek((event.currentTarget as any)._start || 0);
-          }}
+          onPointerUp={finishAudition}
+          onPointerCancel={finishAudition}
+          onLostPointerCapture={finishAudition}
         >
           <Radio size={20} />
         </button>

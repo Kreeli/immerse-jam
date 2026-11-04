@@ -12,18 +12,6 @@ const { Jobs } = require('./jobs.cjs');
 const { Models } = require('./models.cjs');
 const { importArchive, pack } = require('./archive.cjs');
 const { Transfer } = require('./transfer.cjs');
-protocol.registerSchemesAsPrivileged([
-  {
-    scheme: 'immerse',
-    privileges: {
-      standard: true,
-      secure: true,
-      supportFetchAPI: true,
-      stream: true,
-      corsEnabled: true,
-    },
-  },
-]);
 const { PeerFiles } = require('./peer-files.cjs');
 const { scanDatabase, importDatabase } = require('./migration.cjs');
 if (process.env.IMMERSE_PROFILE_DIR) {
@@ -153,513 +141,573 @@ function handle(name, fn) {
 ipcMain.on('jam:initial-ui', (event) => {
   event.returnValue = { language: process.env.IMMERSE_LOCALE || null };
 });
-app.whenReady().then(async () => {
-  store = new Store(base);
-  require('./temp-artifacts.cjs').cleanTransfers(base);
-  takes = new (require('./takes.cjs').Takes)(store, ffmpeg);
-  models = new Models(runtimeBase);
-  jobs = new Jobs({ base: runtimeBase, backend, ffmpeg, onEvent: emit });
-  transfer = new Transfer(store, emit);
-  peerFiles = new PeerFiles(store, emit);
-  protocol.handle('immerse', (request) => {
-    try {
-      const u = new URL(request.url);
-      if (u.hostname === 'asset') {
-        const parts = u.pathname.split('/').filter(Boolean).map(decodeURIComponent);
-        const id = parts.shift();
-        return net.fetch(pathToFileURL(store.asset(id, parts.join('/'))).toString(), {
-          headers: request.headers,
-        });
+app
+  .whenReady()
+  .then(async () => {
+    store = new Store(base);
+    require('./temp-artifacts.cjs').cleanTransfers(base);
+    takes = new (require('./takes.cjs').Takes)(store, ffmpeg);
+    models = new Models(runtimeBase);
+    jobs = new Jobs({ base: runtimeBase, backend, ffmpeg, onEvent: emit });
+    transfer = new Transfer(store, emit);
+    peerFiles = new PeerFiles(store, emit);
+    protocol.handle('immerse', (request) => {
+      try {
+        const u = new URL(request.url);
+        if (u.hostname === 'asset') {
+          const parts = u.pathname.split('/').filter(Boolean).map(decodeURIComponent);
+          const id = parts.shift();
+          return net.fetch(pathToFileURL(store.asset(id, parts.join('/'))).toString(), {
+            headers: request.headers,
+          });
+        }
+        return new Response('Not found', { status: 404 });
+      } catch {
+        return new Response('Not found', { status: 404 });
       }
-      return new Response('Not found', { status: 404 });
-    } catch {
-      return new Response('Not found', { status: 404 });
-    }
-  });
-  win = new BrowserWindow({
-    width: 1440,
-    height: 940,
-    minWidth: 1024,
-    minHeight: 700,
-    backgroundColor: '#111114',
-    title: 'Immerse Jam',
-    icon: path.join(app.isPackaged ? process.resourcesPath : root, 'assets', 'app-icon.ico'),
-    autoHideMenuBar: true,
-    frame: false,
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.cjs'),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true,
-      backgroundThrottling: false,
-    },
-  });
-  win.removeMenu();
-  const emitWindowState = () => {
-    if (!win.isDestroyed())
-      emit({ type: 'window-state', result: { maximized: win.isMaximized() } });
-  };
-  win.on('maximize', emitWindowState);
-  win.on('unmaximize', emitWindowState);
-  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
-  let closing = false,
-    allowClose = false;
-  win.on('close', (event) => {
-    if (allowClose || win.webContents.isCrashed()) return;
-    event.preventDefault();
-    if (closing) return;
-    closing = true;
-    emit({ type: 'closing' });
-    setTimeout(() => {
-      if (!win.isDestroyed()) {
-        allowClose = true;
-        win.close();
-      }
-    }, 2500).unref();
-  });
-  win.setIcon(path.join(app.isPackaged ? process.resourcesPath : root, 'assets', 'app-icon.ico'));
-  win.setAppDetails({
-    appId: 'app.immersejam.desktop',
-    appIconPath: path.join(app.isPackaged ? process.resourcesPath : root, 'assets', 'app-icon.ico'),
-    relaunchCommand: '"' + process.execPath + '"',
-    relaunchDisplayName: 'Immerse Jam',
-  });
-  const folders = new (require('./folders.cjs').Folders)(store);
-  handle('folders-list', () => folders.list());
-  handle('folders-edit', (options) => {
-    const result = folders.edit(options);
-    emit({ type: 'library-changed' });
-    return result;
-  });
-  handle('feedback-open', ({ target }) =>
-    shell.openExternal(
-      target === 'email'
-        ? 'mailto:meowmeowneko999@gmail.com?subject=Immerse%20Jam%20Feedback'
-        : 'https://github.com/Kreeli/immerse-jam/issues/new',
-    ),
-  );
-  win.webContents.on('will-navigate', (e, url) => {
-    const allowed = process.env.IMMERSE_DEV_URL
-      ? url.startsWith(process.env.IMMERSE_DEV_URL + '/')
-      : url.startsWith(pathToFileURL(path.join(root, 'dist')).href);
-    if (!allowed) e.preventDefault();
-  });
-  handle('open-license-folder', async () => {
-    const error = await shell.openPath(
-      path.join(app.isPackaged ? process.resourcesPath : root, 'assets/licenses'),
+    });
+    win = new BrowserWindow({
+      width: 1440,
+      height: 940,
+      minWidth: 1024,
+      minHeight: 700,
+      backgroundColor: '#111114',
+      title: 'Immerse Jam',
+      icon: path.join(app.isPackaged ? process.resourcesPath : root, 'assets', 'app-icon.ico'),
+      autoHideMenuBar: true,
+      frame: false,
+      webPreferences: {
+        preload: path.join(__dirname, 'preload.cjs'),
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: true,
+        backgroundThrottling: false,
+      },
+    });
+    win.removeMenu();
+    const emitWindowState = () => {
+      if (!win.isDestroyed())
+        emit({ type: 'window-state', result: { maximized: win.isMaximized() } });
+    };
+    win.on('maximize', emitWindowState);
+    win.on('unmaximize', emitWindowState);
+    win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+    let closing = false,
+      allowClose = false,
+      closeTimer;
+    win.on('close', (event) => {
+      if (allowClose || win.webContents.isCrashed()) return;
+      event.preventDefault();
+      if (closing) return;
+      closing = true;
+      emit({ type: 'closing' });
+      closeTimer = setTimeout(() => {
+        if (!win.isDestroyed()) {
+          closing = false;
+          dialog.showMessageBox(win, {
+            type: 'error',
+            message: t('保存尚未完成，窗口保持打开。请重试保存后再关闭。'),
+          });
+        }
+      }, 15000).unref();
+    });
+    win.setIcon(path.join(app.isPackaged ? process.resourcesPath : root, 'assets', 'app-icon.ico'));
+    win.setAppDetails({
+      appId: 'app.immersejam.desktop',
+      appIconPath: path.join(
+        app.isPackaged ? process.resourcesPath : root,
+        'assets',
+        'app-icon.ico',
+      ),
+      relaunchCommand: '"' + process.execPath + '"',
+      relaunchDisplayName: 'Immerse Jam',
+    });
+    const folders = new (require('./folders.cjs').Folders)(store);
+    handle('folders-list', () => folders.list());
+    handle('folders-edit', (options) => {
+      const result = folders.edit(options);
+      emit({ type: 'library-changed' });
+      return result;
+    });
+    handle('feedback-open', ({ target }) =>
+      shell.openExternal(
+        target === 'email'
+          ? 'mailto:meowmeowneko999@gmail.com?subject=Immerse%20Jam%20Feedback'
+          : 'https://github.com/Kreeli/immerse-jam/issues/new',
+      ),
     );
-    if (error) throw new Error(error);
-    return true;
-  });
-  handle('ui-language', ({ language }) => {
-    process.env.IMMERSE_UI_LANGUAGE = language === 'en' ? 'en' : 'zh-CN';
-    return true;
-  });
-  handle('library', () => store.list());
-  handle('project-delete', async ({ id }) => {
-    if (jobs.active) throw new Error('请先等待处理任务完成或取消，再删除项目');
-    if ([...takes.sessions.values()].some((session) => session.projectId === id))
-      throw new Error('请先停止录音，再删除工程');
-    const folder = path.resolve(store.dir(id));
-    if (
-      path.dirname(folder) !== path.resolve(store.projects) ||
-      fs.lstatSync(folder).isSymbolicLink()
-    )
-      throw new Error('无效项目目录');
-    await shell.trashItem(folder);
-    emit({ type: 'library-changed' });
-    return true;
-  });
-  require('./ipc/recordings.cjs')({ handle, store, takes, emit, pick, runtimeBase, base });
+    win.webContents.on('will-navigate', (e, url) => {
+      const allowed = process.env.IMMERSE_DEV_URL
+        ? url.startsWith(process.env.IMMERSE_DEV_URL + '/')
+        : url.startsWith(pathToFileURL(path.join(root, 'dist')).href);
+      if (!allowed) e.preventDefault();
+    });
+    handle('open-license-folder', async () => {
+      const error = await shell.openPath(
+        path.join(app.isPackaged ? process.resourcesPath : root, 'assets/licenses'),
+      );
+      if (error) throw new Error(error);
+      return true;
+    });
+    handle('ui-language', ({ language }) => {
+      process.env.IMMERSE_UI_LANGUAGE = language === 'en' ? 'en' : 'zh-CN';
+      return true;
+    });
+    handle('library', () => store.list());
+    handle('project-delete', async ({ id }) => {
+      if (pending || jobs.active) throw new Error('请先等待处理任务完成或取消，再删除项目');
+      if ([...takes.sessions.values()].some((session) => session.projectId === id))
+        throw new Error('请先停止录音，再删除工程');
+      const folder = path.resolve(store.dir(id));
+      if (
+        path.dirname(folder) !== path.resolve(store.projects) ||
+        fs.lstatSync(folder).isSymbolicLink()
+      )
+        throw new Error('无效项目目录');
+      await shell.trashItem(folder);
+      emit({ type: 'library-changed' });
+      return true;
+    });
+    require('./ipc/recordings.cjs')({ handle, store, takes, emit, pick, runtimeBase, base });
 
-  handle('import', async (data) => {
-    let files = data.paths;
-    if (!files) {
-      const selection = await pick([
+    handle('import', async (data) => {
+      let files = data.paths;
+      if (!files) {
+        const selection = await pick([
+          {
+            name: '音频或歌曲项目',
+            extensions: [
+              'mp3',
+              'wav',
+              'flac',
+              'm4a',
+              'aac',
+              'ogg',
+              'opus',
+              'mp4',
+              'webm',
+              'aum',
+              'ijam',
+            ],
+          },
+        ]);
+        if (selection.canceled) return [];
+        files = selection.filePaths;
+      }
+      return importFiles(files);
+    });
+    handle('update', ({ id, patch }) => store.update(id, patch));
+    handle('attach', async (data) => {
+      let p = store.get(data.id);
+      if (data.midiBytes) {
+        if (data.midiBytes.length > 30 * 1024 ** 2) throw new Error('MIDI 文件过大');
+        const attachment =
+          data.attachmentId && p.attachments.find((a) => a.id === data.attachmentId);
+        if (data.attachmentId && !attachment) throw new Error('附件不存在');
+        if (
+          attachment &&
+          p.scoreAttachmentId === attachment.id &&
+          p.scoreMidi &&
+          fs.existsSync(store.asset(p.id, p.scoreMidi))
+        )
+          return p;
+        const rel = attachment
+          ? 'attachments/alignment-' +
+            crypto.createHash('sha256').update(attachment.id).digest('hex').slice(0, 16) +
+            '.mid'
+          : 'attachments/alignment.mid';
+        fs.mkdirSync(path.dirname(store.asset(p.id, rel)), { recursive: true });
+        const bytes = Buffer.from(data.midiBytes),
+          target = store.asset(p.id, rel);
+        if (
+          (p.scoreAttachmentId && p.scoreAttachmentId !== attachment?.id) ||
+          (!p.alignment && (!fs.existsSync(target) || !fs.readFileSync(target).equals(bytes)))
+        )
+          p.alignment = null;
+        fs.writeFileSync(target, bytes);
+        p.scoreMidi = rel;
+        if (attachment) p.scoreAttachmentId = attachment.id;
+        return store.save(p);
+      }
+      const selected = await pick([
         {
-          name: '音频或歌曲项目',
+          name: '乐谱、MIDI 或附件',
           extensions: [
-            'mp3',
-            'wav',
-            'flac',
-            'm4a',
-            'aac',
-            'ogg',
-            'opus',
-            'mp4',
-            'webm',
-            'aum',
-            'ijam',
+            'gp',
+            'gp3',
+            'gp4',
+            'gp5',
+            'gpx',
+            'gtp',
+            'xml',
+            'musicxml',
+            'mxl',
+            'mid',
+            'midi',
+            'pdf',
+            'png',
+            'jpg',
+            'txt',
           ],
         },
       ]);
-      if (selection.canceled) return [];
-      files = selection.filePaths;
-    }
-    return importFiles(files);
-  });
-  handle('update', ({ id, patch }) => store.update(id, patch));
-  handle('attach', async (data) => {
-    const p = store.get(data.id);
-    if (data.midiBytes) {
-      if (data.midiBytes.length > 30 * 1024 ** 2) throw new Error('MIDI 文件过大');
-      const rel = 'attachments/alignment.mid';
-      fs.mkdirSync(path.dirname(store.asset(p.id, rel)), { recursive: true });
-      const bytes = Buffer.from(data.midiBytes),
-        target = store.asset(p.id, rel);
-      if (!fs.existsSync(target) || !fs.readFileSync(target).equals(bytes)) p.alignment = null;
-      fs.writeFileSync(target, bytes);
-      p.scoreMidi = rel;
-      return store.save(p);
-    }
-    const selected = await pick([
-      {
-        name: '乐谱、MIDI 或附件',
-        extensions: [
-          'gp',
-          'gp3',
-          'gp4',
-          'gp5',
-          'gpx',
-          'gtp',
-          'xml',
-          'musicxml',
-          'mxl',
-          'mid',
-          'midi',
-          'pdf',
-          'png',
-          'jpg',
-          'txt',
-        ],
-      },
-    ]);
-    if (selected.canceled) return p;
-    for (const file of selected.filePaths) {
-      const id = crypto.randomUUID(),
-        relative = 'attachments/' + id + path.extname(file).toLowerCase();
-      fs.mkdirSync(path.dirname(store.asset(p.id, relative)), { recursive: true });
-      fs.copyFileSync(file, store.asset(p.id, relative));
-      p.attachments.push({ id, name: path.basename(file), file: relative });
-    }
-    return store.save(p);
-  });
-  handle('attachment-delete', ({ id, attachmentId }) =>
-    require('./content-removal.cjs').removeContent(store, id, attachmentId, 'attachment'),
-  );
-  handle('creation-remove-group', ({ id, groupId }) =>
-    require('./content-removal.cjs').removeContent(store, id, groupId, 'group'),
-  );
-  handle('read-attachment', ({ id, attachmentId }) => {
-    const p = store.get(id),
-      a = p.attachments.find((x) => x.id === attachmentId);
-    if (!a) throw new Error('附件不存在');
-    if (fs.statSync(store.asset(id, a.file)).size > 40 * 1024 ** 2)
-      throw new Error('乐谱附件超过 40 MB');
-    return new Uint8Array(fs.readFileSync(store.asset(id, a.file)));
-  });
-  handle('runtime-status', async () => {
-    const status = runtimeStatus();
-    return {
-      ...status,
-      ready: status.ready && (await require('./runtime-health.cjs').healthy(python)),
-    };
-  });
-  handle('download-settings', ({ source }) => {
-    const file = path.join(runtimeBase, 'downloads.json');
-    if (source !== undefined) {
-      if (!['auto', 'mirror', 'official'].includes(source) || installing)
-        throw new Error('当前无法切换下载源');
-      atomicJson(file, { source });
-    }
-    try {
-      return JSON.parse(fs.readFileSync(file, 'utf8'));
-    } catch {
-      return { source: 'auto' };
-    }
-  });
-  const updates = new (require('./updates.cjs').Updates)(runtimeBase, app.getVersion());
-  handle('update-check', () => updates.check());
-  handle('update-download', () => updates.download((event) => emit({ ...event, scope: 'update' })));
-  handle('update-install', async () => {
-    if (jobs.active || installing) throw new Error('请等待当前任务完成后再安装更新');
-    const error = await shell.openPath(await updates.verifiedInstaller());
-    if (error) throw new Error(error);
-    win.close();
-    return true;
-  });
-  handle('runtime-install', ({ mode }) => {
-    if (installing) return runtimeStatus();
-    installing = true;
-    ensureRuntime(runtimeBase, mode === 'cuda' ? 'cuda' : 'cpu', (e) =>
-      emit({ scope: 'runtime', ...e }),
-    )
-      .then(() => ensureAudioTools(runtimeBase, (e) => emit({ scope: 'runtime', ...e })))
-      .then(() => emit({ type: 'runtime-ready', ...runtimeStatus() }))
-      .catch((error) => emit({ type: 'error', scope: 'runtime', message: error.message }))
-      .finally(() => {
-        installing = false;
-        emit({ type: 'runtime-status', ...runtimeStatus() });
-      });
-    return { installing: true };
-  });
-  handle('result-select', ({ id, resultId }) => store.selectResult(id, resultId));
-  handle('result-rename', ({ id, resultId, name }) => store.renameResult(id, resultId, name));
-  handle('result-delete', ({ id, resultId }) => {
-    if (jobs.active || [...takes.sessions.values()].some((session) => session.projectId === id))
-      throw new Error('请先结束当前处理或录音，再删除分离结果');
-    return store.deleteResult(id, resultId);
-  });
-  handle('result-open', async ({ id, resultId }) => {
-    const p = store.get(id);
-    const result = resultId ? p.results.find((item) => item.id === resultId) : null;
-    if (resultId && !result) throw new Error('分离结果不存在');
-    const target = result ? store.asset(id, result.directory) : store.dir(id);
-    const error = await shell.openPath(target);
-    if (error) throw new Error(error);
-    return true;
-  });
-  handle('models', () => models.list());
-  handle('model-download', async ({ id }) => {
-    try {
-      emit({
-        scope: 'model-download',
-        modelId: id,
-        type: 'progress',
-        progress: 0,
-        message: '正在准备下载…',
-      });
-      await models.ensure(id, (e) => emit({ ...e, scope: 'model-download', modelId: id }));
-      emit({
-        scope: 'model-download',
-        modelId: id,
-        type: 'complete',
-        progress: 1,
-        message: '模型已下载并校验',
-      });
-      return models.list();
-    } catch (error) {
-      emit({ scope: 'model-download', modelId: id, type: 'error', message: error.message });
-      throw error;
-    }
-  });
-  handle('model-source-open', ({ id, file }) => {
-    const model = require('./models.cjs').catalog.find((m) => m.id === id);
-    const source =
-      model &&
-      require('./models.cjs')
-        .modelFiles(model)
-        .find((f) => f.file === file);
-    if (!source?.url?.startsWith('https://')) throw new Error('模型下载链接不存在');
-    return shell.openExternal(source.url);
-  });
-  handle('model-import', async () => {
-    if (!runtimeStatus().ready) throw new Error('请先准备本地运行环境');
-    const s = await nativeDialogs.showOpenDialog(win, {
-      properties: ['openDirectory'],
-      title: '选择模型文件夹（内置模型文件或 manifest.json）',
-    });
-    if (s.canceled) return null;
-    const model = models.import(s.filePaths[0]);
-    jobs.start(python, { operation: 'validate-model', model }, (r) => {
-      atomicJson(path.join(model.directory, 'verified.json'), r);
-      return r;
-    });
-    return model;
-  });
-  handle('run', async (data) => {
-    if (!runtimeStatus().ready) throw new Error('请先在设置中准备本地运行环境');
-    if (pending || jobs.active) throw new Error('已有处理任务，请完成或取消后再试');
-    pending = true;
-    try {
-      const p = store.get(data.id);
-      const request = {
-        operation: data.operation,
-        projectId: p.id,
-        directory: store.dir(p.id),
-        source: store.asset(p.id, p.playback || p.original),
-      };
-      if (data.operation === 'separate') {
-        request.mode = data.mode;
-        request.model = await models.ensure(data.modelId || 'roformer-sw', (e) =>
-          emit({ ...e, projectId: p.id, operation: 'separate' }),
-        );
-        if (
-          data.mode === 'six' &&
-          !['vocals', 'drums', 'bass', 'guitar', 'piano', 'other'].every((s) =>
-            request.model.stems.includes(s),
-          )
-        )
-          throw new Error('完整六轨模式需要选择六轨模型');
-        if (data.mode === 'guitarist' || data.mode === 'singer')
-          request.secondaryModel = await models.ensure(
-            data.mode === 'guitarist' ? 'guitar-lead' : 'karaoke',
-            (e) => emit({ ...e, projectId: p.id, operation: 'separate' }),
-          );
+      if (selected.canceled) return p;
+      p = store.get(data.id);
+      for (const file of selected.filePaths) {
+        const id = crypto.randomUUID(),
+          relative = 'attachments/' + id + path.extname(file).toLowerCase();
+        fs.mkdirSync(path.dirname(store.asset(p.id, relative)), { recursive: true });
+        fs.copyFileSync(file, store.asset(p.id, relative));
+        p.attachments.push({ id, name: path.basename(file), file: relative });
       }
-      if (data.operation === 'analyze') {
-        try {
-          request.tempoModel = await models.ensure('beat-this', (e) =>
-            emit({ ...e, projectId: p.id, operation: 'analyze' }),
+      return store.save(p);
+    });
+    handle('attachment-delete', ({ id, attachmentId }) =>
+      require('./content-removal.cjs').removeContent(store, id, attachmentId, 'attachment'),
+    );
+    handle('creation-remove-group', ({ id, groupId }) =>
+      require('./content-removal.cjs').removeContent(store, id, groupId, 'group'),
+    );
+    handle('read-attachment', ({ id, attachmentId }) => {
+      const p = store.get(id),
+        a = p.attachments.find((x) => x.id === attachmentId);
+      if (!a) throw new Error('附件不存在');
+      if (fs.statSync(store.asset(id, a.file)).size > 40 * 1024 ** 2)
+        throw new Error('乐谱附件超过 40 MB');
+      return new Uint8Array(fs.readFileSync(store.asset(id, a.file)));
+    });
+    handle('runtime-status', async () => {
+      const status = runtimeStatus();
+      return {
+        ...status,
+        ready: status.ready && (await require('./runtime-health.cjs').healthy(python)),
+      };
+    });
+    handle('download-settings', ({ source }) => {
+      const file = path.join(runtimeBase, 'downloads.json');
+      if (source !== undefined) {
+        if (!['auto', 'mirror', 'official'].includes(source) || installing)
+          throw new Error('当前无法切换下载源');
+        atomicJson(file, { source });
+      }
+      try {
+        return JSON.parse(fs.readFileSync(file, 'utf8'));
+      } catch {
+        return { source: 'auto' };
+      }
+    });
+    const updates = new (require('./updates.cjs').Updates)(runtimeBase, app.getVersion());
+    handle('update-check', () => updates.check());
+    handle('update-download', () =>
+      updates.download((event) => emit({ ...event, scope: 'update' })),
+    );
+    handle('update-install', async () => {
+      if (jobs.active || installing) throw new Error('请等待当前任务完成后再安装更新');
+      const error = await shell.openPath(await updates.verifiedInstaller());
+      if (error) throw new Error(error);
+      win.close();
+      return true;
+    });
+    handle('runtime-install', ({ mode }) => {
+      if (installing) return runtimeStatus();
+      if (pending || jobs.active || takes.sessions.size)
+        throw new Error('请先结束当前处理或录音，再安装运行环境');
+      installing = true;
+      ensureRuntime(runtimeBase, mode === 'cuda' ? 'cuda' : 'cpu', (e) =>
+        emit({ scope: 'runtime', ...e }),
+      )
+        .then(() => ensureAudioTools(runtimeBase, (e) => emit({ scope: 'runtime', ...e })))
+        .then(() => emit({ type: 'runtime-ready', ...runtimeStatus() }))
+        .catch((error) => emit({ type: 'error', scope: 'runtime', message: error.message }))
+        .finally(() => {
+          installing = false;
+          emit({ type: 'runtime-status', ...runtimeStatus() });
+        });
+      return { installing: true };
+    });
+    handle('result-select', ({ id, resultId }) => store.selectResult(id, resultId));
+    handle('result-rename', ({ id, resultId, name }) => store.renameResult(id, resultId, name));
+    handle('result-delete', ({ id, resultId }) => {
+      if (
+        pending ||
+        jobs.active ||
+        [...takes.sessions.values()].some((session) => session.projectId === id)
+      )
+        throw new Error('请先结束当前处理或录音，再删除分离结果');
+      return store.deleteResult(id, resultId);
+    });
+    handle('result-open', async ({ id, resultId }) => {
+      const p = store.get(id);
+      const result = resultId ? p.results.find((item) => item.id === resultId) : null;
+      if (resultId && !result) throw new Error('分离结果不存在');
+      const target = result ? store.asset(id, result.directory) : store.dir(id);
+      const error = await shell.openPath(target);
+      if (error) throw new Error(error);
+      return true;
+    });
+    handle('models', () => models.list());
+    handle('model-download', async ({ id }) => {
+      try {
+        emit({
+          scope: 'model-download',
+          modelId: id,
+          type: 'progress',
+          progress: 0,
+          message: '正在准备下载…',
+        });
+        await models.ensure(id, (e) => emit({ ...e, scope: 'model-download', modelId: id }));
+        emit({
+          scope: 'model-download',
+          modelId: id,
+          type: 'complete',
+          progress: 1,
+          message: '模型已下载并校验',
+        });
+        return models.list();
+      } catch (error) {
+        emit({ scope: 'model-download', modelId: id, type: 'error', message: error.message });
+        throw error;
+      }
+    });
+    handle('model-source-open', ({ id, file }) => {
+      const model = require('./models.cjs').catalog.find((m) => m.id === id);
+      const source =
+        model &&
+        require('./models.cjs')
+          .modelFiles(model)
+          .find((f) => f.file === file);
+      if (!source?.url?.startsWith('https://')) throw new Error('模型下载链接不存在');
+      return shell.openExternal(source.url);
+    });
+    handle('model-import', async () => {
+      if (!runtimeStatus().ready) throw new Error('请先准备本地运行环境');
+      const s = await nativeDialogs.showOpenDialog(win, {
+        properties: ['openDirectory'],
+        title: '选择模型文件夹（内置模型文件或 manifest.json）',
+      });
+      if (s.canceled) return null;
+      const model = models.import(s.filePaths[0]);
+      if (!model.custom) return model;
+      jobs.start(python, { operation: 'validate-model', model }, (r) => {
+        atomicJson(path.join(model.directory, 'verified.json'), r);
+        return r;
+      });
+      return model;
+    });
+    handle('run', async (data) => {
+      if (!runtimeStatus().ready) throw new Error('请先在设置中准备本地运行环境');
+      if (installing || pending || jobs.active) throw new Error('已有处理任务，请完成或取消后再试');
+      pending = true;
+      try {
+        const p = store.get(data.id);
+        const request = {
+          operation: data.operation,
+          projectId: p.id,
+          directory: store.dir(p.id),
+          source: store.asset(p.id, p.playback || p.original),
+        };
+        if (data.operation === 'separate') {
+          request.mode = data.mode;
+          request.model = await models.ensure(data.modelId || 'roformer-sw', (e) =>
+            emit({ ...e, projectId: p.id, operation: 'separate' }),
           );
-        } catch (error) {
-          emit({
-            type: 'progress',
-            projectId: p.id,
-            operation: 'analyze',
-            message: '节拍模型尚未准备好，将使用基础 BPM 估计',
-          });
+          if (
+            data.mode === 'six' &&
+            !['vocals', 'drums', 'bass', 'guitar', 'piano', 'other'].every((s) =>
+              request.model.stems.includes(s),
+            )
+          )
+            throw new Error('完整六轨模式需要选择六轨模型');
+          if (data.mode === 'guitarist' || data.mode === 'singer')
+            request.secondaryModel = await models.ensure(
+              data.mode === 'guitarist' ? 'guitar-lead' : 'karaoke',
+              (e) => emit({ ...e, projectId: p.id, operation: 'separate' }),
+            );
+        }
+        if (data.operation === 'analyze') {
+          try {
+            request.tempoModel = await models.ensure('beat-this', (e) =>
+              emit({ ...e, projectId: p.id, operation: 'analyze' }),
+            );
+          } catch (error) {
+            emit({
+              type: 'progress',
+              projectId: p.id,
+              operation: 'analyze',
+              message: '节拍模型尚未准备好，将使用基础 BPM 估计',
+            });
+          }
+        }
+        if (data.operation === 'align') {
+          if (!p.scoreMidi) throw new Error('请先打开乐谱或 MIDI 附件');
+          request.midi = store.asset(p.id, p.scoreMidi);
+        }
+        if (!['prepare', 'analyze', 'align', 'separate'].includes(data.operation))
+          throw new Error('不支持的处理操作');
+        return jobs.start(python, request, (result) =>
+          data.operation === 'separate'
+            ? store.addResult(p.id, result, {
+                modelId: request.model.id,
+                modelName: request.model.name,
+                mode: request.mode,
+              })
+            : store.save({ ...store.get(p.id), ...result }),
+        );
+      } finally {
+        pending = false;
+      }
+    });
+    handle('cancel', ({ jobId }) => {
+      archiveJobs.get(jobId)?.abort();
+      return jobs.cancel(jobId);
+    });
+    handle('project-recover', ({ id }) => store.recover(id));
+    handle('playback-budget', ({ id, files }) =>
+      require('./playback-budget.cjs').check(store, id, files, ffmpeg),
+    );
+    handle('export', async ({ id, full }) => {
+      const p = store.get(id);
+      const s = await nativeDialogs.showSaveDialog(win, {
+        defaultPath: p.title.replace(/[<>:"/\\|?*]/g, '_') + '.ijam',
+        filters: [{ name: 'Immerse Jam 项目', extensions: ['ijam'] }],
+      });
+      if (s.canceled) return null;
+      await pack(store, id, s.filePath, !!full);
+      return s.filePath;
+    });
+    handle('export-audio', async (data) => {
+      const { exportMix, exportStems } = require('./export-audio.cjs');
+      if (data.stems) {
+        const s = await nativeDialogs.showOpenDialog(win, { properties: ['openDirectory'] });
+        return s.canceled ? null : exportStems(store, data.id, s.filePaths[0]);
+      }
+      const p = store.get(data.id);
+      const s = await nativeDialogs.showSaveDialog(win, {
+        defaultPath: p.title.replace(/[<>:"/\\|?*]/g, '_') + '_mix.wav',
+        filters: [
+          { name: '无损 WAV', extensions: ['wav'] },
+          { name: 'MP3', extensions: ['mp3'] },
+        ],
+      });
+      if (s.canceled) return null;
+      await ensureAudioTools(runtimeBase, (e) => emit({ ...e, scope: 'audio-tools' }));
+      return exportMix(store, data.id, ffmpeg, s.filePath, data.region);
+    });
+
+    handle('pick-folder', async () => {
+      const s = await nativeDialogs.showOpenDialog(win, { properties: ['openDirectory'] });
+      return s.canceled ? null : s.filePaths[0];
+    });
+    handle('migration-scan', async (data) => {
+      const folder = data.folder;
+      if (!folder)
+        return { items: [], message: '选择 Audio Jam 导出文件所在文件夹，可批量导入 .aum' };
+      const items = [];
+      function scan(dir, depth) {
+        if (depth > 4) return;
+        for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+          if (e.isSymbolicLink()) continue;
+          const file = path.join(dir, e.name);
+          if (e.isDirectory()) scan(file, depth + 1);
+          else if (/\.aum$/i.test(e.name))
+            items.push({ file, name: e.name, size: fs.statSync(file).size });
+          if (items.length > 1000) return;
         }
       }
-      if (data.operation === 'align') {
-        if (!p.scoreMidi) throw new Error('请先打开乐谱或 MIDI 附件');
-        request.midi = store.asset(p.id, p.scoreMidi);
-      }
-      if (!['prepare', 'analyze', 'align', 'separate'].includes(data.operation))
-        throw new Error('不支持的处理操作');
-      return jobs.start(python, request, (result) =>
-        data.operation === 'separate'
-          ? store.addResult(p.id, result, {
-              modelId: request.model.id,
-              modelName: request.model.name,
-              mode: request.mode,
-            })
-          : store.save({ ...store.get(p.id), ...result }),
-      );
-    } finally {
-      pending = false;
-    }
-  });
-  handle('cancel', ({ jobId }) => {
-    archiveJobs.get(jobId)?.abort();
-    return jobs.cancel(jobId);
-  });
-  handle('project-recover', ({ id }) => store.recover(id));
-  handle('playback-budget', ({ id, files }) =>
-    require('./playback-budget.cjs').check(store, id, files, ffmpeg),
-  );
-  handle('export', async ({ id, full }) => {
-    const p = store.get(id);
-    const s = await nativeDialogs.showSaveDialog(win, {
-      defaultPath: p.title.replace(/[<>:"/\\|?*]/g, '_') + '.ijam',
-      filters: [{ name: 'Immerse Jam 项目', extensions: ['ijam'] }],
+      scan(folder, 0);
+      return { items };
     });
-    if (s.canceled) return null;
-    await pack(store, id, s.filePath, !!full);
-    return s.filePath;
-  });
-  handle('export-audio', async (data) => {
-    const { exportMix, exportStems } = require('./export-audio.cjs');
-    if (data.stems) {
-      const s = await nativeDialogs.showOpenDialog(win, { properties: ['openDirectory'] });
-      return s.canceled ? null : exportStems(store, data.id, s.filePaths[0]);
-    }
-    const p = store.get(data.id);
-    const s = await nativeDialogs.showSaveDialog(win, {
-      defaultPath: p.title.replace(/[<>:"/\\|?*]/g, '_') + '_mix.wav',
-      filters: [
-        { name: '无损 WAV', extensions: ['wav'] },
-        { name: 'MP3', extensions: ['mp3'] },
-      ],
+    handle('migration-import', ({ files }) => importFiles(files));
+    handle('migration-detect', () => {
+      const candidates = [
+        path.join(app.getPath('documents'), 'AumDb'),
+        path.join(process.env.USERPROFILE || '', 'Documents', 'AumDb'),
+        path.join(process.env.USERPROFILE || '', 'OneDrive', 'Documents', 'AumDb'),
+      ];
+      return candidates
+        .filter((f, i) => candidates.indexOf(f) === i && fs.existsSync(path.join(f, 'index.db')))
+        .map(scanDatabase);
     });
-    if (s.canceled) return null;
-    await ensureAudioTools(runtimeBase, (e) => emit({ ...e, scope: 'audio-tools' }));
-    return exportMix(store, data.id, ffmpeg, s.filePath, data.region);
-  });
-
-  handle('pick-folder', async () => {
-    const s = await nativeDialogs.showOpenDialog(win, { properties: ['openDirectory'] });
-    return s.canceled ? null : s.filePaths[0];
-  });
-  handle('migration-scan', async (data) => {
-    const folder = data.folder;
-    if (!folder)
-      return { items: [], message: '选择 Audio Jam 导出文件所在文件夹，可批量导入 .aum' };
-    const items = [];
-    function scan(dir, depth) {
-      if (depth > 4) return;
-      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-        if (e.isSymbolicLink()) continue;
-        const file = path.join(dir, e.name);
-        if (e.isDirectory()) scan(file, depth + 1);
-        else if (/\.aum$/i.test(e.name))
-          items.push({ file, name: e.name, size: fs.statSync(file).size });
-        if (items.length > 1000) return;
+    handle('migration-database-scan', ({ folder }) => scanDatabase(folder));
+    handle('migration-database-import', ({ folder, ids }) => {
+      const result = importDatabase(store, folder, ids);
+      emit({ type: 'library-changed' });
+      return result;
+    });
+    handle('pair-start', ({ ids, host }) => transfer.start(ids, host));
+    handle('pair-stop', () => transfer.stop());
+    handle('peer-prepare', ({ ids }) => peerFiles.prepare(ids));
+    handle('peer-outgoing', () =>
+      [...peerFiles.outgoing.values()].map(({ file, fd, ...item }) => item),
+    );
+    handle('peer-read', (data) => peerFiles.read(data));
+    handle('peer-begin', (data) => peerFiles.begin(data));
+    handle('peer-append', (data) => peerFiles.append(data));
+    handle('peer-finish', (data) => peerFiles.finish(data));
+    handle('peer-close', () => peerFiles.close());
+    handle('peer-select', async (data) => {
+      const item = peerFiles.pending.get(data.id);
+      if (!item) throw new Error('待接收文件不存在');
+      peerFiles.pending.delete(data.id);
+      try {
+        const result = data.accept ? await importFiles([item.file]) : null;
+        if (data.accept && !result.length) throw new Error('导入未完成，请重试');
+        fs.rmSync(item.file, { force: true });
+        return result;
+      } catch (error) {
+        peerFiles.pending.set(data.id, item);
+        throw error;
       }
-    }
-    scan(folder, 0);
-    return { items };
-  });
-  handle('migration-import', ({ files }) => importFiles(files));
-  handle('migration-detect', () => {
-    const candidates = [
-      path.join(app.getPath('documents'), 'AumDb'),
-      path.join(process.env.USERPROFILE || '', 'Documents', 'AumDb'),
-      path.join(process.env.USERPROFILE || '', 'OneDrive', 'Documents', 'AumDb'),
-    ];
-    return candidates
-      .filter((f, i) => candidates.indexOf(f) === i && fs.existsSync(path.join(f, 'index.db')))
-      .map(scanDatabase);
-  });
-  handle('migration-database-scan', ({ folder }) => scanDatabase(folder));
-  handle('migration-database-import', ({ folder, ids }) => {
-    const result = importDatabase(store, folder, ids);
-    emit({ type: 'library-changed' });
-    return result;
-  });
-  handle('pair-start', ({ ids, host }) => transfer.start(ids, host));
-  handle('pair-stop', () => transfer.stop());
-  handle('peer-prepare', ({ ids }) => peerFiles.prepare(ids));
-  handle('peer-outgoing', () =>
-    [...peerFiles.outgoing.values()].map(({ file, fd, ...item }) => item),
-  );
-  handle('peer-read', (data) => peerFiles.read(data));
-  handle('peer-begin', (data) => peerFiles.begin(data));
-  handle('peer-append', (data) => peerFiles.append(data));
-  handle('peer-finish', (data) => peerFiles.finish(data));
-  handle('peer-close', () => peerFiles.close());
-  handle('peer-select', async (data) => {
-    const item = peerFiles.pending.get(data.id);
-    if (!item) throw new Error('待接收文件不存在');
-    const result = data.accept ? await importFiles([item.file]) : null;
-    peerFiles.pending.delete(data.id);
-    fs.rmSync(item.file, { force: true });
-    return result;
-  });
-  handle('pair-select', async (data) => {
-    const item = transfer.pending?.get(data.id);
-    if (!item) throw new Error('待接收文件不存在');
-    if (!data.accept) {
+    });
+    handle('pair-select', async (data) => {
+      const item = transfer.pending?.get(data.id);
+      if (!item) throw new Error('待接收文件不存在');
       transfer.pending.delete(data.id);
-      fs.rmSync(item.file, { force: true });
-      return null;
-    }
-    const result = await importFiles([item.file]);
-    if (result.length === 1 && !/\.(ijam|aum)$/i.test(item.name))
-      result[0] = store.update(result[0].id, {
-        title: path.basename(item.name, path.extname(item.name)),
-      });
-    transfer.pending.delete(data.id);
-    fs.rmSync(item.file, { force: true });
-    return result;
+      if (!data.accept) {
+        fs.rmSync(item.file, { force: true });
+        return null;
+      }
+      try {
+        const result = await importFiles([item.file]);
+        if (!result.length) throw new Error('导入未完成，请重试');
+        if (result.length === 1 && !/\.(ijam|aum)$/i.test(item.name))
+          result[0] = store.update(result[0].id, {
+            title: path.basename(item.name, path.extname(item.name)),
+          });
+        fs.rmSync(item.file, { force: true });
+        return result;
+      } catch (error) {
+        transfer.pending.set(data.id, item);
+        throw error;
+      }
+    });
+    handle('reveal', ({ id }) => shell.showItemInFolder(path.join(store.dir(id), 'project.json')));
+    handle('window', ({ action }) => {
+      if (action === 'close') {
+        win.close();
+        return;
+      }
+      if (action === 'close-cancel') {
+        clearTimeout(closeTimer);
+        closing = false;
+      }
+      if (action === 'close-ready' && closing) {
+        clearTimeout(closeTimer);
+        allowClose = true;
+        setImmediate(() => win.close());
+      }
+      if (action === 'minimize') win.minimize();
+      else if (action === 'maximize') win.isMaximized() ? win.unmaximize() : win.maximize();
+      return { maximized: win.isMaximized() };
+    });
+    if (process.env.IMMERSE_DEV_URL) await win.loadURL(process.env.IMMERSE_DEV_URL);
+    else await win.loadFile(path.join(root, 'dist', 'index.html'));
+  })
+  .catch((error) => {
+    console.error('Application startup failed:', error);
+    dialog.showErrorBox('Immerse Jam', error.message || String(error));
+    app.exit(1);
   });
-  handle('reveal', ({ id }) => shell.showItemInFolder(path.join(store.dir(id), 'project.json')));
-  handle('window', ({ action }) => {
-    if (action === 'close') {
-      win.close();
-      return;
-    }
-    if (action === 'close-ready' && closing) {
-      allowClose = true;
-      setImmediate(() => win.close());
-    }
-    if (action === 'minimize') win.minimize();
-    else if (action === 'maximize') win.isMaximized() ? win.unmaximize() : win.maximize();
-    return { maximized: win.isMaximized() };
-  });
-  if (process.env.IMMERSE_DEV_URL) await win.loadURL(process.env.IMMERSE_DEV_URL);
-  else await win.loadFile(path.join(root, 'dist', 'index.html'));
-});
 app.on('window-all-closed', () => {
   takes?.close();
   jobs?.close();

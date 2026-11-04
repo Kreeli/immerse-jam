@@ -31,7 +31,8 @@ def tensor_model(model,x,sr,emit,output):
     else:
         import onnx,onnxruntime as ort
         file=Path(model['directory'])/model['file'];graph=onnx.load(str(file),load_external_data=False)
-        if any(t.external_data for t in graph.graph.initializer):raise ValueError('暂不支持含外部数据的 ONNX，请导出为单个完整模型文件')
+        from model_safety import reject_external_onnx
+        reject_external_onnx(graph)
         session=ort.InferenceSession(str(file),providers=['CPUExecutionProvider'])
         if len(session.get_inputs())!=1 or len(session.get_outputs())!=1:raise ValueError('只支持单输入单输出的波形 ONNX 模型')
         def infer(chunk):
@@ -196,7 +197,7 @@ def separate(request,emit):
 
 def validate(request,emit):
     model=request['model'];sr=model['sampleRate']
-    with tempfile.TemporaryDirectory() as tmp:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
         file=Path(tmp)/'probe.wav';t=np.arange(sr*8)/sr;x=.025*np.sin(2*np.pi*220*t);sf.write(file,np.stack([x,x],axis=1),sr)
         outputs,_=run_model(model,file,Path(tmp),emit);assert_outputs(outputs,model['stems'],len(x))
         for data in outputs.values():

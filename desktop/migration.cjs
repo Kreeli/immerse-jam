@@ -75,7 +75,7 @@ function importDatabase(store, folder, selected) {
         throw new Error(m.name + ' 的原曲尚未下载到本机');
       const sourceAttachments = db
         .prepare('SELECT id,title,name,remark FROM attachment WHERE musicId=? AND isDeleted=0')
-        .all();
+        .all(id);
       const marks = ids(m.markIdsStr)
         .map((key) =>
           db.prepare('SELECT id,title,start,end FROM mark WHERE id=? AND isDeleted=0').get(key),
@@ -98,40 +98,51 @@ function importDatabase(store, folder, selected) {
         .map((a) => ({ name: a.title || a.name, file: a.name, remark: a.remark }));
       const staging = path.join(store.base, 'incoming', crypto.randomUUID());
       fs.mkdirSync(path.join(staging, 'assets'), { recursive: true });
-      const files = new Set([
-        ...tracks.map((t) => t.audio_file),
-        ...attachments.map((a) => a.file),
-      ]);
-      if (map.has(m.beatInfoId)) files.add(map.get(m.beatInfoId));
-      for (const file of files)
-        fs.copyFileSync(contained(assets, file), contained(path.join(staging, 'assets'), file));
-      const p = fromAudioJam(
-        { ...m, tracks, attachments, position_marks: marks, create_time: m.createdDate },
-        staging,
-      );
-      p.id = crypto.randomUUID();
-      p.originId = id;
-      p.starred = !!m.like;
-      p.practice.countIn = !!m.countdown;
-      p.practice.master = Math.max(0, Math.min(1, (m.volume ?? 100) / 100));
+      let destination,
+        committed = false;
       try {
-        p.practice.eq = JSON.parse(main.equilizerStr)
-          .map((e) => e.value)
-          .slice(0, 3);
-      } catch {}
-      p.tracks = p.tracks.map((t) => ({
-        ...t,
-        pan: Math.max(-1, Math.min(1, sourceTracks.find((s) => s.name === t.name)?.pan || 0)),
-      }));
-      p.migration = {
-        source: 'Audio Jam',
-        missingTracks: sourceTracks.filter((t) => !map.has(t.audioId)).map((t) => t.name),
-        at: new Date().toISOString(),
-      };
-      const folderInfo = db.prepare('SELECT title FROM folder WHERE id=?').get(m.parentId);
-      if (folderInfo) p.playlist = folderInfo.title;
-      fs.renameSync(staging, store.dir(p.id));
-      results.push(store.save(p));
+        const files = new Set([
+          ...tracks.map((t) => t.audio_file),
+          ...attachments.map((a) => a.file),
+        ]);
+        if (map.has(m.beatInfoId)) files.add(map.get(m.beatInfoId));
+        for (const file of files)
+          fs.copyFileSync(contained(assets, file), contained(path.join(staging, 'assets'), file));
+        const p = fromAudioJam(
+          { ...m, tracks, attachments, position_marks: marks, create_time: m.createdDate },
+          staging,
+        );
+        p.id = crypto.randomUUID();
+        p.originId = id;
+        p.starred = !!m.like;
+        p.practice.countIn = !!m.countdown;
+        p.practice.master = Math.max(0, Math.min(1, (m.volume ?? 100) / 100));
+        try {
+          p.practice.eq = JSON.parse(main.equilizerStr)
+            .map((e) => e.value)
+            .slice(0, 3);
+        } catch {}
+        p.tracks = p.tracks.map((t) => ({
+          ...t,
+          pan: Math.max(-1, Math.min(1, sourceTracks.find((s) => s.name === t.name)?.pan || 0)),
+        }));
+        p.migration = {
+          source: 'Audio Jam',
+          missingTracks: sourceTracks.filter((t) => !map.has(t.audioId)).map((t) => t.name),
+          at: new Date().toISOString(),
+        };
+        const folderInfo = db.prepare('SELECT title FROM folder WHERE id=?').get(m.parentId);
+        if (folderInfo) p.playlist = folderInfo.title;
+        destination = store.dir(p.id);
+        fs.renameSync(staging, destination);
+        results.push(store.save(p));
+        committed = true;
+      } finally {
+        if (!committed) {
+          fs.rmSync(staging, { recursive: true, force: true });
+          if (destination) fs.rmSync(destination, { recursive: true, force: true });
+        }
+      }
     }
     return results;
   } finally {

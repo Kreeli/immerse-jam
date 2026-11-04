@@ -16,7 +16,11 @@ def pcm(source, directory, sr, channels=2):
     frames = target.stat().st_size // (4 * channels)
     if frames < 1: raise ValueError('音频中没有可读取的采样')
     if frames > sr * 14400: target.unlink(); raise ValueError('音频最长四小时，请先分段处理')
-    return np.memmap(target, mode='r', dtype='float32', shape=(frames,) if channels == 1 else (frames, channels))
+    result = np.memmap(target, mode='r', dtype='float32', shape=(frames,) if channels == 1 else (frames, channels))
+    if any(not np.isfinite(result[i:i+BLOCK]).all() for i in range(0,frames,BLOCK)):
+        result._mmap.close()
+        raise ValueError('音频包含无效采样，请重新编码后导入')
+    return result
 
 def mapped(directory, shape):
     return np.memmap(Path(directory) / ('buffer-' + str(uuid.uuid4()) + '.f32'), mode='w+', dtype='float32', shape=shape)

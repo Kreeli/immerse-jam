@@ -1,15 +1,5 @@
 import { jamCall } from '../../platform/project-call';
-import {
-  ArrowRight,
-  ChevronRight,
-  Mic2,
-  Music2,
-  Play,
-  Plus,
-  Search,
-  Upload,
-  Waves,
-} from 'lucide-react';
+import { ArrowRight, Mic2, Music2, Play, Plus, Search, Upload, Waves } from 'lucide-react';
 import type { WorkspaceController } from '../../app/useWorkspace';
 import { t as tr } from '../../i18n';
 import { time, type Project } from '../../shared/types';
@@ -165,10 +155,6 @@ export default function LibraryPage({
             <Waves size={16} />
             {tr('本地分轨 · 同步乐谱 · 自由练习')}
           </span>
-          <button className="nr-btn nr-ghost nr-sm" onClick={() => setModal('settings')}>
-            {tr('管理模型')}
-            <ChevronRight size={14} />
-          </button>
         </div>
       </div>
     </section>

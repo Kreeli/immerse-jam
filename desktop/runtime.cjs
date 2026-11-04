@@ -1,9 +1,17 @@
+const { localFailure } = require('./install-errors.cjs');
+const { writeAll } = require('./file-io.cjs');
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { spawn } = require('node:child_process');
 const { atomicJson } = require('./store.cjs');
-const { fetch: fetchNetwork, chunks, downloadError, proxyEnv } = require('./network.cjs');
+const {
+  fetch: fetchNetwork,
+  chunks,
+  cancelResponse,
+  downloadError,
+  proxyEnv,
+} = require('./network.cjs');
 function readState(file) {
   try {
     return JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -52,12 +60,21 @@ function run(exe, args, env, onEvent, options = {}) {
       cwd: path.dirname(exe),
     });
     let tail = '',
+      beganAt = Date.now(),
+      lastStatusAt = Date.now(),
       activeAt = Date.now(),
       stalled = false;
     let signature = activity(options.watchDirs || []);
     const watcher = options.stallMs
       ? setInterval(
           () => {
+            if (options.statusLabel && Date.now() - lastStatusAt > 15000) {
+              lastStatusAt = Date.now();
+              onEvent?.({
+                type: 'progress',
+                message: `${options.statusLabel}，已用 ${Math.floor((Date.now() - beganAt) / 1000)} 秒；${tail.slice(-250)}`,
+              });
+            }
             const next = activity(options.watchDirs || []);
             if (next !== signature) {
               signature = next;
@@ -74,10 +91,12 @@ function run(exe, args, env, onEvent, options = {}) {
     for (const stream of [child.stdout, child.stderr]) {
       stream.setEncoding('utf8');
       stream.on('data', (b) => {
-        const message = b;
+        const message = b.replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, '').trim();
+        if (!message) return;
         activeAt = Date.now();
+        lastStatusAt = Date.now();
         tail = (tail + message).slice(-6000);
-        onEvent?.({ type: 'progress', message: message.trim() });
+        onEvent?.({ type: 'progress', message });
       });
     }
     child.on('error', (error) => {
@@ -121,12 +140,14 @@ async function download(...args) {
   try {
     return await downloadFile(...args);
   } catch (error) {
+    if (localFailure(error)) throw localFailure(error);
     throw downloadError(error);
   }
 }
 async function downloadFile(url, dest, sha256, onEvent) {
   fs.mkdirSync(path.dirname(dest), { recursive: true });
   const part = dest + '.part';
+  const metadata = part + '.json';
   if (fs.existsSync(dest)) {
     if (!sha256) return dest;
     downloadProgress(
@@ -139,6 +160,10 @@ async function downloadFile(url, dest, sha256, onEvent) {
     for await (const b of fs.createReadStream(dest)) current.update(b);
     if (current.digest('hex') === sha256) return dest;
   }
+  const previous = readState(metadata);
+  if (previous && (previous.sha256 !== sha256 || (!sha256 && previous.url !== url)))
+    fs.rmSync(part, { force: true });
+  atomicJson(metadata, { url, sha256 });
   const existing = fs.existsSync(part) ? fs.statSync(part).size : 0;
   const response = await fetchNetwork(url, {
     headers: existing ? { Range: `bytes=${existing}-` } : {},
@@ -148,23 +173,39 @@ async function downloadFile(url, dest, sha256, onEvent) {
     for await (const b of fs.createReadStream(part)) hash.update(b);
     if (sha256 && hash.digest('hex') === sha256) {
       fs.renameSync(part, dest);
+      fs.rmSync(metadata, { force: true });
       return dest;
     }
     fs.unlinkSync(part);
     return download(url, dest, sha256, onEvent);
   }
-  if (!response.ok) throw new Error(`下载失败：HTTP ${response.status}`);
+  if (!response.ok) {
+    cancelResponse(response);
+    throw new Error(`下载失败：HTTP ${response.status}`);
+  }
   const resume = response.status === 206 && existing > 0;
+  const range = /^bytes (\d+)-(\d+)\/(\d+)$/.exec(response.headers.get('content-range') || '');
+  if (
+    response.status === 206 &&
+    (!range ||
+      Number(range[1]) !== (resume ? existing : 0) ||
+      Number(range[2]) < Number(range[1]) ||
+      Number(range[2]) >= Number(range[3]))
+  ) {
+    cancelResponse(response);
+    throw new Error('下载服务器未正确返回续传分块');
+  }
   const hash = crypto.createHash('sha256');
   if (resume) for await (const b of fs.createReadStream(part)) hash.update(b);
   const fd = fs.openSync(part, resume ? 'a' : 'w');
   let size = resume ? existing : 0;
-  const total = Number(response.headers.get('content-length')) + (resume ? existing : 0);
+  const length = response.headers.get('content-length');
+  const total = range ? Number(range[3]) : length === null ? 0 : Number(length);
   const report = downloadProgress(dest, total, size, onEvent);
   report(size, 'download', true);
   try {
     for await (const chunk of chunks(response)) {
-      fs.writeSync(fd, chunk);
+      writeAll(fd, chunk);
       hash.update(chunk);
       size += chunk.length;
       report(size);
@@ -173,19 +214,21 @@ async function downloadFile(url, dest, sha256, onEvent) {
     fs.closeSync(fd);
   }
   report(size, 'verify', true);
+  if (total && size !== total) throw new Error('下载文件不完整，已下载的部分会保留，请从断点重试');
   if (sha256 && hash.digest('hex') !== sha256) {
     fs.unlinkSync(part);
     throw new Error('下载文件校验失败，请重试');
   }
   fs.renameSync(part, dest);
+  fs.rmSync(metadata, { force: true });
   report(size, 'complete', true);
   return dest;
 }
 async function ensureUv(base, onEvent) {
   const assets = require('./installer-assets.cjs');
   const exe = path.join(base, 'tools', 'uv.exe');
-  if (fs.existsSync(exe)) return exe;
   const pinned = assets.manifest.assets.find((item) => item.id === 'uv');
+  if (fs.existsSync(exe) && (await assets.hash(exe)) === pinned.sha256) return exe;
   if (await assets.copyBundled(pinned.file, exe, pinned.sha256, onEvent)) return exe;
   const wheel = await downloadSources(
     assets.mirrorUrls(UV.sha256, UV.url),
@@ -197,7 +240,16 @@ async function ensureUv(base, onEvent) {
   const zip = new Zip(wheel);
   const entry = zip.getEntries().find((e) => e.entryName.endsWith('/uv.exe'));
   if (!entry) throw new Error('环境安装器不完整');
-  fs.writeFileSync(exe, entry.getData());
+  const bytes = entry.getData();
+  if (crypto.createHash('sha256').update(bytes).digest('hex') !== pinned.sha256)
+    throw new Error('环境安装器校验失败');
+  const temp = exe + '.' + crypto.randomUUID() + '.tmp';
+  try {
+    fs.writeFileSync(temp, bytes);
+    fs.renameSync(temp, exe);
+  } finally {
+    fs.rmSync(temp, { force: true });
+  }
   return exe;
 }
 async function ensureRuntime(base, mode = 'cpu', onEvent = () => {}) {
@@ -213,6 +265,7 @@ async function ensureRuntime(base, mode = 'cpu', onEvent = () => {}) {
       return python;
   }
   fs.mkdirSync(base, { recursive: true });
+  fs.rmSync(marker, { force: true });
   const temp = path.join(base, 'temp');
   fs.mkdirSync(temp, { recursive: true });
   const uv = await ensureUv(base, onEvent);
@@ -238,24 +291,19 @@ async function ensureRuntime(base, mode = 'cpu', onEvent = () => {}) {
   };
   if (!fs.existsSync(python)) {
     onEvent({ message: '正在准备应用专用 Python 环境' });
-    const managed = path.join(base, 'python', 'cpython-3.11.18-windows-x86_64-none', 'python.exe');
-    if (!fs.existsSync(managed)) {
-      try {
-        await run(
-          uv,
-          ['python', 'install', '3.11.18', '--no-bin', '--no-registry'],
-          { ...env, ...(await proxyEnv('https://github.com')) },
-          onEvent,
-        );
-      } catch (error) {
-        if (!fs.existsSync(managed)) throw error;
-      }
-    }
+    const managed = await require('./python-runtime.cjs').ensurePython(
+      base,
+      env,
+      onEvent,
+      run,
+      downloadSources,
+    );
     await run(
       uv,
       ['venv', '--python', managed, '--no-python-downloads', path.join(base, 'venv')],
       env,
       onEvent,
+      { stallMs: 120000, watchDirs: [path.join(base, 'venv')] },
     );
   }
   onEvent({ message: mode === 'cuda' ? '正在安装 NVIDIA 加速运行库' : '正在安装通用运行库' });
@@ -325,10 +373,11 @@ async function downloadModel(url, dest, sha256, onEvent) {
       signal: AbortSignal.timeout(15000),
     });
   } catch (error) {
+    if (localFailure(error)) throw localFailure(error);
     throw downloadError(error);
   }
   const total = Number(probe.headers.get('content-range')?.split('/')[1]);
-  await probe.body?.cancel();
+  cancelResponse(probe);
   if (probe.status !== 206 || !Number.isSafeInteger(total) || total < 16 * 1048576)
     return download(url, dest, sha256, onEvent);
   fs.mkdirSync(path.dirname(dest), { recursive: true });
@@ -378,12 +427,17 @@ async function downloadModel(url, dest, sha256, onEvent) {
               r = await fetchNetwork(url, {
                 headers: { Range: `bytes=${start}-${range.end}` },
               });
-            if (r.status !== 206 || !r.headers.get('content-range')?.startsWith(`bytes ${start}-`))
+            if (
+              r.status !== 206 ||
+              !r.headers.get('content-range')?.startsWith(`bytes ${start}-`)
+            ) {
+              cancelResponse(r);
               throw new Error('下载服务器未正确返回分块');
+            }
             for await (const chunk of chunks(r)) {
               if (range.start + range.received + chunk.length > range.end + 1)
                 throw new Error('下载分块大小错误');
-              fs.writeSync(fd, chunk, 0, chunk.length, range.start + range.received);
+              writeAll(fd, chunk, range.start + range.received);
               range.received += chunk.length;
               report(received());
               if (Date.now() - last > 1000) {
@@ -395,6 +449,7 @@ async function downloadModel(url, dest, sha256, onEvent) {
             atomicJson(stateFile, state);
             return;
           } catch (error) {
+            if (localFailure(error)) throw localFailure(error);
             atomicJson(stateFile, state);
             if (range.start + range.received === range.end + 1) return;
             failures = range.received > before ? 0 : failures + 1;
@@ -442,6 +497,7 @@ async function downloadSources(urls, dest, sha256, onEvent) {
     try {
       return await downloadModel(url, dest, sha256, onEvent);
     } catch (error) {
+      if (localFailure(error)) throw localFailure(error);
       last = error;
     }
   }
@@ -451,6 +507,7 @@ module.exports.downloadSources = downloadSources;
 function validRanges(state, url, total, size, sha256) {
   if (
     !state ||
+    (state.sha256 !== undefined && state.sha256 !== sha256) ||
     (state.url !== url && (!sha256 || state.sha256 !== sha256)) ||
     state.total !== total ||
     !Number.isSafeInteger(state.existing) ||

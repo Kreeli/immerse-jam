@@ -1,11 +1,15 @@
 !include "nsDialogs.nsh"
 !include "FileFunc.nsh"
 !include "LogicLib.nsh"
+!ifndef IJ_PREPARE_PREFIX
+  !define IJ_PREPARE_PREFIX ""
+!endif
 
 !ifndef BUILD_UNINSTALLER
   Var IJData
   Var IJPreviousData
   Var IJDrive
+  Var IJDriveFree
   Var IJMode
   Var IJModels
   Var IJAllowC
@@ -16,9 +20,6 @@
   Var IJCuda
   Var IJModel0
   Var IJModel1
-  Var IJModel2
-  Var IJModel3
-  Var IJModel4
   Var IJModel5
   Var IJSelected0
   Var IJSelected1
@@ -42,12 +43,18 @@
   LangString IJLocationNote ${LANG_SIMPCHINESE} "首次下载：CPU 约 1–2 GB，NVIDIA 约 3–5 GB，另加所选模型。通常 5–30 分钟，慢网络可能更久。请预留至少 10 GB 空间。卸载保留此文件夹。"
   LangString IJSelectPath ${LANG_ENGLISH} "Select a separate data folder, outside the program folder and drive root. System-drive storage requires confirmation."
   LangString IJSelectPath ${LANG_SIMPCHINESE} "请选择独立的数据文件夹，不能使用程序文件夹或磁盘根目录。使用系统盘需要勾选确认。"
+  LangString IJInvalidPath ${LANG_ENGLISH} "Enter a full folder path, for example E:\Immerse-Jam-data. The folder does not need to exist yet. A drive root cannot be used."
+  LangString IJInvalidPath ${LANG_SIMPCHINESE} "请输入完整的文件夹路径，例如 E:\Immerse-Jam-data。文件夹可以尚未创建，但不能使用磁盘根目录。"
+  LangString IJNestedPath ${LANG_ENGLISH} "Program and data folders must be separate. Neither folder may contain the other."
+  LangString IJNestedPath ${LANG_SIMPCHINESE} "数据与程序需要使用独立的文件夹，两者不能相同，也不能互相包含。"
+  LangString IJSystemPath ${LANG_ENGLISH} "This folder is on the Windows system drive. Select another drive or check the confirmation box."
+  LangString IJSystemPath ${LANG_SIMPCHINESE} "该路径位于 Windows 系统盘，请选择其他磁盘，或勾选允许使用系统盘。"
   LangString IJComponents ${LANG_ENGLISH} "The installer prepares all dependencies before finishing. Select acceleration and optional models below. An internet connection is required."
   LangString IJComponents ${LANG_SIMPCHINESE} "安装完成前会自动准备所有依赖。请选择运行方式及可选模型，需要联网下载。"
   LangString IJAutoText ${LANG_ENGLISH} "Automatic NVIDIA detection (CPU otherwise)"
   LangString IJAutoText ${LANG_SIMPCHINESE} "自动检测 NVIDIA 显卡（其他设备使用 CPU）"
-  LangString IJModelNote ${LANG_ENGLISH} "Model downloads may be slow. We recommend installing the app first, then downloading models in Settings. Vocal/guitar add-ons also need the six-stem base."
-  LangString IJModelNote ${LANG_SIMPCHINESE} "模型下载可能很慢，建议先取消模型勾选，安装应用后再到设置中下载。专用人声／吉他同时需要六轨基础模型。"
+  LangString IJModelNote ${LANG_ENGLISH} "Python, FFmpeg and Beat This are bundled. Optional six-stem models download online. SCNet and vocal/guitar add-ons are available in the app after installation."
+  LangString IJModelNote ${LANG_SIMPCHINESE} "已内置 Python、FFmpeg 和 Beat This。六轨模型可选联网下载；SCNet、人声／吉他扩展请在安装后到 App 中下载或导入。"
   LangString IJPreparing ${LANG_ENGLISH} "Preparing the private environment and selected models..."
   LangString IJPreparing ${LANG_SIMPCHINESE} "正在准备专用环境和所选模型…"
   LangString IJFailed ${LANG_ENGLISH} "Preparation did not finish. Check the connection and data-folder permissions, then Retry. Downloads can resume. Details: installation.log in the selected data folder. Cancel stops installation without deleting your data."
@@ -66,6 +73,14 @@
   LangString IJDownloadComplete ${LANG_SIMPCHINESE} "所选组件已全部准备完成"
   LangString IJDownloadDone ${LANG_ENGLISH} "Click Next to finish. Your data folder is retained."
   LangString IJDownloadDone ${LANG_SIMPCHINESE} "点击下一步完成安装。原有曲库与录音保留。"
+  LangString IJStopFailed ${LANG_ENGLISH} "Preparation could not be stopped yet. Try Stop again."
+  LangString IJStopFailed ${LANG_SIMPCHINESE} "暂时无法停止准备，请再次点击停止准备。"
+  LangString IJStop ${LANG_ENGLISH} "Stop preparation"
+  LangString IJStop ${LANG_SIMPCHINESE} "停止准备"
+  LangString IJStopped ${LANG_ENGLISH} "Preparation stopped. Saved downloads are retained; change the folder, retry, or cancel."
+  LangString IJStopped ${LANG_SIMPCHINESE} "已停止准备，已下载内容保留。可返回修改目录、重试或取消安装。"
+  LangString IJNotWritable ${LANG_ENGLISH} "The data folder is not writable. Choose another folder or check permissions."
+  LangString IJNotWritable ${LANG_SIMPCHINESE} "无法写入数据文件夹，请选择其他目录或检查权限。"
   LangString IJRetry ${LANG_ENGLISH} "Resume download"
   LangString IJRetry ${LANG_SIMPCHINESE} "从断点重试"
   LangString IJNoModels ${LANG_ENGLISH} "Runtime only; models can be added in Settings later."
@@ -79,17 +94,23 @@
 
 !macro customInit
   StrCpy $IJMode "auto"
-  StrCpy $IJModels "roformer-sw,beat-this"
+  StrCpy $IJModels "beat-this"
   StrCpy $IJAllowC "0"
-  StrCpy $IJSelected0 ${BST_CHECKED}
+  StrCpy $IJSelected0 ${BST_UNCHECKED}
   StrCpy $IJSelected5 ${BST_CHECKED}
   ReadRegStr $IJData HKCU "Software\ImmerseJam" "DataRoot"
   StrCpy $IJPreviousData $IJData
-  ReadRegStr $0 HKCU "Software\ImmerseJam" "ProgramRoot"
+  !insertmacro GetDParameter $1
+  ${If} $1 != ""
+    StrCpy $0 $1
+  ${Else}
+    ReadRegStr $0 HKCU "Software\ImmerseJam" "ProgramRoot"
+  ${EndIf}
   ${If} $0 != ""
     StrCpy $INSTDIR $0
   ${Else}
     StrCpy $IJDrive ""
+    StrCpy $IJDriveFree "0"
     ${GetDrives} "HDD" IJChooseDrive
     ${If} $IJDrive != ""
       StrCpy $INSTDIR "$IJDrive\Immerse Jam"
@@ -119,16 +140,28 @@
 !macroend
 
 !macro customPageAfterChangeDir
+  !include "${PROJECT_DIR}\installer\storage-path.nsh"
   Page custom IJStoragePage IJStorageLeave
   Page custom IJComponentsPage IJComponentsLeave
 
   Function IJChooseDrive
     Push $0
+    Push $1
+    Push $2
     StrCpy $0 $WINDIR 3
-    ${If} $IJDrive == ""
-    ${AndIf} $9 != $0
-      StrCpy $IJDrive $9 -1
+    ${If} $9 != $0
+      System::Call 'kernel32::GetDiskFreeSpaceExW(w r9, *l .r1, p 0, p 0) i .r2'
+      ${If} $2 != 0
+        System::Int64Op $1 > $IJDriveFree
+        Pop $2
+        ${If} $2 == 1
+          StrCpy $IJDrive $9 -1
+          StrCpy $IJDriveFree $1
+        ${EndIf}
+      ${EndIf}
     ${EndIf}
+    Pop $2
+    Pop $1
     Pop $0
     Push 1
   FunctionEnd
@@ -163,31 +196,16 @@
   Function IJStorageLeave
     ${NSD_GetText} $IJDataEdit $IJData
     ${NSD_GetState} $IJConfirm $IJAllowC
-    GetFullPathName $IJData $IJData
-    StrLen $0 $IJData
-    ${If} $0 < 4
-      MessageBox MB_OK|MB_ICONEXCLAMATION "$(IJSelectPath)"
+    Call IJCheckStorage
+    Pop $0
+    ${If} $0 == "invalid"
+      MessageBox MB_OK|MB_ICONEXCLAMATION "$(IJInvalidPath)"
       Abort
-    ${EndIf}
-    GetFullPathName $1 $INSTDIR
-    StrCpy $2 "$1\"
-    StrLen $3 $2
-    StrCpy $4 $IJData $3
-    ${If} $IJData == $1
-    ${OrIf} $4 == $2
-      MessageBox MB_OK|MB_ICONEXCLAMATION "$(IJSelectPath)"
+    ${ElseIf} $0 == "nested"
+      MessageBox MB_OK|MB_ICONEXCLAMATION "$(IJNestedPath)"
       Abort
-    ${EndIf}
-    StrCpy $0 $IJData 1 1
-    ${If} $0 != ":"
-      MessageBox MB_OK|MB_ICONEXCLAMATION "$(IJSelectPath)"
-      Abort
-    ${EndIf}
-    StrCpy $0 $IJData 3
-    StrCpy $1 $WINDIR 3
-    ${If} $0 == $1
-    ${AndIf} $IJAllowC != "1"
-      MessageBox MB_OK|MB_ICONEXCLAMATION "$(IJSelectPath)"
+    ${ElseIf} $0 == "system"
+      MessageBox MB_OK|MB_ICONEXCLAMATION "$(IJSystemPath)"
       Abort
     ${EndIf}
   FunctionEnd
@@ -218,16 +236,7 @@
     ${NSD_CreateCheckbox} 0 97u 100% 11u "HT Demucs - 6 stems (~52 MB)"
     Pop $IJModel1
     ${NSD_SetState} $IJModel1 $IJSelected1
-    ${NSD_CreateCheckbox} 0 108u 100% 11u "SCNet Small - 4 stems"
-    Pop $IJModel2
-    ${NSD_SetState} $IJModel2 $IJSelected2
-    ${NSD_CreateCheckbox} 0 119u 100% 11u "Lead / backing vocals"
-    Pop $IJModel3
-    ${NSD_SetState} $IJModel3 $IJSelected3
-    ${NSD_CreateCheckbox} 0 130u 100% 11u "Lead / rhythm guitar (~337 MB)"
-    Pop $IJModel4
-    ${NSD_SetState} $IJModel4 $IJSelected4
-    ${NSD_CreateCheckbox} 0 141u 100% 11u "Beat This! - BPM (~77 MB)"
+    ${NSD_CreateCheckbox} 0 108u 100% 11u "Beat This! - BPM (bundled)"
     Pop $IJModel5
     ${NSD_SetState} $IJModel5 $IJSelected5
     nsDialogs::Show
@@ -243,9 +252,9 @@
     ${EndIf}
     ${NSD_GetState} $IJModel0 $IJSelected0
     ${NSD_GetState} $IJModel1 $IJSelected1
-    ${NSD_GetState} $IJModel2 $IJSelected2
-    ${NSD_GetState} $IJModel3 $IJSelected3
-    ${NSD_GetState} $IJModel4 $IJSelected4
+    StrCpy $IJSelected2 0
+    StrCpy $IJSelected3 0
+    StrCpy $IJSelected4 0
     ${NSD_GetState} $IJModel5 $IJSelected5
     StrCpy $IJModels ""
     StrCpy $IJModelSummary ""
@@ -301,14 +310,13 @@
   ; Silent installs keep the blocking preparation path and return its exit code.
   IfSilent 0 ijPrepareEnd
   DetailPrint "$(IJPreparing)"
-  ijPrepareAgain:
   StrCpy $1 ""
   IfSilent 0 +2
     StrCpy $1 "--setup-silent"
-  nsExec::ExecToLog /TIMEOUT=3600000 '"$INSTDIR\${APP_EXECUTABLE_FILENAME}" --prepare-installation "--data-root=$IJData" "--install-root=$INSTDIR" "--legacy-root=$IJPreviousData" --runtime-mode=$IJMode "--models=$IJModels" --allow-system-drive=$IJAllowC $1'
+  nsExec::ExecToLog /TIMEOUT=3600000 '"$INSTDIR\${APP_EXECUTABLE_FILENAME}" ${IJ_PREPARE_PREFIX}--prepare-installation "--data-root=$IJData" "--install-root=$INSTDIR" "--legacy-root=$IJPreviousData" --runtime-mode=$IJMode "--models=$IJModels" --allow-system-drive=$IJAllowC $1'
   Pop $0
   ${If} $0 != "0"
-    MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "$(IJFailed)" IDRETRY ijPrepareAgain
+    DetailPrint "$(IJFailed)"
     SetErrorLevel 1
     Abort
   ${EndIf}

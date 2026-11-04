@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- IJ monogram adapted from littleclock2's concept A (Issue #9). -->
+  <rect width="512" height="512" rx="112" fill="#007f80"/>
+  <path fill="#fff" d="M112 108h80v296h-80zm208 0h80v136c0 88-60 160-152 160h-24v-80h24c44 0 72-34 72-80z"/>
+</svg>

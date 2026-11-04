@@ -54,10 +54,10 @@ async function record(seconds, creation = false) {
     await page
       .getByRole('button', { name: /^(预备并开始录音|开始录音|伴奏继续并开始录音)$/ })
       .click();
-  await page.waitForSelector('.recording-bar');
+  await page.waitForSelector('.transport-record.active');
   await wait(seconds * 1000);
   await page.getByRole('button', { name: '停止并保存', exact: true }).click();
-  await page.waitForSelector('.recording-bar', { state: 'detached', timeout: 20000 });
+  await page.waitForSelector('.transport-record.active', { state: 'detached', timeout: 20000 });
 }
 (async () => {
   app = await electron.launch({
@@ -92,7 +92,7 @@ async function record(seconds, creation = false) {
   });
   page.on('pageerror', (error) => errors.push(error.message));
   await page.getByRole('button', { name: '跟练/创作', exact: true }).click();
-  await page.getByRole('button', { name: '打开 录音验收', exact: true }).click();
+  await page.locator('.session-title').filter({ hasText: '录音验收' }).click();
   await page.waitForFunction(() => !document.querySelector('.play-main').disabled);
   const seek = page.getByRole('slider', { name: '播放进度', exact: true });
   await seek.focus();
@@ -124,7 +124,7 @@ async function record(seconds, creation = false) {
   );
   await page.getByRole('spinbutton', { name: '录音延迟校正', exact: true }).fill('100');
   await page.getByRole('button', { name: '预备并开始录音', exact: true }).click();
-  await page.waitForSelector('.recording-bar');
+  await page.waitForSelector('.transport-record.active');
   await wait(250);
   assert.ok(
     Math.abs(
@@ -135,7 +135,7 @@ async function record(seconds, creation = false) {
   await wait(2000);
   await page.screenshot({ path: 'test-output/v014-recording-live.png' });
   await page.getByRole('button', { name: '停止并保存', exact: true }).click();
-  await page.waitForSelector('.recording-bar', { state: 'detached', timeout: 20000 });
+  await page.waitForSelector('.transport-record.active', { state: 'detached', timeout: 20000 });
   let project = store.get(p.id);
   assert.equal(project.takes.length, 1);
   assert.ok(Math.abs(project.takes[0].start - 0.4) < 0.02, JSON.stringify(project.takes[0]));
@@ -197,17 +197,27 @@ async function record(seconds, creation = false) {
   await page.screenshot({ path: 'test-output/v014-recording-library.png' });
   await page.getByRole('button', { name: '关闭录音窗口', exact: true }).click();
   await page.screenshot({ path: 'test-output/v014-recording-tracks.png' });
+  if (await page.getByRole('button', { name: '暂停', exact: true }).count())
+    await page.getByRole('button', { name: '暂停', exact: true }).click();
+  await seek.focus();
+  await seek.press('End');
+  await record(0.4);
+  project = store.get(p.id);
+  assert.ok(
+    Math.abs(project.takes.at(-1).start + 0.1) < 0.08,
+    'recording at the end restarts the backing instead of anchoring a silent take at the tail',
+  );
   await page.getByTitle('返回列表', { exact: true }).click();
   await page.getByRole('button', { name: '新建创作', exact: true }).click();
   await page.getByRole('textbox', { name: '名称', exact: true }).fill('录音创作验收');
   await page.getByRole('button', { name: '创建', exact: true }).click();
   await page.getByRole('button', { name: '录音', exact: true }).click();
-  await page.waitForSelector('[aria-label="练琴录音设置"]');
+  await page.waitForSelector('.recorder-dialog');
   await page.getByRole('button', { name: '开始录音', exact: true }).click();
-  await page.waitForSelector('.recording-bar');
+  await page.waitForSelector('.transport-record.active');
   await wait(800);
   await page.getByRole('button', { name: '停止并保存', exact: true }).click();
-  await page.waitForSelector('.recording-bar', { state: 'detached', timeout: 20000 });
+  await page.waitForSelector('.transport-record.active', { state: 'detached', timeout: 20000 });
   await page.getByRole('button', { name: /^录音库/ }).click();
   await page.getByRole('button', { name: '导入多条录音', exact: true }).click();
   await page.waitForFunction(() => document.querySelectorAll('.take-library-row').length === 3);
@@ -220,7 +230,10 @@ async function record(seconds, creation = false) {
   );
   const creation = store.list().find((project) => project.kind === 'creation');
   assert.equal(creation.takes.length, 3);
-  assert.ok(creation.duration > 3);
+  await page.waitForFunction(
+    () => document.querySelector('.save-indicator')?.textContent === '已保存',
+  );
+  assert.ok(store.get(creation.id).duration > 3);
   await page.getByRole('button', { name: '播放', exact: true }).click();
   await wait(500);
   assert.ok(
@@ -247,6 +260,24 @@ async function record(seconds, creation = false) {
 })()
   .catch(async (error) => {
     console.error(error);
+    console.error(
+      'Fixture projects:',
+      store.list().map((p) => ({ title: p.title, kind: p.kind, takes: p.takes?.length })),
+    );
+    console.error(
+      'UI state:',
+      await page
+        ?.evaluate(() => ({
+          heading: document.querySelector('.player-header')?.textContent,
+          tracks: document.querySelectorAll('.track-control').length,
+          library: document.querySelectorAll('.take-library-row').length,
+          dialog: document.querySelector('.recorder-dialog')?.textContent?.slice(0, 100),
+          buttons: [...document.querySelectorAll('.practice-record-actions button')].map(
+            (b) => b.getAttribute('aria-label') || b.textContent,
+          ),
+        }))
+        .catch(() => null),
+    );
     console.error('UI notices:', await page?.evaluate(() => window.__alerts).catch(() => []));
     await page?.screenshot({ path: 'test-output/v014-failed.png' }).catch(() => {});
     process.exitCode = 1;

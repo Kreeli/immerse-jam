@@ -40,6 +40,11 @@ if (action !== 'wrapper') {
   fs.rmSync(target, { recursive: true, force: true });
   fs.mkdirSync(target, { recursive: true });
   fs.cpSync(path.join(root, 'dist-android'), target, { recursive: true });
+  fs.cpSync(
+    path.join(root, 'node_modules/@coderline/alphatab/dist/font'),
+    path.join(target, 'alphatab/font'),
+    { recursive: true },
+  );
   fs.mkdirSync(path.join(android, 'app/src/main/res/drawable'), { recursive: true });
   fs.copyFileSync(
     path.join(root, 'assets/app-icon.png'),

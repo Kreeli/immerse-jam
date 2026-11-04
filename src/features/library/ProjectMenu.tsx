@@ -14,6 +14,7 @@ import { jamCall } from '../../platform/project-call';
 import type { Project, ProjectFolder } from '../../shared/types';
 import type { FolderProps } from './Folders';
 import RehearsalCover from '../../shared/RehearsalCover';
+import { useDefaultFolder } from '../../shared/useDefaultFolder';
 
 export default function ProjectMenu({
   project,
@@ -31,6 +32,7 @@ export default function ProjectMenu({
   onDelete: (p: Project) => void;
   onShare?: (p: Project) => void;
 }) {
+  const defaultFolder = useDefaultFolder();
   const folderId = folders.find((f) => f.projectIds.includes(project.id))?.id || '';
   const move = (id: string) =>
     void jamCall<ProjectFolder[]>('folders-edit', { action: 'move', id, projectId: project.id })
@@ -62,7 +64,7 @@ export default function ProjectMenu({
             </Menu.SubTrigger>
             <Menu.Portal>
               <Menu.SubContent className="nr-action-menu" sideOffset={5} collisionPadding={12}>
-                {[{ id: '', name: tr('默认分类'), projectIds: [] }, ...folders].map((f) => (
+                {[{ ...defaultFolder, id: '' }, ...folders].map((f) => (
                   <Menu.Item key={f.id} onSelect={() => move(f.id)}>
                     <RehearsalCover
                       id={f.id}

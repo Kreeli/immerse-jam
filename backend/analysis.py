@@ -1,12 +1,22 @@
-import json, math, os, subprocess
+import json, math, os, subprocess, shutil, uuid
 from pathlib import Path
 import numpy as np
 import soundfile as sf
 
 def decode(source, destination, sr=44100):
-    Path(destination).parent.mkdir(parents=True,exist_ok=True)
-    subprocess.run([os.environ['IMMERSE_FFMPEG'],'-nostdin','-v','error','-y','-i',str(source),'-vn','-ac','2','-ar',str(sr),'-c:a','pcm_f32le',str(destination)],check=True,creationflags=0x08000000 if os.name=='nt' else 0)
-    return sf.info(destination)
+    destination=Path(destination);destination.parent.mkdir(parents=True,exist_ok=True)
+    ffmpeg=os.environ.get('IMMERSE_FFMPEG') or shutil.which('ffmpeg')
+    if not ffmpeg:
+        local=Path(__file__).resolve().parents[1]/'node_modules/ffmpeg-static/ffmpeg.exe'
+        if local.is_file():ffmpeg=str(local)
+    if not ffmpeg:raise ValueError('未找到应用音频解码组件')
+    temp=destination.with_name(destination.stem+'.'+str(uuid.uuid4())+'.wav')
+    try:
+        subprocess.run([ffmpeg,'-nostdin','-v','error','-y','-i',str(source),'-vn','-t','14401','-ac','2','-ar',str(sr),'-c:a','pcm_f32le','-rf64','auto',str(temp)],check=True,creationflags=0x08000000 if os.name=='nt' else 0)
+        info=sf.info(temp)
+        if info.duration>14400:raise ValueError('音频最长四小时，请先分段处理')
+        os.replace(temp,destination);return info
+    finally:temp.unlink(missing_ok=True)
 
 def peaks(file, count=1800):
     info=sf.info(file); size=max(1,math.ceil(info.frames/count)); result=[]
@@ -16,12 +26,16 @@ def peaks(file, count=1800):
     return {'duration':info.duration,'sampleRate':info.samplerate,'peaks':result}
 
 def analyze(file, emit, tempo_model=None):
+    emit(.02,'准备音频并加载分析组件')
     import tempfile
     from audio_io import pcm
-    with tempfile.TemporaryDirectory() as temporary:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temporary:
         y=pcm(file,temporary,22050,1)
+        emit(.06,'音频已就绪，正在载入节拍与调性分析')
         try:return analyze_pcm(y,22050,emit,tempo_model)
-        finally:del y
+        finally:
+            if isinstance(y,np.memmap):y._mmap.close()
+            del y
 
 def analyze_pcm(y, sr, emit, tempo_model=None):
     import librosa

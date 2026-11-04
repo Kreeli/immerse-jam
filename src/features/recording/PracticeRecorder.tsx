@@ -86,6 +86,12 @@ export default function PracticeRecorder({
     session = useRef<string | null>(null),
     stopping = useRef(false),
     restoredLoop = useRef<Player['loop']>(null);
+  const startup = useRef<AbortController | null>(null),
+    owner = useRef<symbol | null>(null),
+    startupDone = useRef<Promise<void> | null>(null),
+    stopDone = useRef<Promise<void> | null>(null);
+  const ownsPlayer = () =>
+    player.captureOwner === owner.current && player.project?.id === project.id;
   const act = async (fn: () => Promise<void>) => {
     try {
       await fn();
@@ -144,13 +150,21 @@ export default function PracticeRecorder({
       document.removeEventListener('visibilitychange', background);
     };
   }, []);
-  const stop = async () => {
-    if (stopping.current || !session.current) return;
+  const stop = async (closing = false) => {
+    if (stopping.current) {
+      await stopDone.current;
+      return;
+    }
+    if (!session.current) return;
     stopping.current = true;
+    let stopFinished: () => void = () => {};
+    stopDone.current = new Promise<void>((resolve) => {
+      stopFinished = resolve;
+    });
     setBusy(true);
     try {
       await capture.current?.stop();
-      player.duration = Math.max(player.duration, player.position());
+      if (ownsPlayer()) player.duration = Math.max(player.duration, player.position());
       const id = session.current;
       session.current = null;
       const saved = await jamCall<Project>('take-finish', { sessionId: id });
@@ -164,22 +178,40 @@ export default function PracticeRecorder({
       if (capture.current?.error) props.current.onError(capture.current.error.message);
     } catch (error) {
       props.current.onError((error as Error).message);
+      if (closing) throw error;
     } finally {
-      player.duration = Math.max(player.duration, player.position());
-      player.captureActive = false;
-      player.restoreLoopAfterCapture(restoredLoop.current);
+      if (ownsPlayer()) {
+        player.duration = Math.max(player.duration, player.position());
+        player.captureActive = false;
+        player.restoreLoopAfterCapture(restoredLoop.current);
+        player.captureOwner = null;
+        props.current.onActive(false);
+      }
       live.current = null;
       onLive(null);
       capture.current = null;
       setActive(false);
       setBusy(false);
-      props.current.onActive(false);
       stopping.current = false;
+      stopFinished();
+      stopDone.current = null;
     }
   };
   const start = async () => {
     if (busy || active) return;
     setBusy(true);
+    const controller = new AbortController();
+    let startFinished: () => void = () => {};
+    startupDone.current = new Promise<void>((resolve) => {
+      startFinished = resolve;
+    });
+    startup.current = controller;
+    owner.current = Symbol('recording');
+    player.captureOwner = owner.current;
+    let readySession: (id: string | null) => void = () => {};
+    const sessionReady = new Promise<string | null>((resolve) => {
+      readySession = resolve;
+    });
     stopping.current = false;
     restoredLoop.current = player.captureLoop;
     const wasPlaying = player.playing;
@@ -188,6 +220,7 @@ export default function PracticeRecorder({
     props.current.onActive(true);
     try {
       const available = await recordingDevices();
+      controller.signal.throwIfAborted();
       setDevices(available);
       const checked = reconcileRecordingDevices(settings, available);
       if (checked.changed) {
@@ -202,11 +235,13 @@ export default function PracticeRecorder({
       if (!Number.isFinite(settings.latencyMs) || Math.abs(settings.latencyMs) > 2000)
         throw new Error(tr('延迟校正范围为 −2000 到 2000 毫秒'));
       await jamCall('audio-tools-ensure');
+      controller.signal.throwIfAborted();
       await player.init();
       phase = 'output';
       await player.setOutputDevice(settings.outputDeviceId);
       phase = 'prepare';
       releaseAudio = await player.acquireAudio();
+      controller.signal.throwIfAborted();
       const input = available.find(
           (device) => device.kind === 'audioinput' && device.deviceId === settings.inputDeviceId,
         ),
@@ -215,13 +250,15 @@ export default function PracticeRecorder({
       capture.current = await AudioCapture.open(
         player.context!,
         settings,
-        (sequence, contextTime, bytes) => {
+        async (sequence, contextTime, bytes) => {
+          const sessionId = await sessionReady;
+          if (!sessionId) return;
           live.current?.push(
             contextTime,
             new Float32Array(bytes.buffer, bytes.byteOffset, bytes.byteLength / 4),
           );
           return jamCall('take-append', {
-            sessionId: session.current,
+            sessionId,
             sequence,
             contextTime,
             bytes,
@@ -229,13 +266,26 @@ export default function PracticeRecorder({
         },
         () => {},
         () => void stop(),
+        controller.signal,
       );
+      controller.signal.throwIfAborted();
       phase = 'prepare';
+      if (!player.playing && player.duration > 0 && player.position() >= player.duration - 0.01)
+        player.seek(restoredLoop.current?.a || 0);
       player.loop = null;
       player.captureActive = true;
       if (!player.playing) await player.play(!wasPlaying && !!project.practice.countIn);
       const anchorTime = Math.max(player.started, player.context!.currentTime + 0.025),
         anchorPosition = player.offset + Math.max(0, anchorTime - player.started) * player.tempo;
+      live.current = new LiveEnvelope(
+        anchorTime,
+        anchorPosition,
+        player.context!.sampleRate,
+        player.tempo,
+        settings.latencyMs,
+      );
+      onLive(live.current);
+      capture.current.arm(anchorTime);
       const result = await jamCall<{
         id: string;
       }>('take-start', {
@@ -252,17 +302,9 @@ export default function PracticeRecorder({
         },
       });
       session.current = result.id;
+      readySession(result.id);
+      controller.signal.throwIfAborted();
       if (capture.current.error) throw capture.current.error;
-      // Starting after IPC has returned still maps every captured frame to the same clock.
-      live.current = new LiveEnvelope(
-        anchorTime,
-        anchorPosition,
-        player.context!.sampleRate,
-        player.tempo,
-        settings.latencyMs,
-      );
-      onLive(live.current);
-      capture.current.arm(anchorTime);
       localStorage.setItem(
         profile(settings.inputDeviceId, settings.outputDeviceId),
         String(settings.latencyMs),
@@ -276,6 +318,7 @@ export default function PracticeRecorder({
       setRouteNotice('');
       setDialog(null);
     } catch (error) {
+      readySession(null);
       live.current = null;
       onLive(null);
       await capture.current?.stop();
@@ -284,10 +327,14 @@ export default function PracticeRecorder({
         await jamCall('take-finish', { sessionId: session.current }).catch(() => {});
         session.current = null;
       }
-      player.captureActive = false;
-      player.restoreLoopAfterCapture(restoredLoop.current);
-      props.current.onActive(false);
+      if (ownsPlayer()) {
+        player.captureActive = false;
+        player.restoreLoopAfterCapture(restoredLoop.current);
+        player.captureOwner = null;
+        props.current.onActive(false);
+      }
       const failure = error as Error;
+      if (failure.name === 'AbortError') return;
       if (phase !== 'prepare' && ['NotFoundError', 'OverconstrainedError'].includes(failure.name)) {
         changeDevice(phase === 'output' ? 'outputDeviceId' : 'inputDeviceId', 'default');
         setRouteNotice(
@@ -303,12 +350,26 @@ export default function PracticeRecorder({
               : failure.message,
         );
     } finally {
+      startFinished();
+      startupDone.current = null;
+      startup.current = null;
+      if (!session.current && player.captureOwner === owner.current) player.captureOwner = null;
       releaseAudio?.();
       setBusy(false);
     }
   };
+  useEffect(() => {
+    const closing = (event: Event) => {
+      const tasks = (event as CustomEvent<{ tasks: Promise<void>[] }>).detail.tasks;
+      startup.current?.abort();
+      tasks.push((startupDone.current || Promise.resolve()).then(() => stop(true)));
+    };
+    window.addEventListener('immerse-before-close', closing);
+    return () => window.removeEventListener('immerse-before-close', closing);
+  }, []);
   useEffect(
     () => () => {
+      startup.current?.abort();
       if (session.current) void stop();
     },
     [],

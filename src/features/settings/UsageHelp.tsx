@@ -34,6 +34,34 @@ export default function UsageHelp() {
   ];
   return (
     <div className="usage-help">
+      <ol className="help-first-steps">
+        <li>
+          <strong>{tr('导入歌曲')}</strong>
+          <p>
+            {isAndroid
+              ? tr('在曲库的导入入口选择音频或电脑传来的 .ijam 项目。')
+              : tr('在音乐库点击“导入音乐”，也可以直接拖入音频。')}
+          </p>
+        </li>
+        <li>
+          <strong>{tr('开始分轨')}</strong>
+          <p>
+            {isAndroid
+              ? tr('打开歌曲并选择本机模型；也可以通过设备互传接收电脑分轨结果。')
+              : tr(
+                  '打开歌曲，点击“分析音乐”，选择模式和已下载的模型，再开始分析。缺少模型时到“设置与模型”下载或导入。',
+                )}
+          </p>
+        </li>
+        <li>
+          <strong>{tr('开始练习或创作')}</strong>
+          <p>
+            {tr(
+              '新建跟练并选择歌曲，关闭要练的声部，再循环、慢放或录音回听。想叠加录音时使用“新建创作”。',
+            )}
+          </p>
+        </li>
+      </ol>
       <svg viewBox="0 0 360 330" role="img" aria-label={tr('练习界面图解')}>
         <rect
           x="1"

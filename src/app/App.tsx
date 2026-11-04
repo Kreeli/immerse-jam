@@ -1,5 +1,5 @@
 import RehearsalCover from '../shared/RehearsalCover';
-import ModalFrame from '../shared/ModalFrame';
+import ModalFrame, { closeTopDialog } from '../shared/ModalFrame';
 import WindowControls from '../shared/WindowControls';
 import Select from '../shared/Select';
 import MobileActions from '../platform/android/MobileActions';
@@ -55,6 +55,7 @@ import SidePanel from '../features/player/SidePanel';
 import SyncedVideo from '../features/player/SyncedVideo';
 import { trackLabel } from '../features/player/TrackControl';
 import Transport from '../features/player/Transport';
+import JobStatus from '../features/player/JobStatus';
 import Waveform from '../features/player/Waveform';
 import CreationTracks from '../features/recording/CreationTracks';
 import PracticeHub from '../features/recording/PracticeHub';
@@ -90,6 +91,7 @@ export default function App() {
   const [sessionSource, setSessionSource] = useState<Project | null>(null);
   const [mobileMixer, setMobileMixer] = useState(false);
   const [refreshRhythm, setRefreshRhythm] = useState(false);
+  const [discardingChanges, setDiscardingChanges] = useState(false);
   const androidBack = useRef<() => boolean>(() => false);
   const folderProps = {
     folders: controller.folders,
@@ -133,6 +135,7 @@ export default function App() {
     runtimeMode,
     setRuntimeMode,
     runtimeMessage,
+    runtimeDownload,
     setRuntimeMessage,
     installing,
     setInstalling,
@@ -239,6 +242,7 @@ export default function App() {
       setMobileMixer(false);
       return true;
     }
+    if (closeTopDialog()) return true;
     const close = [
       ...document.querySelectorAll<HTMLButtonElement>(
         '.modal-backdrop button, [role="dialog"] button',
@@ -256,6 +260,7 @@ export default function App() {
       close.click();
       return true;
     }
+    if (document.querySelector('.modal-backdrop, [role="dialog"]')) return true;
     if (deletingProject) {
       setDeletingProject(null);
       return true;
@@ -606,9 +611,6 @@ export default function App() {
                               }
                               onClick={() => setWaveSource('mix')}
                             >
-                              {tr('总混音波形')}
-                            </button>
-                            <span className="wave-source-name">
                               {waveSource === 'mix'
                                 ? sourceTracks(project).length > 1
                                   ? tr('{0} 条音轨混合', [sourceTracks(project).length])
@@ -621,7 +623,7 @@ export default function App() {
                                       ({ name: tr('原曲') } as Track),
                                   )}
                               {waveLoading ? tr(' \u00B7 正在生成波形…') : ''}
-                            </span>
+                            </button>
                           </div>
                         </div>
                         <>
@@ -722,6 +724,7 @@ export default function App() {
             </div>
             {(!isAndroid || showPlayer) && (
               <Transport
+                task={job ? <JobStatus job={job} onError={notify} /> : null}
                 recorder={
                   isAndroid || project.kind || project.takes?.length ? (
                     <PracticeRecorder
@@ -802,37 +805,54 @@ export default function App() {
           }}
         />
       )}
-      {job && (
-        <div className="job-card">
-          <div>
-            <LoaderCircle size={18} className="spin" />
-            <strong>
-              {job.operation === 'align'
-                ? tr('自动对齐乐谱')
-                : job.operation === 'analyze'
-                  ? tr('分析音乐')
-                  : job.operation === 'separate'
-                    ? tr('本地音轨分离')
-                    : tr('本地处理')}
-            </strong>
-            {job.jobId && (
-              <button onClick={() => void jamCall('cancel', { jobId: job.jobId })}>
-                <X size={16} />
-              </button>
-            )}
-          </div>
-          <p>{translateMessage(job.message || '').slice(-180) || tr('处理中…')}</p>
-          <progress value={job.progress ?? undefined} max="1" />
+      {job && !project && (
+        <div className="standalone-task">
+          <JobStatus job={job} onError={notify} />
         </div>
       )}
-      {toast && (
+      {(toast || controller.saveState === 'error') && (
         <div role="status" className="toast">
-          <span>{toast}</span>
-          <button onClick={() => setToast('')}>
-            <X size={15} />
-          </button>
+          <span>{toast || tr('保存失败，点此重试')}</span>
+          {controller.saveState === 'error' ? (
+            <>
+              <button onClick={() => void controller.flushEdits().catch(() => {})}>
+                {tr('重试保存')}
+              </button>
+              {project && (
+                <button onClick={() => setDiscardingChanges(true)}>{tr('放弃未保存修改')}</button>
+              )}
+            </>
+          ) : (
+            <button onClick={() => setToast('')}>
+              <X size={15} />
+            </button>
+          )}
         </div>
       )}
+      <ModalFrame
+        open={discardingChanges}
+        onClose={() => setDiscardingChanges(false)}
+        label={tr('放弃未保存修改')}
+        className="metadata-dialog"
+      >
+        <h2>{tr('放弃未保存修改')}</h2>
+        <p>{tr('将当前项目恢复到上次成功保存的状态，尚未保存的修改会丢失。')}</p>
+        <footer>
+          <button onClick={() => setDiscardingChanges(false)}>{tr('取消')}</button>
+          <button
+            className="danger-button"
+            onClick={() =>
+              void act(async () => {
+                await controller.discardChanges();
+                setDiscardingChanges(false);
+                setToast('');
+              })
+            }
+          >
+            {tr('放弃未保存修改')}
+          </button>
+        </footer>
+      </ModalFrame>
       <ModalFrame
         open={!!modal}
         onClose={closeModal}
@@ -1066,6 +1086,26 @@ export default function App() {
                   </button>
                 </div>
                 <DownloadSettings disabled={installing} />
+                {installing && (
+                  <div className="runtime-download-status" aria-live="polite">
+                    {runtimeDownload?.file && <strong>{runtimeDownload.file}</strong>}
+                    <progress
+                      aria-label={tr('当前步骤进度')}
+                      max="1"
+                      value={runtimeDownload?.progress ?? undefined}
+                    />
+                    <span className="muted">
+                      {runtimeDownload?.progress !== undefined &&
+                        `${Math.round(runtimeDownload.progress * 100)}% · `}
+                      {runtimeDownload?.received !== undefined &&
+                        `${(runtimeDownload.received / 1048576).toFixed(1)} MiB`}
+                      {!!runtimeDownload?.total &&
+                        ` / ${(runtimeDownload.total / 1048576).toFixed(1)} MiB`}
+                      {runtimeDownload?.bytesPerSecond !== undefined &&
+                        ` · ${(runtimeDownload.bytesPerSecond / 1048576).toFixed(1)} MiB/s`}
+                    </span>
+                  </div>
+                )}
                 <p className="muted setup-estimate">
                   {tr(
                     '首次下载：CPU 约 1–2 GB，NVIDIA 约 3–5 GB，另加所选模型。通常需 5–30 分钟，慢网络可能更久；已有缓存会复用。',
@@ -1152,9 +1192,12 @@ export default function App() {
             <div className="export-options">
               <button
                 onClick={() =>
-                  void act(() => jamCall('export', { id: project.id, full: true })).then(
-                    (f) => f && notify(tr('完整项目已导出')),
-                  )
+                  void act(() => jamCall('export', { id: project.id, full: true })).then((f) => {
+                    if (f) {
+                      setModal(null);
+                      notify(tr('已导出至：{0}', [String(f)]));
+                    }
+                  })
                 }
               >
                 <FileMusic size={22} />
@@ -1164,7 +1207,12 @@ export default function App() {
               <button
                 onClick={() =>
                   void act(() => jamCall('export-audio', { id: project.id, stems: true })).then(
-                    (f) => f && notify(tr('原曲和分轨已导出')),
+                    (f) => {
+                      if (f) {
+                        setModal(null);
+                        notify(tr('已导出至：{0}', [String(f)]));
+                      }
+                    },
                   )
                 }
               >
@@ -1180,7 +1228,12 @@ export default function App() {
                       region:
                         loop && loopA !== null && loopB !== null ? { a: loopA, b: loopB } : null,
                     }),
-                  ).then((f) => f && notify(tr('混音已导出')))
+                  ).then((f) => {
+                    if (f) {
+                      setModal(null);
+                      notify(tr('已导出至：{0}', [String(f)]));
+                    }
+                  })
                 }
               >
                 <Download size={22} />

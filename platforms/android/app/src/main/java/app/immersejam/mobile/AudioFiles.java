@@ -155,8 +155,8 @@ public final class AudioFiles {
       header(out, frames, 44100, 16, 1);
     } finally {
       if (codec != null) {
-        codec.stop();
-        codec.release();
+        try { codec.stop(); } catch (IllegalStateException ignored) {}
+        finally { codec.release(); }
       }
       extractor.release();
     }

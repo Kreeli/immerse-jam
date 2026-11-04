@@ -23,10 +23,21 @@ export default function PresetControls({
           name: name.trim(),
           tracks: structuredClone(project.tracks),
           practice: structuredClone(project.practice),
-          originalMix: project.originalMix,
+          originalMix: structuredClone(
+            project.originalMix || {
+              id: 'original',
+              name: '原曲',
+              file: project.playback || project.original,
+              gain: 1,
+              pan: 0,
+              mute: false,
+              solo: false,
+            },
+          ),
           sourceMix: project.sessionSource
             ? {
                 gain: project.sourceMix?.gain ?? 1,
+                pan: project.sourceMix?.pan ?? 0,
                 mute: project.sourceMix?.mute ?? false,
                 solo: project.sourceMix?.solo ?? false,
               }
@@ -34,6 +45,7 @@ export default function PresetControls({
           sourceGroupMix: project.sourceGroups?.map((group) => ({
             id: group.id,
             gain: group.gain,
+            pan: group.pan ?? 0,
             mute: group.mute,
             solo: group.solo,
             tracks: group.tracks.map(({ id, gain, pan, mute, solo }) => ({
@@ -84,7 +96,17 @@ export default function PresetControls({
             ...project,
             tracks: structuredClone(preset.tracks),
             practice: structuredClone(preset.practice),
-            originalMix: preset.originalMix,
+            originalMix: structuredClone(
+              preset.originalMix || {
+                id: 'original',
+                name: '原曲',
+                file: project.playback || project.original,
+                gain: 1,
+                pan: 0,
+                mute: false,
+                solo: false,
+              },
+            ),
             sourceMix: preset.sourceMix
               ? {
                   start: project.sourceMix?.start || 0,
@@ -98,6 +120,7 @@ export default function PresetControls({
                 ? {
                     ...group,
                     gain: saved.gain,
+                    pan: saved.pan ?? 0,
                     mute: saved.mute,
                     solo: saved.solo,
                     tracks: group.tracks.map((track) => ({

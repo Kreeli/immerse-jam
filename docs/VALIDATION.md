@@ -1,8 +1,12 @@
 # Windows 验证记录
 
+2026-11-04 晚安装修订：`node scripts/installer-path-check.cjs` 使用真实 NSIS 静默夹具验证尚不存在的数据 / 程序路径与目录边界（需要本地 builder-cache）；`node scripts/torch-install-check.cjs` 用极小本地 wheel 跑真实 uv 两阶段安装与缓存复用（需要 `.runtime` 中已准备的 Python 3.11.18 和 uv）。两者不下载大运行库或修改系统网络。`tests/torch-progress.test.cjs` 覆盖固定摘要、下载源回退、离线复用、进度不被空白日志清空。完整实测范围及新包位置见 `DEVELOPMENT_HANDOFF.md` 的“安装新路径与大运行库进度”。
+
 ## 当前维护的检查入口（2026-11-02）
 
 以下历史记录按发生日期保留，不能当作当前每个脚本都已通过的承诺。
+
+2026-11-04 审查新增：`scripts/installer-offline-check.cjs [vendor目录]` 验证内置 Python / Beat This 的离线准备（须先准备 installer-payload）；`scripts/review-state-check.cjs` 使用合成 React 页面验证编辑保存与退出，Windows 使用已有 Edge；`tests/review-regressions.test.cjs` 覆盖导入回滚、坏录音恢复、续传和导出快照等故障场景。本轮实际结果及未覆盖边界见 `docs/REPAIR-PLAN-2026-11-04.md`。
 
 | 范围                     | 命令 / 前置条件                                                                                                      |
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------- |

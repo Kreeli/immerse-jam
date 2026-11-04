@@ -6,7 +6,13 @@ const fs = require('node:fs'),
   http = require('node:http');
 const { Models } = require('../desktop/models.cjs');
 const { downloadSources } = require('../desktop/runtime.cjs');
-const { installPackages, selectIndex, OFFICIAL } = require('../desktop/package-index.cjs');
+const {
+  installPackages,
+  selectIndex,
+  OFFICIAL,
+  MIRROR,
+  SECOND_MIRROR,
+} = require('../desktop/package-index.cjs');
 fs.mkdirSync(path.resolve('.runtime/test-workspaces'), { recursive: true });
 test('a model installs from verified local components without contacting a download source', async (t) => {
   const area = fs.mkdtempSync(path.resolve('.runtime/test-workspaces/assets-'));
@@ -71,12 +77,12 @@ test('a corrupt download mirror is rejected and the next source supplies the pin
   assert.ok(requests.includes('/bad') && requests.includes('/good'));
   assert.ok(events.some((event) => event.message.includes('备用源')));
 });
-test('Python index selection falls back to official PyPI when probes or a mirror install fail', async () => {
+test('Python auto starts domestically and failures try a second domestic mirror before PyPI', async () => {
   assert.equal(
     await selectIndex(async () => {
       throw new Error('offline');
     }),
-    OFFICIAL,
+    MIRROR,
   );
   const attempts = [];
   await installPackages(
@@ -85,10 +91,10 @@ test('Python index selection falls back to official PyPI when probes or a mirror
     {},
     () => {},
     async (_exe, args) => {
-      attempts.push(args.at(-1));
-      if (attempts.length === 1) throw new Error('mirror incomplete');
+      attempts.push(args[args.indexOf('--index-url') + 1]);
+      if (attempts.length < 3) throw new Error('mirror incomplete');
     },
-    async () => 'https://pypi.tuna.tsinghua.edu.cn/simple/',
+    async () => MIRROR,
   );
-  assert.deepEqual(attempts, ['https://pypi.tuna.tsinghua.edu.cn/simple/', OFFICIAL]);
+  assert.deepEqual(attempts, [MIRROR, SECOND_MIRROR, OFFICIAL]);
 });

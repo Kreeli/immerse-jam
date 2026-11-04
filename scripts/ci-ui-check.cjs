@@ -163,7 +163,7 @@ let browser;
     await page.setViewportSize({ width, height: 900 });
     assert.ok(
       await page
-        .locator('.donate-label')
+        .locator('.nr-nav-foot > .nr-nav-item > span')
         .evaluate(
           (el) =>
             el.scrollWidth <= el.clientWidth + 1 && getComputedStyle(el).whiteSpace === 'nowrap',

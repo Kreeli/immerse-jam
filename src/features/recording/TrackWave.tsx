@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Player } from '../../audio/Player';
 import type { LiveEnvelope } from '../../audio/live-envelope';
 import { t as tr } from '../../i18n';
@@ -50,6 +50,8 @@ export default function TrackWave({
   const [peaks, setPeaks] = useState<number[]>([]),
     [error, setError] = useState('');
   const generation = timeline.player.generation;
+  const identity = source + '|' + generation;
+  const previousIdentity = useRef(identity);
   const region = source.startsWith('group:')
     ? timeline.player.waveformRegion(source, group)
     : { origin: 0, duration: timeline.player.duration };
@@ -59,17 +61,24 @@ export default function TrackWave({
     if (timeline.loading) return;
     const cached = timeline.player.cachedWaveform(source);
     if (cached) setPeaks(cached);
-    else setPeaks([]);
-    void timeline.player
-      .waveform(source, group)
-      .then((values) => {
-        if (!cancelled) setPeaks(values);
-      })
-      .catch((error) => {
-        if (!cancelled) setError(error.message);
-      });
+    else if (previousIdentity.current !== identity) setPeaks([]);
+    previousIdentity.current = identity;
+    const timer = setTimeout(
+      () => {
+        void timeline.player
+          .waveform(source, group)
+          .then((values) => {
+            if (!cancelled && values.length) setPeaks(values);
+          })
+          .catch((error) => {
+            if (!cancelled) setError(error.message);
+          });
+      },
+      group ? 120 : 0,
+    );
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
   }, [source, generation, signature, timeline.loading]);
   return (

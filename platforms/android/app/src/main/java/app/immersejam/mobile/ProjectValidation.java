@@ -71,7 +71,22 @@ public final class ProjectValidation {
   }
 
   public static void validate(JSONObject p) throws Exception {
-    if (p.getInt("schemaVersion") != 1 && p.getInt("schemaVersion") != 2)
+    if (p.has("trackOrder")) {
+      if (!(p.opt("trackOrder") instanceof JSONObject)) throw new IOException("音轨顺序无效");
+      JSONObject orders = p.getJSONObject("trackOrder");
+      if (orders.length() > 128) throw new IOException("音轨顺序过多");
+      Iterator<String> scopes = orders.keys();
+      while (scopes.hasNext()) {
+        String scope = scopes.next();
+        if (!scope.matches("(mixer|groups|takes|group:[a-zA-Z0-9_-]{1,100})") || !(orders.opt(scope) instanceof JSONArray)) throw new IOException("音轨排序范围无效");
+        JSONArray ids = array(orders, scope, 1000);
+        Set<String> unique = new HashSet<>();
+        for (int i = 0; i < ids.length(); i++) {
+          if (!(ids.get(i) instanceof String) || ids.getString(i).isEmpty() || ids.getString(i).length() > 200 || !unique.add(ids.getString(i))) throw new IOException("音轨顺序无效");
+        }
+      }
+    }
+    if (!(p.opt("schemaVersion") instanceof Number) || (p.getDouble("schemaVersion") != 1 && p.getDouble("schemaVersion") != 2))
       throw new IOException("不支持的歌曲版本");
     if (!(p.opt("title") instanceof String) || !(p.opt("original") instanceof String))
       throw new IOException("歌曲名称或原曲无效");
@@ -89,9 +104,12 @@ public final class ProjectValidation {
       tracks(new JSONArray().put(p.getJSONObject("originalMix")));
     for (String key : List.of("results", "sourceGroups")) {
       JSONArray groups = array(p, key, 200);
-      for (int i = 0; i < groups.length(); i++)
+      for (int i = 0; i < groups.length(); i++) {
         tracks(array(groups.getJSONObject(i), "tracks", 32));
+        if (key.equals("sourceGroups")) number(groups.getJSONObject(i), "pan", -1, 1, true);
+      }
     }
+    if (p.optJSONObject("sourceMix") != null) number(p.getJSONObject("sourceMix"), "pan", -1, 1, true);
     JSONArray takes = array(p, "takes", 1000);
     for (int i = 0; i < takes.length(); i++)
       number(takes.getJSONObject(i), "duration", 0, 2640, false);

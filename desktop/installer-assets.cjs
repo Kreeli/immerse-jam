@@ -1,3 +1,4 @@
+const { localFailure } = require('./install-errors.cjs');
 const fs = require('node:fs'),
   path = require('node:path'),
   crypto = require('node:crypto');
@@ -46,6 +47,7 @@ async function copyBundled(relative, destination, sha256, onEvent) {
       });
       return true;
     } catch (error) {
+      if (localFailure(error)) throw localFailure(error);
       onEvent?.({ type: 'progress', message: error.message });
     }
   }

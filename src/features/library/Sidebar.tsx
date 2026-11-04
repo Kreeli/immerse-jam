@@ -1,4 +1,8 @@
+import { useState, useRef, useEffect } from 'react';
+import { setPreferences, usePreferences } from '../../app/preferences';
 import {
+  PanelLeftClose,
+  PanelLeftOpen,
   CircleHelp,
   Folder,
   FolderPlus,
@@ -19,13 +23,12 @@ import type { WorkspaceController } from '../../app/useWorkspace';
 import { t as tr } from '../../i18n';
 import RehearsalCover from '../../shared/RehearsalCover';
 import FolderActions from './FolderActions';
+import { useDefaultFolder } from '../../shared/useDefaultFolder';
 type Props = Pick<
   WorkspaceController,
   | 'page'
   | 'library'
   | 'project'
-  | 'ready'
-  | 'checkingRuntime'
   | 'showPlayer'
   | 'setShowPlayer'
   | 'setPage'
@@ -41,8 +44,6 @@ export default function Sidebar({
   page,
   library,
   project,
-  ready,
-  checkingRuntime,
   showPlayer,
   setShowPlayer,
   setPage,
@@ -53,12 +54,28 @@ export default function Sidebar({
   notify,
   onCreateFolder,
 }: Props & { onCreateFolder: () => void }) {
+  const { sidebarCollapsed, sidebarWidth } = usePreferences();
+  const defaultFolder = useDefaultFolder();
+  const [resizing, setResizing] = useState(false);
+  const drag = useRef<{ x: number; width: number; next: number } | null>(null);
+  const finishResize = () => {
+    if (!drag.current) return;
+    setPreferences({ sidebarWidth: drag.current.next });
+    drag.current = null;
+    setResizing(false);
+  };
+  useEffect(
+    () => () => {
+      document.documentElement.style.removeProperty('--sidebar-drag-width');
+    },
+    [],
+  );
   const navigate = (id: string) => {
     setShowPlayer(false);
     setPage(id);
   };
   return (
-    <aside className="sidebar nr-nav" aria-label={tr('你的音乐空间')}>
+    <aside data-resizing={resizing} className="sidebar nr-nav" aria-label={tr('你的音乐空间')}>
       <div className="nr-nav-brand">
         <span className="nr-brandmark">
           <img src={appIcon} alt="" />
@@ -66,6 +83,14 @@ export default function Sidebar({
         <b>
           Immerse <span>Jam</span>
         </b>
+        <button
+          className="nr-icon-btn sidebar-collapse"
+          aria-label={sidebarCollapsed ? tr('展开侧栏') : tr('收起侧栏')}
+          aria-expanded={!sidebarCollapsed}
+          onClick={() => setPreferences({ sidebarCollapsed: !sidebarCollapsed })}
+        >
+          {sidebarCollapsed ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}
+        </button>
       </div>
       <div className="nr-nav-scroll">
         <nav className="nr-nav-group">
@@ -128,11 +153,14 @@ export default function Sidebar({
               <span>{tr('我的收藏')}</span>
               <span className="nr-badge-count">{library.filter((p) => p.starred).length}</span>
             </button>
-            {[{ id: 'unfiled', name: tr('默认分类'), projectIds: [] }, ...folders].map((folder) => (
+            {[defaultFolder, ...folders].map((folder) => (
               <div
                 className="sidebar-folder-row"
                 data-current={page === 'folder:' + folder.id && !showPlayer}
                 key={folder.id}
+                onClick={(event) => {
+                  if (event.target === event.currentTarget) navigate('folder:' + folder.id);
+                }}
               >
                 <button
                   className="nr-nav-item nr-sub"
@@ -147,24 +175,22 @@ export default function Sidebar({
                     <Folder size={18} />
                   )}
                   <span className="nr-ellipsis">{folder.name}</span>
-                  <span className="sidebar-folder-count">
-                    {folder.id === 'unfiled'
-                      ? library.filter((p) => !folders.some((f) => f.projectIds.includes(p.id)))
-                          .length
-                      : folder.projectIds.length}
-                  </span>
                 </button>
-                {folder.id !== 'unfiled' && (
-                  <FolderActions
-                    folder={folder}
-                    folders={folders}
-                    onFolders={setFolders}
-                    onError={notify}
-                    onDeleted={() => {
-                      if (page === 'folder:' + folder.id) navigate('folder:unfiled');
-                    }}
-                  />
-                )}
+                <FolderActions
+                  folder={folder}
+                  folders={folders}
+                  onFolders={setFolders}
+                  onError={notify}
+                  onDeleted={() => {
+                    if (page === 'folder:' + folder.id) navigate('folder:unfiled');
+                  }}
+                />
+                <span className="nr-badge-count sidebar-folder-count">
+                  {folder.id === 'unfiled'
+                    ? library.filter((p) => !folders.some((f) => f.projectIds.includes(p.id)))
+                        .length
+                    : folder.projectIds.length}
+                </span>
               </div>
             ))}
           </div>
@@ -205,48 +231,96 @@ export default function Sidebar({
         </nav>
       </div>
       <div className="nr-nav-foot">
-        <button className="nr-engine" onClick={() => setModal('settings')} title={tr('设置与模型')}>
-          <span className="nr-pulse" style={{ background: ready ? 'var(--ok)' : 'var(--warn)' }} />
-          <div>
-            <b>
-              {checkingRuntime
-                ? tr('正在检查环境…')
-                : ready
-                  ? tr('本地引擎就绪')
-                  : tr('本地引擎待准备')}
-            </b>
-            <small>{tr('音乐留在你的设备上')}</small>
-          </div>
-        </button>
         <div className="nr-nav-mini">
           <button
-            className="nr-btn nr-ghost"
+            className="nr-nav-item"
             aria-label={tr('第一次使用？')}
             title={tr('第一次使用？')}
             onClick={() => setModal('help')}
           >
-            <CircleHelp size={16} />
+            <CircleHelp size={18} />
             <span>{tr('第一次使用？')}</span>
           </button>
           <button
-            className="nr-btn nr-ghost"
+            className="nr-nav-item"
             title={tr('用户反馈')}
             onClick={() => setModal('feedback')}
           >
-            <MessageSquare size={16} />
+            <MessageSquare size={18} />
             <span>{tr('用户反馈')}</span>
           </button>
         </div>
         <button
-          className="nr-donate"
+          className="nr-nav-item"
           title={tr('请作者喝一瓶冰可乐')}
           onClick={() => setModal('donate')}
         >
-          <Heart size={16} />
-          <span className="donate-label">{tr('请作者喝一瓶冰可乐')}</span>
+          <Heart size={18} />
+          <span>{tr('请作者喝一瓶冰可乐')}</span>
         </button>
         <div className="nr-ver">v{platformVersion || version}</div>
       </div>
+      {!sidebarCollapsed && (
+        <div
+          className="sidebar-resize"
+          role="separator"
+          aria-label={tr('调整侧栏宽度')}
+          aria-orientation="vertical"
+          aria-valuemin={200}
+          aria-valuemax={360}
+          aria-valuenow={sidebarWidth}
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+              e.preventDefault();
+              setPreferences({
+                sidebarWidth: Math.max(
+                  200,
+                  Math.min(360, sidebarWidth + (e.key === 'ArrowLeft' ? -12 : 12)),
+                ),
+              });
+            }
+          }}
+          onPointerDown={(e) => {
+            if (e.button !== 0) return;
+            e.preventDefault();
+            e.currentTarget.setPointerCapture(e.pointerId);
+            drag.current = { x: e.clientX, width: sidebarWidth, next: sidebarWidth };
+            setResizing(true);
+          }}
+          onPointerMove={(e) => {
+            if (!drag.current) return;
+            drag.current.next = Math.round(
+              Math.max(
+                200,
+                Math.min(
+                  360,
+                  window.innerWidth - 560,
+                  drag.current.width + e.clientX - drag.current.x,
+                ),
+              ),
+            );
+            document.documentElement.style.setProperty(
+              '--sidebar-drag-width',
+              drag.current.next + 'px',
+            );
+          }}
+          onPointerUp={(e) => {
+            finishResize();
+            document.documentElement.style.removeProperty('--sidebar-drag-width');
+            if (e.currentTarget.hasPointerCapture(e.pointerId))
+              e.currentTarget.releasePointerCapture(e.pointerId);
+          }}
+          onPointerCancel={() => {
+            finishResize();
+            document.documentElement.style.removeProperty('--sidebar-drag-width');
+          }}
+          onLostPointerCapture={() => {
+            finishResize();
+            document.documentElement.style.removeProperty('--sidebar-drag-width');
+          }}
+        />
+      )}
     </aside>
   );
 }

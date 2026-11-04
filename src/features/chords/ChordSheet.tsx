@@ -260,7 +260,7 @@ export default function ChordSheet({
   };
   const sections: ChartBar[][] = [];
   const regular = chart.bars.filter((bar) => !bar.pickup);
-  const rowSize = isAndroid ? 4 : chart.barsPerRow;
+  const rowSize = isAndroid || ![2, 4, 8].includes(chart.barsPerRow) ? 4 : chart.barsPerRow;
   for (let i = 0; i < regular.length; i += rowSize) sections.push(regular.slice(i, i + rowSize));
   const renderBar = (bar: ChartBar) => {
     const number = bar.pickup

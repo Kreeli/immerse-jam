@@ -8,12 +8,7 @@ const { Takes } = require('../desktop/takes.cjs');
 const { Transfer } = require('../desktop/transfer.cjs');
 const { createHealth } = require('../desktop/runtime-health.cjs');
 const { createNetwork } = require('../desktop/network.cjs');
-const {
-  rankIndexes,
-  installPackages,
-  installTorch,
-  OFFICIAL,
-} = require('../desktop/package-index.cjs');
+const { rankIndexes, installPackages, OFFICIAL } = require('../desktop/package-index.cjs');
 const { Updates, newer, assetUrl } = require('../desktop/updates.cjs');
 
 test('deleted recordings survive restart, stay out of exports, and can be restored intact', async (t) => {
@@ -130,7 +125,7 @@ test('source ranking measures transferred data, and both preferred sources can f
     {},
     () => {},
     async (_exe, args, _env, _events, options) => {
-      attempts.push(args.at(-1));
+      attempts.push(args[args.indexOf('--index-url') + 1]);
       assert.equal(options.stallMs, 120000);
       if (attempts.length === 1) throw new Error('official stalled');
     },
@@ -138,23 +133,6 @@ test('source ranking measures transferred data, and both preferred sources can f
   );
   assert.equal(attempts.length, 2);
   assert.notEqual(attempts[0], attempts[1]);
-  const torch = [];
-  await installTorch(
-    'uv',
-    ['pip', 'install', 'torch==2.8.0'],
-    {},
-    () => {},
-    async (_exe, args) => {
-      torch.push(args.at(-1));
-      if (torch.length === 1) throw new Error('mirror down');
-    },
-    'cuda',
-    'mirror',
-  );
-  assert.deepEqual(torch, [
-    'https://mirror.sjtu.edu.cn/pytorch-wheels/cu126/',
-    'https://download.pytorch.org/whl/cu126/',
-  ]);
 });
 
 test('an installer child with no output or cache activity is stopped so fallback can run', async () => {

@@ -67,6 +67,14 @@ function createNetwork(electron, env = process.env) {
   };
 }
 const network = createNetwork(process.versions.electron ? require('electron') : null);
+function cancelResponse(response, reader) {
+  responseControllers.get(response)?.abort();
+  responseControllers.delete(response);
+  // A transport can leave cancellation pending forever. Never await it.
+  try {
+    void (reader ? reader.cancel() : response.body?.cancel())?.catch(() => {});
+  } catch {}
+}
 async function* chunks(response, idleMs = 45000) {
   const reader = response.body.getReader();
   try {
@@ -89,11 +97,9 @@ async function* chunks(response, idleMs = 45000) {
       }
     }
   } finally {
-    responseControllers.get(response)?.abort();
-    responseControllers.delete(response);
     // Some transports never settle cancel() on a broken connection. Cleanup
     // must not prevent the idle timeout from reaching retry/error handling.
-    void reader.cancel().catch(() => {});
+    cancelResponse(response, reader);
     reader.releaseLock();
   }
 }
@@ -108,4 +114,4 @@ function downloadError(error) {
     { cause: error },
   );
 }
-module.exports = { ...network, chunks, downloadError, createNetwork };
+module.exports = { ...network, chunks, cancelResponse, downloadError, createNetwork };

@@ -1,6 +1,6 @@
 import type { JamEvent } from '../../shared/types';
 import methods from '../../../shared/ipc-methods.json';
-import { encodeBytes } from './binary';
+import { encodeBytes, decodeBytes } from './binary';
 declare global {
   interface Window {
     ImmerseNative?: {
@@ -12,7 +12,12 @@ declare global {
 if (window.ImmerseNative) {
   const pending = new Map<
     number,
-    { resolve: (value: any) => void; reject: (error: Error) => void }
+    {
+      method: string;
+      timer: ReturnType<typeof setTimeout>;
+      resolve: (value: any) => void;
+      reject: (error: Error) => void;
+    }
   >();
   const listeners = new Set<(event: JamEvent) => void>();
   let next = 0;
@@ -25,8 +30,14 @@ if (window.ImmerseNative) {
     const task = pending.get(reply.id);
     if (!task) return;
     pending.delete(reply.id);
+    clearTimeout(task.timer);
     if (reply.error) task.reject(new Error(reply.error));
-    else task.resolve(reply.result);
+    else
+      task.resolve(
+        task.method === 'read-attachment' && typeof reply.result === 'string'
+          ? decodeBytes(reply.result)
+          : reply.result,
+      );
   };
   window.jam = {
     call(method, data) {
@@ -35,12 +46,23 @@ if (window.ImmerseNative) {
       if (method === 'take-finish')
         return import('./render').then(({ finishTake }) => finishTake(data, window.jam.call));
       if (method === 'take-recover')
-        return import('./render').then(({ recoverTakes }) => recoverTakes(data, window.jam.call));
+        return import('./render').then(({ recoverTakes }) =>
+          recoverTakes(data, window.jam.call, (message) => {
+            for (const listener of listeners) listener({ type: 'error', message });
+          }),
+        );
       if (!methods.includes(method) && !method.startsWith('android-'))
         return Promise.reject(new Error('Unsupported operation'));
       const id = ++next;
       return new Promise((resolve, reject) => {
-        pending.set(id, { resolve, reject });
+        const timer = setTimeout(
+          () => {
+            pending.delete(id);
+            reject(new Error('原生操作长时间未响应，请检查当前任务后重试'));
+          },
+          method === 'android-playback-state' ? 15000 : 10 * 60 * 1000,
+        );
+        pending.set(id, { method, timer, resolve, reject });
         try {
           let payload = data;
           if (method === 'take-append' && data?.bytes) {
@@ -57,6 +79,7 @@ if (window.ImmerseNative) {
           window.ImmerseNative!.postMessage(message);
         } catch (error) {
           pending.delete(id);
+          clearTimeout(timer);
           reject(error);
         }
       });

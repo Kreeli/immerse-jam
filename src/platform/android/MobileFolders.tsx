@@ -7,19 +7,21 @@ import type { ProjectFolder } from '../../shared/types';
 import RehearsalCover from '../../shared/RehearsalCover';
 import ModalFrame from '../../shared/ModalFrame';
 import { FolderDialog, type FolderProps } from '../../features/library/Folders';
+import { useDefaultFolder } from '../../shared/useDefaultFolder';
 
 export default function MobileFolders({
   value,
   onChange,
   ...props
 }: FolderProps & { value: string; onChange: (id: string) => void }) {
+  const defaultFolder = useDefaultFolder();
   const [manage, setManage] = useState(false),
     [editing, setEditing] = useState<ProjectFolder | null | undefined>(),
     [deleting, setDeleting] = useState<ProjectFolder | null>(null);
   const title =
     value === 'all'
       ? tr('分类')
-      : props.folders.find((f) => f.id === value)?.name || tr('默认分类');
+      : props.folders.find((f) => f.id === value)?.name || defaultFolder.name;
   return (
     <>
       <Menu.Root>
@@ -31,7 +33,7 @@ export default function MobileFolders({
           <Menu.Content className="nr-action-menu" align="end" sideOffset={6} collisionPadding={12}>
             {[
               { id: 'all', name: tr('全部'), projectIds: [] },
-              { id: '', name: tr('默认分类'), projectIds: [] },
+              { ...defaultFolder, id: '' },
               ...props.folders,
             ].map((f) => (
               <Menu.Item key={f.id} onSelect={() => onChange(f.id)}>

@@ -57,7 +57,7 @@ for (const file of [
 ])
   assert.ok(fs.existsSync(path.join(resources, file)), file);
 for (const asset of require('../shared/installer-assets.json').assets.filter((asset) =>
-  ['uv', 'beat-this'].includes(asset.id),
+  ['uv', 'beat-this', 'python-bootstrap', 'ffmpeg'].includes(asset.id),
 )) {
   const file = path.join(resources, 'vendor', asset.file);
   assert.equal(
@@ -65,7 +65,7 @@ for (const asset of require('../shared/installer-assets.json').assets.filter((as
     asset.sha256,
   );
 }
-assert.ok(!fs.existsSync(path.join(resources, 'vendor/ffmpeg.exe')));
+assert.ok(fs.existsSync(path.join(resources, 'vendor/licenses/ffmpeg.exe.LICENSE')));
 const installer = path.resolve(
     process.argv[3] || path.join('release', `Immerse Jam Setup ${manifest.version}.exe`),
   ),
@@ -87,7 +87,8 @@ console.log(
       privateMedia: false,
       bundledModelWeights: ['beat-this'],
       bundledUv: true,
-      bundledFFmpeg: false,
+      bundledPythonBootstrap: true,
+      bundledFFmpeg: true,
     },
     null,
     2,

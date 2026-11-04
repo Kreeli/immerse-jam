@@ -167,7 +167,11 @@ class Transfer {
   stop() {
     this.generation++;
     for (const req of this.requests) req.destroy();
-    for (const item of this.pending.values()) fs.rmSync(item.file, { force: true });
+    for (const item of this.pending.values()) {
+      try {
+        fs.rmSync(item.file, { force: true });
+      } catch {}
+    }
     this.pending.clear();
     this.server?.closeAllConnections();
     this.server?.close();

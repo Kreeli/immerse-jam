@@ -36,6 +36,7 @@ export function groupTracks(group: SourceGroup): Track[] {
     ...track,
     groupId: group.id,
     gain: track.gain * group.gain,
+    pan: Math.max(-1, Math.min(1, track.pan + (group.pan || 0))),
     start: (track.start || 0) + group.start,
     mute: track.mute || (listening && !track.solo),
     solo: false,

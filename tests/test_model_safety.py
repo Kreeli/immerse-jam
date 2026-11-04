@@ -3,6 +3,18 @@ from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'backend'))
 from model_safety import custom_model_guard
 class ModelSafetyTests(unittest.TestCase):
+    def test_nested_and_sparse_onnx_external_data_is_rejected(self):
+        import onnx
+        from model_safety import reject_external_onnx
+        graph=onnx.ModelProto()
+        tensor=graph.graph.node.add().attribute.add().t
+        tensor.data_location=onnx.TensorProto.EXTERNAL
+        with self.assertRaisesRegex(ValueError,'外部数据'):reject_external_onnx(graph)
+        graph=onnx.ModelProto()
+        tensor=graph.graph.sparse_initializer.add().values
+        tensor.external_data.add(key='location',value='../outside')
+        with self.assertRaisesRegex(ValueError,'外部数据'):reject_external_onnx(graph)
+        reject_external_onnx(onnx.ModelProto())
     def test_custom_pickle_cannot_execute_and_modified_config_is_rejected(self):
         import torch
         test_root=Path(__file__).resolve().parents[1]/'.runtime'/'test-workspaces'

@@ -5,6 +5,7 @@ function validateCharts(charts) {
     if (
       !chart.id ||
       chartIds.has(chart.id) ||
+      (chart.barsPerRow !== undefined && ![2, 4, 8].includes(chart.barsPerRow)) ||
       !Array.isArray(chart.bars) ||
       chart.bars.length > 20000 ||
       ![2, 3, 4, 6].includes(chart.meter)

@@ -20,6 +20,18 @@ async function ensureAudioTools(base, onEvent = () => {}) {
   if (pending.has(base)) return pending.get(base);
   const task = (async () => {
     onEvent({ type: 'progress', message: '正在准备音频工具…' });
+    if (
+      await require('./installer-assets.cjs').copyBundled(
+        'ffmpeg.exe',
+        destination,
+        TOOL.sha256,
+        onEvent,
+      )
+    ) {
+      fs.writeFileSync(path.join(base, 'tools/ffmpeg.source.json'), JSON.stringify(TOOL, null, 2));
+      onEvent({ type: 'ready', message: '音频工具已就绪' });
+      return destination;
+    }
     const archive = path.join(base, 'tools/ffmpeg.gz'),
       part = destination + '.extracting';
     await download(TOOL.url, archive, null, onEvent);

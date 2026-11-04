@@ -1,17 +1,8 @@
+import SortableTracks from '../../shared/SortableTracks';
 import Select from '../../shared/Select';
 import { jamCall } from '../../platform/project-call';
 import { isAndroid } from '../../platform/environment';
-import {
-  ChevronDown,
-  ChevronRight,
-  Layers,
-  Mic2,
-  Pencil,
-  Trash2,
-  Plus,
-  Upload,
-  X,
-} from 'lucide-react';
+import { ChevronDown, ChevronRight, Layers, Mic2, Plus, Upload, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { LiveEnvelope } from '../../audio/live-envelope';
 import { creationGroups } from '../../audio/performance';
@@ -19,10 +10,9 @@ import { toggleTrackState } from '../../audio/track-state';
 import { t as tr } from '../../i18n';
 import { trackColor } from '../../styles/palette';
 import type { Project, SourceGroup, Track } from '../../shared/types';
-import TrackControl from '../player/TrackControl';
+import TrackControl, { trackLabel } from '../player/TrackControl';
 import TakeTiming from './TakeTiming';
 import ModalFrame from '../../shared/ModalFrame';
-import NameDialog from '../../shared/NameDialog';
 import TrackWave, { LiveWave, type TimelineProps } from './TrackWave';
 function AddSource({
   project,
@@ -163,9 +153,9 @@ export default function CreationTracks({
     ),
     [expandedStems, setExpandedStems] = useState<Set<string>>(() => new Set()),
     [adding, setAdding] = useState(false),
-    [renaming, setRenaming] = useState<SourceGroup | null>(null),
     [removing, setRemoving] = useState<SourceGroup | null>(null),
     [removingBusy, setRemovingBusy] = useState(false);
+  const [timingIds, setTimingIds] = useState<Set<string>>(() => new Set());
   const known = useRef(new Set(project.takes?.map((take) => take.id) || []));
   const endAnchor = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -194,6 +184,7 @@ export default function CreationTracks({
             ...project,
             sourceMix: {
               gain: group.gain,
+              pan: group.pan || 0,
               mute: group.mute,
               solo: group.solo,
               start: group.start,
@@ -266,140 +257,128 @@ export default function CreationTracks({
           </button>
         </div>
       </header>
-      {groups.map((group) => (
-        <section
-          className="creation-audio-object source-object"
-          key={group.id}
-          data-group-id={group.id}
-        >
-          <div className="creation-object-heading">
-            <button
-              className="object-expand"
-              aria-label={tr('展开分轨项目 {0}', [group.label || group.name])}
-              aria-expanded={expanded.has(group.id)}
-              onClick={() => toggle(group.id)}
-            >
-              {expanded.has(group.id) ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-              <Layers size={19} />
-              <strong>{group.label || group.name}</strong>
-              <small>{tr('{0} 条分轨', [group.tracks.length])}</small>
-            </button>
-            <span className="track-name-actions">
+      <SortableTracks
+        className="creation-sort-groups"
+        items={groups}
+        projectId={project.id}
+        scope="groups"
+        label={(group) => group.label || group.name}
+        disabled={timeline.recording}
+      >
+        {(group) => (
+          <section
+            className="creation-audio-object source-object"
+            key={group.id}
+            data-group-id={group.id}
+          >
+            <div className="creation-object-heading">
               <button
-                className="nr-icon-btn nr-sm"
-                disabled={timeline.recording}
-                aria-label={tr('重命名音轨 {0}', [group.label || group.name])}
-                title={tr('重命名音轨')}
-                onClick={() => setRenaming(group)}
+                className="object-expand"
+                aria-label={tr('展开分轨项目 {0}', [group.label || group.name])}
+                aria-expanded={expanded.has(group.id)}
+                onClick={() => toggle(group.id)}
               >
-                <Pencil size={14} />
+                {expanded.has(group.id) ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                <Layers size={19} />
               </button>
-              <button
-                className="nr-icon-btn nr-sm"
-                disabled={timeline.recording}
-                aria-label={tr('删除分轨项目 {0}', [group.label || group.name])}
-                title={tr('删除分轨项目')}
-                onClick={() => setRemoving(group)}
-              >
-                <Trash2 size={14} />
-              </button>
-            </span>
-            <label className="group-volume">
-              <span>
-                {isAndroid ? tr('分组总音量') : tr('音量')}
-                <b>{Math.round(group.gain * 100)}%</b>
-              </span>
-              <input
-                className="nr-range"
-                style={{ '--p': group.gain * 100 + '%' } as React.CSSProperties}
-                aria-label={tr('分组音量 {0}', [group.name])}
-                type="range"
-                min="0"
-                max="1"
-                step=".01"
-                value={group.gain}
-                onChange={(event) => updateGroup(group, { gain: +event.target.value })}
+              <TrackControl
+                track={{
+                  id: group.id,
+                  name: group.name,
+                  label: group.label,
+                  file: '',
+                  gain: group.gain,
+                  pan: group.pan || 0,
+                  mute: group.mute,
+                  solo: group.solo,
+                }}
+                nameDetail={tr('{0} 条分轨', [group.tracks.length])}
+                color="#8e949d"
+                gainMax={1}
+                meterId={'group:' + group.id}
+                meterPlayer={timeline.player}
+                selected={false}
+                onSelect={() => toggle(group.id)}
+                editingDisabled={timeline.recording || timeline.loading}
+                removeLabel={tr('删除分轨项目 {0}', [group.label || group.name])}
+                onRemove={() => setRemoving(group)}
+                onState={(action) => groupState(group, action)}
+                onChange={(patch) => updateGroup(group, patch)}
               />
-            </label>
-            <button
-              className="track-switch nr-ms-btn nr-s"
-              aria-label={tr('选听')}
-              title={tr('选听')}
-              aria-pressed={group.solo}
-              onClick={() => groupState(group, 'listen')}
-            >
-              S
-            </button>
-            <button
-              className="track-switch nr-ms-btn nr-m"
-              aria-label={tr('关闭声音')}
-              title={tr('关闭声音')}
-              aria-pressed={group.mute}
-              onClick={() => groupState(group, 'close')}
-            >
-              M
-            </button>
-          </div>
-          {expanded.has(group.id) && (
-            <div className="creation-object-content">
-              <TrackWave
-                {...timeline}
-                source={'group:' + group.id}
-                group={group}
-                signature={JSON.stringify(group)}
-              />
-              <div className="source-stems">
-                <button
-                  className="source-stems-toggle nr-btn nr-ghost"
-                  aria-expanded={expandedStems.has(group.id)}
-                  onClick={() =>
-                    setExpandedStems((before) => {
-                      const next = new Set(before);
-                      next.has(group.id) ? next.delete(group.id) : next.add(group.id);
-                      return next;
-                    })
-                  }
-                >
-                  {expandedStems.has(group.id) ? (
-                    <ChevronDown size={16} />
-                  ) : (
-                    <ChevronRight size={16} />
-                  )}
-                  {tr('显示所有音轨')}
-                  <small>{group.tracks.length}</small>
-                </button>
-                {expandedStems.has(group.id) && (
-                  <div className="source-stems-list">
-                    {group.tracks.map((track) => (
-                      <div className="source-stem-row" key={track.id}>
-                        <TrackControl
-                          grouped
-                          track={track}
-                          selected={expanded.has(track.id)}
-                          onSelect={() => toggle(track.id)}
-                          meterPlayer={timeline.player}
-                          onState={(action) => {
-                            const state = toggleTrackState(group.tracks, track.id, action).find(
-                              (item) => item.id === track.id,
-                            )!;
-                            stemChange(group, track, { mute: state.mute, solo: state.solo });
-                          }}
-                          color={trackColor(track.name)}
-                          onChange={(patch) => stemChange(group, track, patch)}
-                        />
-                        {expanded.has(track.id) && <TrackWave {...timeline} source={track.id} />}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
             </div>
-          )}
-        </section>
-      ))}
-      {(project.takes || [])
-        .filter((take) => !take.libraryOnly)
-        .map((take) => (
+            {expanded.has(group.id) && (
+              <div className="creation-object-content">
+                <TrackWave
+                  {...timeline}
+                  source={'group:' + group.id}
+                  group={group}
+                  signature={JSON.stringify(group)}
+                />
+                <div className="source-stems">
+                  <button
+                    className="source-stems-toggle nr-btn nr-ghost"
+                    aria-expanded={expandedStems.has(group.id)}
+                    onClick={() =>
+                      setExpandedStems((before) => {
+                        const next = new Set(before);
+                        next.has(group.id) ? next.delete(group.id) : next.add(group.id);
+                        return next;
+                      })
+                    }
+                  >
+                    {expandedStems.has(group.id) ? (
+                      <ChevronDown size={16} />
+                    ) : (
+                      <ChevronRight size={16} />
+                    )}
+                    {tr('显示所有音轨')}
+                  </button>
+                  {expandedStems.has(group.id) && (
+                    <SortableTracks
+                      className="source-stems-list"
+                      items={group.tracks}
+                      projectId={project.id}
+                      scope={'group:' + group.id}
+                      label={trackLabel}
+                      disabled={timeline.recording}
+                    >
+                      {(track) => (
+                        <div className="source-stem-row" key={track.id}>
+                          <TrackControl
+                            grouped
+                            track={track}
+                            selected={expanded.has(track.id)}
+                            onSelect={() => toggle(track.id)}
+                            meterPlayer={timeline.player}
+                            onState={(action) => {
+                              const state = toggleTrackState(group.tracks, track.id, action).find(
+                                (item) => item.id === track.id,
+                              )!;
+                              stemChange(group, track, { mute: state.mute, solo: state.solo });
+                            }}
+                            color={trackColor(track.name)}
+                            onChange={(patch) => stemChange(group, track, patch)}
+                          />
+                          {expanded.has(track.id) && <TrackWave {...timeline} source={track.id} />}
+                        </div>
+                      )}
+                    </SortableTracks>
+                  )}
+                </div>
+              </div>
+            )}
+          </section>
+        )}
+      </SortableTracks>
+      <SortableTracks
+        className="creation-sort-takes"
+        items={(project.takes || []).filter((take) => !take.libraryOnly)}
+        projectId={project.id}
+        scope="takes"
+        label={trackLabel}
+        disabled={timeline.recording}
+      >
+        {(take) => (
           <section
             className="creation-audio-object take-object"
             key={take.id}
@@ -417,7 +396,15 @@ export default function CreationTracks({
               </button>
               <TrackControl
                 track={take}
-                editingDisabled={timeline.recording}
+                editingDisabled={timeline.recording || timeline.loading}
+                onTiming={() =>
+                  setTimingIds((before) => {
+                    const next = new Set(before);
+                    next.has(take.id) ? next.delete(take.id) : next.add(take.id);
+                    return next;
+                  })
+                }
+                timingOpen={timingIds.has(take.id)}
                 onRemove={() =>
                   onProject({
                     ...project,
@@ -434,6 +421,9 @@ export default function CreationTracks({
                 onChange={(patch) => onTrackChange(take, patch)}
               />
             </div>
+            {timingIds.has(take.id) && (
+              <TakeTiming take={take} onChange={(patch) => onTrackChange(take, patch)} />
+            )}
             {expanded.has(take.id) && (
               <div className="creation-object-content">
                 <TrackWave
@@ -441,23 +431,11 @@ export default function CreationTracks({
                   source={take.id}
                   signature={String(take.start) + '|' + take.offsetMs}
                 />
-                <TakeTiming
-                  take={take}
-                  creation
-                  onChange={(patch) => onTrackChange(take, patch)}
-                  onRemove={() =>
-                    onProject({
-                      ...project,
-                      takes: project.takes!.map((t) =>
-                        t.id === take.id ? { ...t, libraryOnly: true } : t,
-                      ),
-                    })
-                  }
-                />
               </div>
             )}
           </section>
-        ))}
+        )}
+      </SortableTracks>
       {live && (
         <section className="creation-audio-object live-object">
           <div className="creation-object-heading">
@@ -477,13 +455,6 @@ export default function CreationTracks({
         </div>
       )}
       <div ref={endAnchor} />
-      {renaming && (
-        <NameDialog
-          name={renaming.label || renaming.name}
-          onSave={(label) => updateGroup(renaming, { label })}
-          onClose={() => setRenaming(null)}
-        />
-      )}
       <ModalFrame
         open={!!removing}
         onClose={() => !removingBusy && setRemoving(null)}

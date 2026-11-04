@@ -1,0 +1,36 @@
+{
+  "cpu": [
+    {
+      "name": "torch",
+      "version": "2.8.0",
+      "sha256": "7631ef49fbd38d382909525b83696dc12a55d68492ade4ace3883c62b9fc140f"
+    },
+    {
+      "name": "torchaudio",
+      "version": "2.8.0",
+      "sha256": "db37df7eee906f8fe0a639fdc673f3541cb2e173169b16d4133447eb922d1938"
+    },
+    {
+      "name": "torchvision",
+      "version": "0.23.0",
+      "sha256": "51603eb071d0681abc4db98b10ff394ace31f425852e8de249b91c09c60eb19a"
+    }
+  ],
+  "cu126": [
+    {
+      "name": "torch",
+      "version": "2.8.0",
+      "sha256": "cfb2c640a8955fbd8686c056802f53a512b610c098960d6dad5800cbc16c02b6"
+    },
+    {
+      "name": "torchaudio",
+      "version": "2.8.0",
+      "sha256": "48e19338f6fd24588cd5608b21087d00b80e30ddf054d9ce83f792a4b0025d7f"
+    },
+    {
+      "name": "torchvision",
+      "version": "0.23.0",
+      "sha256": "921ec706184a4b79190483724d439fb2f769b4cde83e3031a7b7ac097676a63b"
+    }
+  ]
+}

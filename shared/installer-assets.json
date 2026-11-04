@@ -4,6 +4,25 @@
   "baseUrl": "https://github.com/Kreeli/immerse-jam/releases/download/resources-v1/",
   "assets": [
     {
+      "id": "ffmpeg",
+      "file": "ffmpeg.exe",
+      "cached": "tools/ffmpeg.exe",
+      "sha256": "04e1307997530f9cf2fe35cba2ca7e8875ca91da02f89d6c7243df819c94ad00",
+      "url": "https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/ffmpeg-win32-x64.gz",
+      "license": "GPL-3.0-or-later; independent command-line executable, see bundled build/source notices"
+    },
+    {
+      "id": "python-bootstrap",
+      "file": "python-3.11.18-windows.tar.gz",
+      "cached": "bootstrap-assets/python-3.11.18-windows.tar.gz",
+      "sha256": "67215a7bf1643e33d01b17ee3f1e91a8b0b39163746855ee02594bf0608f68b4",
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261026/cpython-3.11.18%2B20261026-x86_64-pc-windows-msvc-install_only_stripped.tar.gz",
+      "mirrors": [
+        "https://releases.astral.sh/github/python-build-standalone/releases/download/20261026/cpython-3.11.18%2B20261026-x86_64-pc-windows-msvc-install_only_stripped.tar.gz"
+      ],
+      "license": "Python-2.0 and included third-party licenses (python/LICENSE.txt)"
+    },
+    {
       "id": "roformer-sw",
       "file": "models/roformer-sw/BS-Roformer-SW.ckpt",
       "cached": "models/roformer-sw/BS-Roformer-SW.ckpt",

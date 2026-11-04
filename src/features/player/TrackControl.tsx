@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, SlidersHorizontal, Trash2 } from 'lucide-react';
 import NameDialog from '../../shared/NameDialog';
 import type { Player } from '../../audio/Player';
 import { t as tr, message as translateMessage } from '../../i18n';
@@ -36,6 +36,14 @@ export default function TrackControl({
   onState,
   grouped = false,
   onRemove,
+  onTiming,
+  timingOpen = false,
+  gainMax = 1.5,
+  panControl = true,
+  showMeter = true,
+  meterId,
+  nameDetail,
+  removeLabel,
   editingDisabled = false,
 }: {
   track: Track;
@@ -47,6 +55,14 @@ export default function TrackControl({
   onState: (action: 'listen' | 'close') => void;
   grouped?: boolean;
   onRemove?: () => void;
+  onTiming?: () => void;
+  timingOpen?: boolean;
+  gainMax?: number;
+  panControl?: boolean;
+  showMeter?: boolean;
+  meterId?: string;
+  nameDetail?: string;
+  removeLabel?: string;
   editingDisabled?: boolean;
 }) {
   const [renaming, setRenaming] = useState(false);
@@ -64,7 +80,11 @@ export default function TrackControl({
         if (!(event.target as HTMLElement).closest('input,button,form')) onSelect();
       }}
     >
-      <TrackMeter player={meterPlayer} id={t.id} label={trackLabel(t)} vertical />
+      {showMeter ? (
+        <TrackMeter player={meterPlayer} id={meterId || t.id} label={trackLabel(t)} vertical />
+      ) : (
+        <div className="nr-live-meter track-meter-placeholder" aria-hidden="true" />
+      )}
       <div className="nr-strip-body">
         <div className="track-top nr-strip-top">
           <button
@@ -75,7 +95,8 @@ export default function TrackControl({
             title={tr('显示{0}波形', [trackLabel(t)])}
           >
             <i className="nr-stem-dot" />
-            {trackLabel(t)}
+            <span className="track-label">{trackLabel(t)}</span>
+            {nameDetail && <small className="track-name-detail">{nameDetail}</small>}
           </button>
           <span className="track-name-actions">
             <button
@@ -87,12 +108,25 @@ export default function TrackControl({
             >
               <Pencil size={14} />
             </button>
+            {onTiming && (
+              <button
+                className="nr-icon-btn nr-sm"
+                disabled={editingDisabled}
+                aria-label={tr('时间微调 {0}', [trackLabel(t)])}
+                title={tr('时间微调')}
+                aria-expanded={timingOpen}
+                aria-controls={'take-timing-' + t.id}
+                onClick={onTiming}
+              >
+                <SlidersHorizontal size={14} />
+              </button>
+            )}
             {onRemove && (
               <button
                 className="nr-icon-btn nr-sm"
                 disabled={editingDisabled}
-                aria-label={tr('移回录音库')}
-                title={tr('移回录音库')}
+                aria-label={removeLabel || tr('移回录音库')}
+                title={removeLabel || tr('移回录音库')}
                 onClick={onRemove}
               >
                 <Trash2 size={14} />
@@ -127,29 +161,41 @@ export default function TrackControl({
         <div className="nr-strip-ctl">
           <input
             className="nr-range"
-            style={{ '--p': (t.gain / 1.5) * 100 + '%' } as React.CSSProperties}
+            style={{ '--p': (t.gain / gainMax) * 100 + '%' } as React.CSSProperties}
             aria-label={tr('{0}音量', [trackLabel(t)])}
             type="range"
             min="0"
-            max="1.5"
+            max={gainMax}
             step=".01"
             value={t.gain}
             onChange={(e) => onChange({ gain: +e.target.value })}
           />
-          <span className="nr-pan-wrap">
-            L
-            <input
-              className="nr-range nr-pan"
-              aria-label={tr('{0}左右声像', [trackLabel(t)])}
-              type="range"
-              min="-1"
-              max="1"
-              step=".01"
-              value={t.pan}
-              onChange={(e) => onChange({ pan: +e.target.value })}
-            />
-            R
-          </span>
+          {panControl && (
+            <span className="nr-pan-wrap">
+              L
+              <input
+                className="nr-range nr-pan"
+                aria-label={tr('{0}左右声像', [trackLabel(t)])}
+                type="range"
+                min="-1"
+                max="1"
+                step=".01"
+                value={t.pan}
+                aria-valuetext={
+                  t.pan === 0
+                    ? tr('居中')
+                    : (t.pan < 0 ? 'L ' : 'R ') + Math.round(Math.abs(t.pan) * 100) + '%'
+                }
+                title={tr('双击回到中央')}
+                onDoubleClick={(e) => {
+                  e.preventDefault();
+                  onChange({ pan: 0 });
+                }}
+                onChange={(e) => onChange({ pan: +e.target.value })}
+              />
+              R
+            </span>
+          )}
         </div>
         {renaming && (
           <NameDialog

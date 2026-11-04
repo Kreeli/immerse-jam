@@ -1,3 +1,5 @@
+import { orderedTracks } from '../../shared/track-order';
+import useTrackOrder from '../../shared/useTrackOrder';
 import type { LiveEnvelope } from '../../audio/live-envelope';
 import { isAndroid } from '../../platform/environment';
 import { activeTakes } from '../../audio/performance';
@@ -9,7 +11,8 @@ export default function PracticeWaves({
   live,
   ...timeline
 }: TimelineProps & { project: Project; live: LiveEnvelope | null }) {
-  const takes = activeTakes(project);
+  const [order] = useTrackOrder(project.id, 'mixer');
+  const takes = orderedTracks(activeTakes(project), order);
   if (isAndroid && !live && !takes.length) return null;
   return (
     <div

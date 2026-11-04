@@ -31,7 +31,7 @@ public class ProjectStore {
 
   public File dir(String id) throws IOException {
     if (!id.matches("[a-zA-Z0-9_-]{1,100}")) throw new IOException("无效内容编号");
-    return new File(projects, id);
+    return contained(projects, id);
   }
 
   public static File contained(File root, String path) throws IOException {
@@ -88,7 +88,9 @@ public class ProjectStore {
   }
 
   public synchronized JSONObject get(String id) throws Exception {
-    JSONObject p = normalize(read(new File(dir(id), "project.json")));
+    JSONObject p = read(new File(dir(id), "project.json"));
+    if (!id.equals(p.optString("id"))) throw new IOException("工程编号与目录不一致，请恢复备份或重新导入工程。");
+    p = normalize(p);
     if (!p.has("kind")) p.put("kind", "practice");
     ProjectValidation.validate(p);
     File pending = new File(root, "pending-results");
@@ -96,6 +98,8 @@ public class ProjectStore {
     if (records != null)
       for (File record : records)
         if (record.getName().startsWith(id + "-") && record.getName().endsWith(".json")) {
+          JSONObject before = new JSONObject(p.toString());
+          try {
           JSONObject entry = read(record);
           if (entry.has("patch")) {
             JSONObject patch = entry.getJSONObject("patch");
@@ -120,6 +124,12 @@ public class ProjectStore {
             write(new File(dir(id), "project.json"), p);
           }
           record.delete();
+          } catch (Exception error) {
+            p = before;
+            android.util.Log.w("ImmerseStore", "Pending result could not be applied: " + record.getName(), error);
+            if (!(error instanceof java.io.IOException))
+              Files.move(record.toPath(), new File(record.getParentFile(), record.getName() + ".bad-" + System.currentTimeMillis()).toPath());
+          }
         }
     return p;
   }
@@ -144,12 +154,21 @@ public class ProjectStore {
 
   public synchronized JSONObject update(String id, JSONObject patch) throws Exception {
     JSONObject p = get(id), filtered = new JSONObject();
-    Set<String> allowed = Set.of("title", "artist", "description", "cover", "starred", "bookmarks", "practice", "alignment", "analysis", "attachments", "tracks", "duration", "waveform", "playlist", "notes", "originalMix", "presets", "chordCharts", "activeChordChartId", "takes", "selectedTakeIds", "recordingSettings", "practiceMode", "sourceMix", "sourceGroups");
+    Set<String> allowed = Set.of("title", "artist", "description", "cover", "starred", "bookmarks", "practice", "alignment", "analysis", "attachments", "tracks", "duration", "waveform", "playlist", "notes", "originalMix", "presets", "chordCharts", "activeChordChartId", "takes", "trackOrder", "selectedTakeIds", "recordingSettings", "practiceMode", "sourceMix", "sourceGroups");
     for (Iterator<String> it = patch.keys(); it.hasNext();) {
       String key = it.next();
       if (allowed.contains(key)) filtered.put(key, patch.get(key));
     }
-    return save(mergePatch(p, filtered));
+    JSONObject merged = mergePatch(p, filtered);
+    if (filtered.has("tracks")) {
+      JSONArray results = merged.getJSONArray("results");
+      for (int i = 0; i < results.length(); i++) {
+        JSONObject result = results.getJSONObject(i);
+        if (result.optString("id").equals(merged.optString("activeResultId")))
+          result.put("tracks", new JSONArray(merged.getJSONArray("tracks").toString()));
+      }
+    }
+    return save(merged);
   }
 
   static JSONObject mergePatch(JSONObject base, JSONObject patch) throws Exception {
@@ -514,6 +533,7 @@ public class ProjectStore {
       out.putNextEntry(new ZipEntry("project.json"));
       p.remove("importRevision");
       p.remove("recordingSettings");
+      p.remove("trackOrder");
       if (!p.optString("kind").equals("creation") && p.getJSONArray("sourceGroups").length() == 0)
         p.remove("sourceGroups");
       out.write(p.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));

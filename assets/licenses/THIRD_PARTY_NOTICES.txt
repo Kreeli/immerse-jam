@@ -182,6 +182,8 @@ SCNet: backend/vendor/scnet/LICENSE
 Beat This! 1.1.0: backend/vendor/beat_this/LICENSE (MIT)
 Beat This! source: https://github.com/CPJKU/beat_this
 Beat This! pinned PyPI source and checksum: backend/vendor/beat_this/SOURCE.json
+Python 3.11.18 bootstrap: https://github.com/astral-sh/python-build-standalone/releases/tag/20261026
+Python licenses: vendor/licenses/Python-3.11.18-LICENSE.txt and the original bootstrap archive.
 Audio-separator, PyTorch and Python dependencies: installed with their package license files at first use.
 Model weights: Beat This! final0 is bundled with Windows under MIT; other weights are downloaded separately. See the model catalog for sources and terms.
 

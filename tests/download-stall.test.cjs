@@ -7,6 +7,29 @@ const fs = require('node:fs'),
   http = require('node:http'),
   crypto = require('node:crypto');
 test(
+  'package index sampling does not await a stalled transport cancellation',
+  { timeout: 1500 },
+  async () => {
+    const { probe } = require('../desktop/package-index.cjs');
+    let count = 0;
+    const result = await probe('https://packages.invalid/', 'sample', 'sample.whl', async () => {
+      if (++count === 1)
+        return new Response('<a href="https://packages.invalid/sample.whl">wheel</a>');
+      return new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(new Uint8Array(512 * 1024));
+          },
+          cancel() {
+            return new Promise(() => {});
+          },
+        }),
+      );
+    });
+    assert.ok(result.speed > 0);
+  },
+);
+test(
   'idle timeout reaches caller even if transport cancel never settles',
   { timeout: 2000 },
   async () => {

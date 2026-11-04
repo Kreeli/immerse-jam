@@ -29,6 +29,7 @@ export interface Track {
 }
 export interface SourceMix {
   gain: number;
+  pan?: number;
   mute: boolean;
   solo: boolean;
   start: number;
@@ -174,6 +175,8 @@ export interface Practice {
   snapCountIn?: boolean;
 }
 export interface Project {
+  /** Legacy manifests only. New display order stays in this device's local storage. */
+  trackOrder?: Record<string, string[]>;
   importRevision?: string;
   description?: string;
   cover?: string;
@@ -192,8 +195,8 @@ export interface Project {
   activeChordChartId?: string;
   originalMix?: Track;
   presets?: {
-    sourceMix?: Pick<SourceMix, 'gain' | 'mute' | 'solo'>;
-    sourceGroupMix?: (Pick<SourceGroup, 'id' | 'gain' | 'mute' | 'solo'> & {
+    sourceMix?: Pick<SourceMix, 'gain' | 'pan' | 'mute' | 'solo'>;
+    sourceGroupMix?: (Pick<SourceGroup, 'id' | 'gain' | 'pan' | 'mute' | 'solo'> & {
       tracks: Pick<Track, 'id' | 'gain' | 'pan' | 'mute' | 'solo'>[];
     })[];
     takeMix?: Pick<Take, 'id' | 'gain' | 'pan' | 'mute' | 'solo'>[];
@@ -222,6 +225,7 @@ export interface Project {
   analysis?: Analysis;
   alignment?: Alignment;
   scoreMidi?: string;
+  scoreAttachmentId?: string | null;
   playlist?: string;
 }
 export interface Model {

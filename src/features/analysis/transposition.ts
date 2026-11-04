@@ -40,6 +40,14 @@ export function transpose(label: string, semitones: number) {
     Bb: 10,
     'B♭': 10,
     B: 11,
+    Cb: 11,
+    'C♭': 11,
+    Fb: 4,
+    'F♭': 4,
+    'E#': 5,
+    'E♯': 5,
+    'B#': 0,
+    'B♯': 0,
   };
   return label.replace(/[A-G][#♯b♭]?/g, (n) => notes[((aliases[n] ?? 0) + semitones + 120) % 12]);
 }

@@ -1,8 +1,15 @@
 import * as Dialog from '@radix-ui/react-dialog';
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { isAndroid } from '../platform/environment';
 import { t as tr } from '../i18n';
+const dialogClosers: { close: () => void }[] = [];
+export function closeTopDialog() {
+  const top = dialogClosers.at(-1);
+  if (!top) return false;
+  top.close();
+  return true;
+}
 export default function ModalFrame({
   open,
   onClose,
@@ -17,6 +24,18 @@ export default function ModalFrame({
   children: ReactNode;
 }) {
   const [viewport, setViewport] = useState<CSSProperties>({});
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  useEffect(() => {
+    if (!open) return;
+    const close = () => closeRef.current();
+    const element = { close };
+    dialogClosers.push(element);
+    return () => {
+      const index = dialogClosers.indexOf(element);
+      if (index >= 0) dialogClosers.splice(index, 1);
+    };
+  }, [open]);
   useEffect(() => {
     if (!isAndroid || !open) return;
     const visible = window.visualViewport;

@@ -132,8 +132,14 @@ export class StreamingAudio {
     this.waiters = this.waiters.filter((item) => !item.key.includes('|part:'));
     cancelled.forEach((item) => item.wake());
   }
-  async envelope(tracks: Track[], origin: number, duration: number, master: number) {
-    if (this.closed) return [];
+  async envelope(
+    tracks: Track[],
+    origin: number,
+    duration: number,
+    master: number,
+    valid: () => boolean = () => true,
+  ) {
+    if (this.closed || !valid()) return [];
     const { url } = await window.jam.call('android-stream-wave', {
       session: this.id,
       tracks: tracks.map(({ id, start, gain, pan }) => ({ id, start, gain, pan })),
@@ -141,9 +147,12 @@ export class StreamingAudio {
       duration,
       master,
     });
+    // Consume the native wave URL even if the mix changed while the bridge replied.
+    // Reading it releases the native task; skipping it leaves a queued job behind.
     const response = await fetch(url);
     if (!response.ok) throw new Error(await response.text());
-    return Array.from(new Float32Array(await response.arrayBuffer()));
+    const values = new Float32Array(await response.arrayBuffer());
+    return this.closed || !valid() ? [] : Array.from(values);
   }
   close() {
     if (this.closed) return;

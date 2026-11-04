@@ -39,10 +39,12 @@ export default function FolderActions({
               <Pencil size={16} />
               {tr('编辑分类')}
             </Menu.Item>
-            <Menu.Item className="menu-danger" onSelect={() => setAction('delete')}>
-              <Trash2 size={16} />
-              {tr('删除分类')}
-            </Menu.Item>
+            {folder.id !== 'unfiled' && (
+              <Menu.Item className="menu-danger" onSelect={() => setAction('delete')}>
+                <Trash2 size={16} />
+                {tr('删除分类')}
+              </Menu.Item>
+            )}
           </Menu.Content>
         </Menu.Portal>
       </Menu.Root>

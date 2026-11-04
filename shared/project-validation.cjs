@@ -102,6 +102,22 @@ function referencedFiles(p) {
 }
 function validateProject(p) {
   object(p, 'project');
+  if (p.trackOrder !== undefined) {
+    object(p.trackOrder, 'trackOrder');
+    if (Object.keys(p.trackOrder).length > 128) fail('trackOrder');
+    for (const [scope, ids] of Object.entries(p.trackOrder)) {
+      if (!/^(mixer|groups|takes|group:[a-zA-Z0-9_-]{1,100})$/.test(scope))
+        fail('trackOrder.scope');
+      if (!Array.isArray(ids)) fail('trackOrder.ids');
+      array(ids, 'trackOrder.ids', 1000);
+      const unique = new Set();
+      for (const id of ids) {
+        text(id, 'trackOrder.id', 200);
+        if (!id || unique.has(id)) fail('trackOrder.id');
+        unique.add(id);
+      }
+    }
+  }
   if (![1, 2].includes(p.schemaVersion)) fail('schemaVersion');
   text(p.id, 'id', 200);
   text(p.title, 'title', 1000);
@@ -136,8 +152,10 @@ function validateProject(p) {
   if (p.activeResultId != null && !resultIds.has(p.activeResultId)) fail('activeResultId');
   for (const g of array(p.sourceGroups, 'sourceGroups', 100)) {
     object(g, 'group');
+    number(g.pan, 'group.pan', -1, 1, true);
     tracks(g.tracks, 'group.tracks');
   }
+  if (p.sourceMix) number(object(p.sourceMix, 'sourceMix').pan, 'sourceMix.pan', -1, 1, true);
   for (const t of array(p.takes, 'takes')) {
     number(t.duration, 'take.duration', 0, MAX_SECONDS);
     number(t.offsetMs, 'take.offsetMs', -3600000, 3600000, true);
@@ -173,6 +191,12 @@ function validateProject(p) {
     }
   }
   if (p.alignment) {
+    if (
+      p.scoreAttachmentId !== undefined &&
+      p.scoreAttachmentId !== null &&
+      !p.attachments.some((a) => a.id === p.scoreAttachmentId)
+    )
+      throw new Error('乐谱附件不存在');
     const a = object(p.alignment, 'alignment');
     let score = -1,
       audio = -1;

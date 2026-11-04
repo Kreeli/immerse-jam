@@ -20,7 +20,7 @@ Android builds embed the designated UVR and converted Beat This! models listed i
 
 ## FFmpeg
 
-The Windows installer does **not** bundle the GPL-licensed FFmpeg executable or the `ffmpeg-static` JavaScript module. When audio processing is first needed, the app downloads the independent executable directly from its upstream release, verifies SHA-256, and runs it through its command-line interface. It does not link FFmpeg libraries into the application's original code.
+The Windows installer bundles the unmodified GPL-licensed FFmpeg executable as an independent command-line tool, with its complete license, build information and upstream source references in `resources/vendor/licenses/`. Its SHA-256 is checked before copying into the private runtime. The `ffmpeg-static` JavaScript module is not bundled. FFmpeg libraries are not linked into the application's original code. This replaces the earlier first-use network download.
 
 - Binary provider and release: <https://github.com/eugeneware/ffmpeg-static/releases/tag/b6.1.1>
 - Upstream FFmpeg source: <https://github.com/FFmpeg/FFmpeg/tree/e38092ef93>

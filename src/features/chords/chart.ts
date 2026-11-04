@@ -163,6 +163,8 @@ export function retimeChart(
   const old = chart.bars.filter((bar) => !bar.pickup),
     oldPickup = chart.bars.find((bar) => bar.pickup),
     grid = timeline(duration, settings, beats);
+  if (oldPickup?.slots.some((slot) => slot.label) && !grid.some((bar) => bar.pickup))
+    throw new Error('前奏仍有和弦，请先移动或清空后再移除前奏');
   let index = 0;
   const bars: ChartBar[] = grid.map((bar) => {
     const previous = bar.pickup ? oldPickup : old[index++];
@@ -193,6 +195,23 @@ export function retimeChart(
 export function calibrateBar(chart: ChordChart, barId: string, time: number): ChordChart {
   const index = chart.bars.findIndex((bar) => bar.id === barId);
   if (index < 0 || !Number.isFinite(time) || time < 0) throw new Error('请选择要校准的小节');
+  if (chart.bars[index].pickup) {
+    const pickup = chart.bars[index];
+    if (time <= pickup.start + 0.05) throw new Error('当前播放位置必须在上一小节起点之后');
+    // A pickup starts at song time zero; move its end/downbeat, not its start.
+    const delta = time - pickup.end;
+    return {
+      ...chart,
+      firstDownbeat: time,
+      bars: chart.bars.map((bar, i) =>
+        i === index
+          ? { ...bar, end: time }
+          : i > index
+            ? { ...bar, start: bar.start + delta, end: bar.end + delta }
+            : bar,
+      ),
+    };
+  }
   if (index > 0 && time <= chart.bars[index - 1].start + 0.05)
     throw new Error('当前播放位置必须在上一小节起点之后');
   const delta = time - chart.bars[index].start;

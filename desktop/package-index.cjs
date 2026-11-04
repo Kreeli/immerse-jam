@@ -1,7 +1,9 @@
-const { fetch: fetchNetwork, proxyEnv } = require('./network.cjs');
+const { localFailure } = require('./install-errors.cjs');
+const { fetch: fetchNetwork, proxyEnv, cancelResponse } = require('./network.cjs');
 const OFFICIAL = 'https://pypi.org/simple/';
-const MIRROR = 'https://pypi.tuna.tsinghua.edu.cn/simple/';
-const INDEXES = [MIRROR, OFFICIAL];
+const MIRROR = 'https://mirrors.aliyun.com/pypi/simple/';
+const SECOND_MIRROR = 'https://pypi.tuna.tsinghua.edu.cn/simple/';
+const INDEXES = [MIRROR, SECOND_MIRROR, OFFICIAL];
 const SAMPLE_BYTES = 512 * 1024;
 // Probe the actual pinned Windows wheel, including its CDN, rather than the
 // small index page. Bound both time and traffic; never download a full wheel.
@@ -30,7 +32,8 @@ async function probe(index, packageName, filename, fetchIndex = fetchNetwork) {
       bytes += item.value.byteLength;
     }
   } finally {
-    await reader.cancel();
+    cancelResponse(file, reader);
+    reader.releaseLock();
   }
   if (bytes < 65536) throw new Error('Insufficient probe data');
   return {
@@ -50,17 +53,9 @@ async function rankIndexes(indexes, packageName, filename, fetchIndex = fetchNet
   return [...new Set([...ranked, ...(ranked.length ? indexes : [...indexes].reverse())])];
 }
 async function selectIndex(fetchIndex = fetchNetwork) {
-  const ranked = await rankIndexes(
-    INDEXES,
-    'scipy',
-    'scipy-1.16.3-cp311-cp311-win_amd64.whl',
-    fetchIndex,
-  );
-  // If neither source is reachable, retain a clear official fallback.
-  return ranked[0];
-}
-function preferenceOrder(indexes, preference) {
-  return preference === 'official' ? [...indexes].reverse() : indexes;
+  // A proxy can make an overseas probe look fastest while the user's direct
+  // installation is slow. Auto consistently starts with the domestic mirror.
+  return MIRROR;
 }
 async function installFromIndexes(uv, args, env, onEvent, run, indexes) {
   let last;
@@ -76,13 +71,18 @@ async function installFromIndexes(uv, args, env, onEvent, run, indexes) {
     try {
       await run(
         uv,
-        [...args, '--index-url', index],
+        [...args, '--index-url', index, '--no-config'],
         { ...env, ...(await proxyEnv(index)) },
         onEvent,
-        { stallMs: 120000, watchDirs: [env.UV_CACHE_DIR, env.TEMP].filter(Boolean) },
+        {
+          stallMs: 120000,
+          watchDirs: [env.UV_CACHE_DIR, env.TEMP].filter(Boolean),
+          statusLabel: '正在解析并安装 Python 依赖',
+        },
       );
       return;
     } catch (error) {
+      if (localFailure(error)) throw localFailure(error);
       last = error;
     }
   }
@@ -102,22 +102,39 @@ async function installPackages(
 ) {
   const selected =
     preference === 'auto' ? await choose() : preference === 'official' ? OFFICIAL : MIRROR;
+  if (args.some((arg) => /requirements\.txt$/.test(arg))) {
+    try {
+      await run(uv, [...args, '--offline', '--no-config'], env, () => {}, {
+        stallMs: 120000,
+        watchDirs: [env.UV_CACHE_DIR, env.TEMP].filter(Boolean),
+      });
+      onEvent({ type: 'progress', message: '已复用本地依赖缓存' });
+      return;
+    } catch (error) {
+      if (localFailure(error)) throw localFailure(error);
+    }
+    const folder = await require('./python-wheels.cjs').prepare(args, env, onEvent, [
+      selected,
+      ...INDEXES.filter((x) => x !== selected),
+    ]);
+    args = [...args, '--find-links', folder];
+  }
   return installFromIndexes(uv, args, env, onEvent, run, [
     selected,
     ...INDEXES.filter((x) => x !== selected),
   ]);
 }
-async function installTorch(uv, args, env, onEvent, run, mode, preference = 'auto') {
-  const variant = mode === 'cuda' ? 'cu126' : 'cpu';
-  const indexes = [
-    `https://mirror.sjtu.edu.cn/pytorch-wheels/${variant}/`,
-    `https://download.pytorch.org/whl/${variant}/`,
-  ];
-  const ranked =
-    preference === 'auto'
-      ? await rankIndexes(indexes, 'torch', `torch-2.8.0+${variant}-cp311-cp311-win_amd64.whl`)
-      : preferenceOrder(indexes, preference);
-  return installFromIndexes(uv, args, env, onEvent, run, ranked);
+async function installTorch(uv, args, env, onEvent, run, mode, preference = 'auto', services) {
+  return require('./torch-wheels.cjs').install(
+    uv,
+    args,
+    env,
+    onEvent,
+    run,
+    mode,
+    preference,
+    services,
+  );
 }
 module.exports = {
   selectIndex,
@@ -127,4 +144,5 @@ module.exports = {
   probe,
   OFFICIAL,
   MIRROR,
+  SECOND_MIRROR,
 };

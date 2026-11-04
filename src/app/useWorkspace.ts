@@ -44,6 +44,7 @@ export function useWorkspace() {
     [toast, setToast] = useState(''),
     [runtimeMode, setRuntimeMode] = useState('cuda'),
     [runtimeMessage, setRuntimeMessage] = useState(''),
+    [runtimeDownload, setRuntimeDownload] = useState<JamEvent | null>(null),
     [installing, setInstalling] = useState(false),
     [selected, setSelected] = useState<string[]>([]),
     [pair, setPair] = useState<any>(null),
@@ -55,6 +56,7 @@ export function useWorkspace() {
     [loop, setLoop] = useState(false),
     [mix, setMix] = useState(true);
   const [sidePanel, setSidePanel] = useState<'mixer' | 'ranges' | 'points'>('mixer');
+  useEffect(() => setSelected([]), [modal]);
   const [recoveryProject, setRecoveryProject] = useState<Project | null>(null);
   const [recording, setRecording] = useState(false);
   const [pendingRange, setPendingRange] = useState<number | null>(null),
@@ -88,6 +90,8 @@ export function useWorkspace() {
     setFolders(groups);
   }, []);
   const adopt = useCallback((p: Project) => {
+    const notes = pendingNotes.current.get(p.id);
+    if (notes !== undefined) p = { ...p, notes };
     current.current = p;
     setProject(p);
 
@@ -96,32 +100,70 @@ export function useWorkspace() {
   const adoptIfCurrent = useCallback(
     (p: Project) => {
       if (current.current?.id === p.id) adopt(p);
-      else setLibrary((list) => [p, ...list.filter((item) => item.id !== p.id)]);
+      else setLibrary((list) => list.map((item) => (item.id === p.id ? p : item)));
     },
     [adopt],
   );
-  const flushNotes = useCallback(async () => {
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    const entries = [...pendingNotes.current];
-    pendingNotes.current.clear();
-    await Promise.all(
-      entries.map(([id, notes]) =>
-        jamCall('update', { id, patch: { notes } }).catch((e) => notify(e.message)),
-      ),
-    );
-  }, [notify]);
+  const notesTasks = useRef(new Map<string, Promise<void>>());
+  const automaticSaveFailed = useRef(false);
+  const flushNotes = useCallback(
+    async (targetId?: string) => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      await Promise.all(
+        [...pendingNotes.current.keys()]
+          .filter((id) => !targetId || id === targetId)
+          .map((id) => {
+            const existing = notesTasks.current.get(id);
+            if (existing) return existing;
+            const task = (async () => {
+              try {
+                while (pendingNotes.current.has(id)) {
+                  const notes = pendingNotes.current.get(id)!;
+                  await jamCall('update', { id, patch: { notes } });
+                  if (pendingNotes.current.get(id) === notes) pendingNotes.current.delete(id);
+                }
+              } catch (error) {
+                automaticSaveFailed.current = true;
+                setSaveState('error');
+                notify((error as Error).message);
+                throw error;
+              } finally {
+                notesTasks.current.delete(id);
+              }
+            })();
+            notesTasks.current.set(id, task);
+            return task;
+          }),
+      );
+    },
+    [notify],
+  );
   const saveNotes = useCallback(
     (p: Project) => {
-      adopt(p);
       pendingNotes.current.set(p.id, p.notes || '');
+      adopt(p);
+      automaticSaveFailed.current = false;
+      setSaveState('saving');
       if (saveTimer.current) clearTimeout(saveTimer.current);
-      saveTimer.current = setTimeout(() => void flushNotes(), 300);
+      saveTimer.current = setTimeout(
+        () =>
+          void flushNotes()
+            .then(() => {
+              if (!edits.current.size) setSaveState('saved');
+            })
+            .catch(() => {}),
+        300,
+      );
     },
     [adopt, flushNotes],
   );
   const openProject = useCallback(
     (p: Project) => {
-      void flushNotes();
+      if (recording) {
+        notify(tr('请先停止录音后再返回'));
+        return;
+      }
+      void flushNotes().catch(() => {});
       if (p.broken) {
         setRecoveryProject(p);
         return;
@@ -130,7 +172,7 @@ export function useWorkspace() {
       adopt(p);
       setShowPlayer(true);
     },
-    [adopt, flushNotes],
+    [adopt, flushNotes, recording, notify],
   );
   const deleteProject = async () => {
     if (!deletingProject) return;
@@ -150,48 +192,81 @@ export function useWorkspace() {
   const editTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const firstEdit = useRef(0);
   const [saveState, setSaveState] = useState<'saved' | 'saving' | 'error'>('saved');
-  const flushEdits = useCallback(async () => {
-    if (editTimer.current) clearTimeout(editTimer.current);
-    firstEdit.current = 0;
-    await Promise.all(
-      [...edits.current].map(async ([id, edit]) => {
-        if (edit.task) return edit.task;
-        edit.task = (async () => {
-          try {
-            while (true) {
-              const patch = difference(edit.base, edit.next);
-              if (!Object.keys(patch).length) break;
-              const sent = edit.next;
-              const saved = await jamCall<Project>('update', { id, patch });
-              edit.next = merge(saved, difference(sent, edit.next));
-              edit.base = saved;
-              if (current.current?.id === id) adopt(edit.next);
-              else setLibrary((list) => list.map((p) => (p.id === id ? edit.next : p)));
-            }
-            edits.current.delete(id);
-            if (!edits.current.size) setSaveState('saved');
-          } catch (error) {
-            setSaveState('error');
-            notify((error as Error).message);
-            throw error;
-          } finally {
-            edit.task = undefined;
-          }
-        })();
-        return edit.task;
-      }),
-    );
-  }, [adopt, notify]);
+  const flushEdits = useCallback(
+    async (targetId?: string) => {
+      if (editTimer.current) clearTimeout(editTimer.current);
+      firstEdit.current = 0;
+      await flushNotes(targetId);
+      await Promise.all(
+        [...edits.current]
+          .filter(([id]) => !targetId || id === targetId)
+          .map(async ([id, edit]) => {
+            if (edit.task) return edit.task;
+            edit.task = (async () => {
+              try {
+                while (true) {
+                  const patch = difference(edit.base, edit.next);
+                  if (!Object.keys(patch).length) break;
+                  const sent = edit.next;
+                  const saved = await jamCall<Project>('update', { id, patch });
+                  edit.next = merge(saved, difference(sent, edit.next));
+                  edit.base = saved;
+                  if (current.current?.id === id) adopt(edit.next);
+                  else setLibrary((list) => list.map((p) => (p.id === id ? edit.next : p)));
+                }
+                edits.current.delete(id);
+                automaticSaveFailed.current = false;
+                if (!edits.current.size) setSaveState('saved');
+              } catch (error) {
+                automaticSaveFailed.current = true;
+                setSaveState('error');
+                notify((error as Error).message);
+                throw error;
+              } finally {
+                edit.task = undefined;
+              }
+            })();
+            return edit.task;
+          }),
+      );
+      if (!edits.current.size && !pendingNotes.current.size) setSaveState('saved');
+    },
+    [adopt, notify, flushNotes],
+  );
   useEffect(() => prepareProjectActions(flushEdits), [flushEdits]);
+  const discardChanges = useCallback(async () => {
+    const id = current.current?.id;
+    if (!id) return;
+    await Promise.allSettled([edits.current.get(id)?.task, notesTasks.current.get(id)]);
+    const projects = await jamCall<Project[]>('library');
+    const restored = projects.find((item) => item.id === id);
+    if (!restored) throw new Error(tr('项目不存在'));
+    edits.current.delete(id);
+    pendingNotes.current.delete(id);
+    automaticSaveFailed.current = edits.current.size > 0 || pendingNotes.current.size > 0;
+    if (current.current?.id === id) {
+      adopt(restored);
+      if (player.current.project?.id === id) player.current.apply(restored);
+    }
+    setSaveState(automaticSaveFailed.current ? 'error' : 'saved');
+  }, [adopt]);
   const save = useCallback(
     (p: Project) => {
       const base = project?.id === p.id ? project : library.find((item) => item.id === p.id);
       if (!base) return;
+      if (
+        player.current.captureOwner &&
+        (p.practice.tempo !== base.practice.tempo || p.practice.pitch !== base.practice.pitch)
+      ) {
+        notify(tr('请先停止录音后再返回'));
+        return;
+      }
       const patch = difference(base, p);
       if (!Object.keys(patch).length) return;
       const edit = edits.current.get(p.id) || { base, next: base };
       edit.next = merge(edit.next, patch);
       edits.current.set(p.id, edit);
+      automaticSaveFailed.current = false;
       const latest = current.current?.id === p.id ? current.current : base;
       adopt(merge(latest, patch));
       // Sound changes immediately; writes are coalesced during a gesture.
@@ -208,6 +283,7 @@ export function useWorkspace() {
   );
   useEffect(() => {
     const flush = () => {
+      if (automaticSaveFailed.current) return;
       void flushEdits().catch(() => {});
     };
     window.addEventListener('pointerup', flush);
@@ -271,9 +347,12 @@ export function useWorkspace() {
 
     const off = window.jam.onEvent((e) => {
       if (e.type === 'closing') {
-        void Promise.all([flushNotes(), flushEdits()])
+        const detail = { tasks: [] as Promise<void>[] };
+        window.dispatchEvent(new CustomEvent('immerse-before-close', { detail }));
+        void Promise.all(detail.tasks)
+          .then(() => flushEdits())
           .then(() => jamCall('window', { action: 'close-ready' }))
-          .catch(() => {});
+          .catch(() => jamCall('window', { action: 'close-cancel' }));
         return;
       }
       if (e.type === 'import-report') {
@@ -314,6 +393,7 @@ export function useWorkspace() {
       }
 
       if (e.scope === 'runtime') {
+        setRuntimeDownload(e);
         if (e.message) setRuntimeMessage(e.message);
 
         if (e.type === 'error') {
@@ -326,6 +406,7 @@ export function useWorkspace() {
       }
 
       if (e.type === 'runtime-ready' || e.type === 'runtime-status') {
+        setRuntimeDownload(null);
         setReady(!!e.ready);
 
         setInstalling(false);
@@ -388,7 +469,7 @@ export function useWorkspace() {
     };
     const dispose = () => player.current.dispose();
     const flush = () => {
-      void flushNotes();
+      if (!automaticSaveFailed.current) void flushNotes().catch(() => {});
     };
     window.addEventListener('blur', flush);
     window.addEventListener('pagehide', flush);
@@ -400,7 +481,7 @@ export function useWorkspace() {
       window.removeEventListener('pagehide', dispose);
       window.removeEventListener('blur', flush);
       window.removeEventListener('pagehide', flush);
-      void flushNotes();
+      void flushNotes().catch(() => {});
       player.current.dispose();
     };
   }, []);
@@ -426,7 +507,12 @@ export function useWorkspace() {
       void player.current
         .append(project)
         .then(() => {
-          if (!disposed) setAudioRevision((value) => value + 1);
+          if (!disposed) {
+            setAudioRevision((value) => value + 1);
+            const latest = current.current;
+            if (latest?.id === project.id && latest.duration !== player.current.duration)
+              save({ ...latest, duration: player.current.duration });
+          }
         })
         .catch((error) => {
           if (!disposed) notify(error.message);
@@ -793,6 +879,7 @@ export function useWorkspace() {
     checkingRuntime,
     adoptIfCurrent,
     flushEdits,
+    discardChanges,
     saveState,
     saveNotes,
     flushNotes,
@@ -846,6 +933,7 @@ export function useWorkspace() {
     runtimeMode,
     setRuntimeMode,
     runtimeMessage,
+    runtimeDownload,
     setRuntimeMessage,
     installing,
     setInstalling,

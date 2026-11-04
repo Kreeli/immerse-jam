@@ -135,8 +135,12 @@ module.exports = function registerRecordings({
     fs.mkdirSync(dir, { recursive: true });
     const file = path.join(dir, crypto.randomUUID() + '.webm');
     fs.writeFileSync(file, Buffer.from(data.bytes));
-    const p = store.create(file, '录音 ' + new Date().toLocaleString('zh-CN'));
-    emit({ type: 'library-changed' });
-    return p;
+    try {
+      const p = store.create(file, '录音 ' + new Date().toLocaleString('zh-CN'));
+      emit({ type: 'library-changed' });
+      return p;
+    } finally {
+      fs.rmSync(file, { force: true });
+    }
   });
 };

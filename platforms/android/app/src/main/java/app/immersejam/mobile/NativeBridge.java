@@ -24,6 +24,7 @@ public class NativeBridge {
   final NativeCapture capture;
   final ExecutorService captureIO = Executors.newSingleThreadExecutor();
   final ExecutorService playbackIO = Executors.newSingleThreadExecutor();
+  final ExecutorService controlIO = Executors.newSingleThreadExecutor();
   final LanClient lan;
   final ExecutorService transfers = Executors.newSingleThreadExecutor();
   final Set<String> allowed = new HashSet<>();
@@ -53,9 +54,11 @@ public class NativeBridge {
 
   public void receive(String message, JavaScriptReplyProxy reply) {
     if (message == null || message.length() > 2_000_000) return;
+    int requestId = -1;
     try {
       JSONObject request = new JSONObject(message);
       int id = request.getInt("id");
+      requestId = id;
       String method = request.getString("method");
       JSONObject data = request.optJSONObject("data");
       if (data == null) data = new JSONObject();
@@ -76,6 +79,7 @@ public class NativeBridge {
                   "android-share-projects",
                   "android-take-normalize",
                   "android-take-recovery-list",
+                  "android-take-recovery-release",
                   "android-scan-pair",
                   "android-lan-list",
                   "android-lan-download",
@@ -88,7 +92,8 @@ public class NativeBridge {
       JSONObject arguments = data;
       (network || method.equals("android-scan-pair")
               ? transfers
-              : method.startsWith("android-capture-") ? captureIO : method.startsWith("android-stream-") ? playbackIO : method.equals("model-download") ? downloads : activity.io)
+              : Set.of("android-playback-state", "android-back-result", "window").contains(method) ? controlIO
+              : method.startsWith("android-capture-") ? captureIO : method.startsWith("android-stream-") ? playbackIO : method.equals("model-download") || method.equals("update-check") || method.equals("update-download") ? downloads : activity.io)
           .execute(
               () -> {
                 try {
@@ -109,6 +114,7 @@ public class NativeBridge {
               });
     } catch (Exception error) {
       android.util.Log.w("ImmerseBridge", "Invalid request", error);
+      if (requestId >= 0) respond(reply, requestId, null, Objects.requireNonNullElse(error.getMessage(), "Invalid request"));
     }
   }
 
@@ -227,6 +233,8 @@ public class NativeBridge {
         return audio.startTake(d.getString("sessionId"));
       case "android-take-recovery-list":
         return takes.restore(d.getString("id"));
+      case "android-take-recovery-release":
+        takes.releaseRecovery(d.getString("sessionId")); return true;
       case "android-render-read":
         return audio.read(d.getString("id"));
       case "android-render-append":
@@ -287,6 +295,10 @@ public class NativeBridge {
             .apply();
         return true;
       case "window":
+        if (d.optString("action").equals("close-ready")) activity.runOnUiThread(() -> {
+          if (activity.closeRequested) { activity.closeRequested = false; activity.finish(); }
+        });
+        if (d.optString("action").equals("close-cancel")) activity.closeRequested = false;
         return true;
       case "models": return new JSONArray();
       case "model-download":
@@ -361,13 +373,26 @@ public class NativeBridge {
         {
           JSONObject p = store.get(d.getString("id"));
           if (d.has("midiBytes")) {
+            String attachmentId = d.optString("attachmentId");
+            if (!attachmentId.isEmpty()) {
+              boolean found = false;
+              JSONArray attachments = p.getJSONArray("attachments");
+              for (int i = 0; i < attachments.length(); i++)
+                if (attachments.getJSONObject(i).getString("id").equals(attachmentId)) found = true;
+              if (!found) throw new IOException("附件不存在");
+              if (attachmentId.equals(p.optString("scoreAttachmentId")) && !p.isNull("scoreMidi") && store.asset(p.getString("id"), p.getString("scoreMidi")).isFile()) return p;
+            }
             JSONArray bytes = d.getJSONArray("midiBytes");
             byte[] content = new byte[bytes.length()];
             for (int i = 0; i < content.length; i++) content[i] = (byte) bytes.getInt(i);
             File file = store.asset(p.getString("id"), "attachments/score.mid");
             file.getParentFile().mkdirs();
+            if (!p.optString("scoreAttachmentId").isEmpty() &&
+                (!p.optString("scoreAttachmentId").equals(attachmentId) || !file.isFile() || !Arrays.equals(Files.readAllBytes(file.toPath()), content)))
+              p.put("alignment", JSONObject.NULL);
             Files.write(file.toPath(), content);
             p.put("scoreMidi", "attachments/score.mid");
+            if (!attachmentId.isEmpty()) p.put("scoreAttachmentId", attachmentId);
           } else
             for (Uri uri : activity.select(new String[] {"*/*"})) {
               String name = store.name(uri),
@@ -399,9 +424,11 @@ public class NativeBridge {
               found = true;
               if (attachment) {
                 candidates.add(item.getString("file"));
-                if (item.getString("name").toLowerCase(java.util.Locale.ROOT).matches(".*\\.(gp[345x]?|gtp|musicxml|mxl|xml|mid|midi)$")) {
+                if (itemId.equals(p.optString("scoreAttachmentId")) ||
+                    (!p.has("scoreAttachmentId") && items.length() == 1 && item.getString("name").toLowerCase(java.util.Locale.ROOT).matches(".*\\.(gp[345x]?|gtp|musicxml|mxl|xml|mid|midi)$"))) {
                   if (!p.isNull("scoreMidi")) candidates.add(p.optString("scoreMidi"));
                   p.put("scoreMidi", JSONObject.NULL); p.put("alignment", JSONObject.NULL);
+                  p.put("scoreAttachmentId", JSONObject.NULL);
                 }
               } else {
                 JSONArray tracks = item.getJSONArray("tracks");
@@ -413,7 +440,7 @@ public class NativeBridge {
           }
           candidates.removeAll(ProjectStore.media(p));
           java.util.List<File> files = new java.util.ArrayList<>();
-          for (String file : candidates) if (!file.isEmpty()) files.add(store.asset(p.getString("id"), file));
+          for (String file : candidates) if (file.replace('\\', '/').matches("^(attachments|groups)/.+")) files.add(store.asset(p.getString("id"), file));
           JSONObject saved = store.save(p);
           for (File file : files) Files.deleteIfExists(file.toPath());
           return saved;
@@ -428,9 +455,7 @@ public class NativeBridge {
               File file = store.asset(p.getString("id"), a.getString("file"));
               if (file.length() > 32 * 1048576) throw new IOException("乐谱文件过大");
               byte[] bytes = Files.readAllBytes(file.toPath());
-              JSONArray result = new JSONArray();
-              for (byte b : bytes) result.put(b & 255);
-              return result;
+              return android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP);
             }
           }
           throw new IOException("附件不存在");
@@ -548,6 +573,9 @@ public class NativeBridge {
 
   JSONObject addGroup(JSONObject d) throws Exception {
     JSONObject p = store.get(d.getString("id")), source = store.get(d.getString("sourceId"));
+    if (!p.optString("kind").equals("creation")) throw new IOException("分轨分组数据无效");
+    double position = d.optDouble("position", 0);
+    if (!Double.isFinite(position) || position < 0 || position > 14400) throw new IOException("导入位置无效");
     String id = UUID.randomUUID().toString(),
         resultId = d.optString("resultId", source.optString("activeResultId"));
     JSONArray tracks = source.getJSONArray("tracks");
@@ -556,6 +584,9 @@ public class NativeBridge {
       if (results.getJSONObject(i).getString("id").equals(resultId))
         tracks = results.getJSONObject(i).getJSONArray("tracks");
     JSONArray copied = new JSONArray();
+    if (tracks.length() == 0) tracks.put(source.optJSONObject("originalMix") != null
+      ? new JSONObject(source.getJSONObject("originalMix").toString())
+      : ProjectStore.track("original", "原曲", source.optString("playback", source.getString("original"))));
     for (int i = 0; i < tracks.length(); i++) {
       JSONObject t = new JSONObject(tracks.getJSONObject(i).toString());
       String file = "groups/" + id + "/" + i + ".wav";
@@ -569,7 +600,7 @@ public class NativeBridge {
         .put(
             new JSONObject()
                 .put("id", id)
-                .put("name", source.getString("title"))
+                .put("name", source.getString("title").substring(0, Math.min(120, source.getString("title").length())))
                 .put("sourceTitle", source.getString("title"))
                 .put("tracks", copied)
                 .put("gain", 1)
@@ -603,6 +634,7 @@ public class NativeBridge {
     captureIO.shutdownNow();
     streaming.close();
     playbackIO.shutdownNow();
+    controlIO.shutdownNow();
     takes.close();
     peers.dispose();
     audio.close();

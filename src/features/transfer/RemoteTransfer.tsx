@@ -80,6 +80,12 @@ export default function RemoteTransfer({
             if (pending && pending.offset === ack.offset) pending.resolve();
             return;
           }
+          if (ack.type === 'accept-files') {
+            // Sending waits for incoming disk acknowledgements. It must never
+            // occupy the receive queue, especially when both peers send at once.
+            void guard(() => send(ack.ids));
+            return;
+          }
         } catch {
           c.close();
           return;
@@ -102,7 +108,6 @@ export default function RemoteTransfer({
               c.send(JSON.stringify({ type: 'written', offset: -1 }));
               setStatus(tr('文件接收并校验完成，请确认导入'));
             }
-            if (message.type === 'accept-files') await send(message.ids);
           } else {
             const item = receiving.current;
             if (!item) throw new Error(tr('意外的文件片段'));
@@ -340,12 +345,19 @@ export default function RemoteTransfer({
               <input
                 type="checkbox"
                 defaultChecked
-                onChange={(e) => (f.accept = e.target.checked)}
+                onChange={(e) =>
+                  setOffers((items) =>
+                    items.map((item) =>
+                      item.id === f.id ? { ...item, accept: e.target.checked } : item,
+                    ),
+                  )
+                }
               />
               {f.name} · {Math.round(f.size / 1048576)} MB
             </label>
           ))}
           <button
+            disabled={!offers.some((f) => f.accept !== false)}
             onClick={() => {
               channel.current!.send(
                 JSON.stringify({

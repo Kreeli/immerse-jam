@@ -15,6 +15,8 @@ class Jobs {
     const id = crypto.randomUUID();
     const jobDir = path.join(this.base, 'jobs', id);
     fs.mkdirSync(jobDir, { recursive: true });
+    const jobTemp = path.join(jobDir, 'temp');
+    fs.mkdirSync(jobTemp);
     const file = path.join(jobDir, 'request.json');
     const workRoot = request.directory && path.resolve(request.directory, '.work');
     const oldWork = new Set(workRoot && fs.existsSync(workRoot) ? fs.readdirSync(workRoot) : []);
@@ -31,8 +33,8 @@ class Jobs {
         HF_HOME: path.join(this.base, 'models', 'huggingface'),
         XDG_CACHE_HOME: path.join(this.base, 'cache'),
         NUMBA_CACHE_DIR: path.join(this.base, 'cache', 'numba'),
-        TEMP: path.join(this.base, 'temp'),
-        TMP: path.join(this.base, 'temp'),
+        TEMP: jobTemp,
+        TMP: jobTemp,
         PATH: path.dirname(this.ffmpeg) + path.delimiter + process.env.PATH,
       },
     });
@@ -86,6 +88,9 @@ class Jobs {
       } catch (e) {
         emit({ type: 'error', message: e.message });
       } finally {
+        try {
+          fs.rmSync(jobTemp, { recursive: true, force: true });
+        } catch {}
         try {
           if (workRoot && fs.existsSync(workRoot))
             for (const name of fs.readdirSync(workRoot)) {

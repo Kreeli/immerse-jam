@@ -340,7 +340,7 @@ public class MainActivity extends ComponentActivity {
           }
           long now = SystemClock.elapsedRealtime();
           if (now - lastBack < 2000) {
-            finish();
+            requestClose();
           } else {
             lastBack = now;
             Toast.makeText(
@@ -354,6 +354,20 @@ public class MainActivity extends ComponentActivity {
                 .show();
           }
         });
+  }
+
+  boolean closeRequested;
+  void requestClose() {
+    if (closeRequested) return;
+    closeRequested = true;
+    try { bridge.emit(new JSONObject().put("type", "closing")); }
+    catch (Exception error) { closeRequested = false; }
+    new Handler(Looper.getMainLooper()).postDelayed(() -> {
+      if (closeRequested && !isFinishing()) {
+        closeRequested = false;
+        Toast.makeText(this, "Saving has not finished. Please retry before exiting.", Toast.LENGTH_LONG).show();
+      }
+    }, 15000);
   }
 
   void openExternal(Uri uri) {

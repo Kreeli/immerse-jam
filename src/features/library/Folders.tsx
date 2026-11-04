@@ -10,7 +10,8 @@ import ModalFrame from '../../shared/ModalFrame';
 import ProjectCard from './ProjectCard';
 import { isAndroid } from '../../platform/environment';
 import LayoutPicker from './LayoutPicker';
-import { usePreferences } from '../../app/preferences';
+import { setPreferences, usePreferences } from '../../app/preferences';
+import { useDefaultFolder } from '../../shared/useDefaultFolder';
 export interface FolderProps {
   folders: ProjectFolder[];
   onFolders: (folders: ProjectFolder[]) => void;
@@ -22,6 +23,7 @@ export function FolderPicker({
   onFolders,
   onError,
 }: FolderProps & { project: Project }) {
+  const defaultFolder = useDefaultFolder();
   return (
     <Select
       menu
@@ -38,7 +40,7 @@ export function FolderPicker({
           .catch((error) => onError(error.message))
       }
     >
-      <option value="">{tr('默认分类')}</option>
+      <option value="">{defaultFolder.name}</option>
       {folders.map((folder) => (
         <option value={folder.id} key={folder.id}>
           {folder.name}
@@ -69,6 +71,15 @@ export function FolderDialog({
         aria-label={folder ? tr('编辑分类') : tr('新建分类')}
         onSubmit={(event) => {
           event.preventDefault();
+          if (folder?.id === 'unfiled') {
+            try {
+              setPreferences({ defaultFolderName: name.trim(), defaultFolderCover: cover });
+              onClose();
+            } catch (error) {
+              props.onError((error as Error).message);
+            }
+            return;
+          }
           setBusy(true);
           void jamCall<ProjectFolder[]>('folders-edit', {
             action: folder ? 'rename' : 'create',
@@ -123,6 +134,7 @@ export default function FolderPage({
   onEdit: (project: Project) => void;
 }) {
   const { libraryLayout } = usePreferences();
+  const defaultFolder = useDefaultFolder();
   const folder = props.folders.find((item) => item.id === id),
     [query, setQuery] = useState(''),
     [filter, setFilter] = useState('all');
@@ -144,12 +156,17 @@ export default function FolderPage({
             <div>
               <div className="eyebrow">IMMERSE JAM</div>
               <h1>
-                {folder?.cover ? (
-                  <RehearsalCover id={folder.id} cover={folder.cover} folder size={40} />
+                {(folder || defaultFolder).cover ? (
+                  <RehearsalCover
+                    id={(folder || defaultFolder).id}
+                    cover={(folder || defaultFolder).cover}
+                    folder
+                    size={40}
+                  />
                 ) : (
                   <Folder size={28} />
                 )}
-                {folder?.name || tr('默认分类')}
+                {folder?.name || defaultFolder.name}
                 <span>{tr('{0} 项内容', [projects.length])}</span>
               </h1>
               <p>{tr('分类收纳分轨、跟练与创作，文件保持独立。')}</p>

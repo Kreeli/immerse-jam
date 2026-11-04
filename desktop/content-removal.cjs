@@ -10,10 +10,16 @@ function removeContent(store, id, itemId, kind) {
     if (!item) throw new Error('附件不存在');
     candidates.add(item.file);
     p.attachments = p.attachments.filter((a) => a.id !== itemId);
-    if (/\.(gp[345x]?|gtp|musicxml|mxl|xml|mid|midi)$/i.test(item.name)) {
+    if (
+      p.scoreAttachmentId === itemId ||
+      (!p.scoreAttachmentId &&
+        /\.(gp[345x]?|gtp|musicxml|mxl|xml|mid|midi)$/i.test(item.name) &&
+        !p.attachments.some((a) => /\.(gp[345x]?|gtp|musicxml|mxl|xml|mid|midi)$/i.test(a.name)))
+    ) {
       if (p.scoreMidi) candidates.add(p.scoreMidi);
       p.scoreMidi = null;
       p.alignment = null;
+      p.scoreAttachmentId = null;
     }
   } else {
     if (p.kind !== 'creation') throw new Error('分轨分组数据无效');
@@ -29,7 +35,9 @@ function removeContent(store, id, itemId, kind) {
   }
   const remaining = new Set(referencedFiles(p));
   const paths = [...candidates]
-    .filter((file) => !remaining.has(file))
+    .filter(
+      (file) => /^(attachments|groups)\//.test(file.replaceAll('\\', '/')) && !remaining.has(file),
+    )
     .map((file) => store.asset(id, file));
   const saved = store.save(p);
   for (const file of paths) fs.rmSync(file, { force: true });

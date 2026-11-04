@@ -1,5 +1,6 @@
 import Select from '../../shared/Select';
 import AttachmentPicker from '../library/AttachmentPicker';
+import ModalFrame from '../../shared/ModalFrame';
 import { jamCall } from '../../platform/project-call';
 import { isAndroid } from '../../platform/environment';
 import * as alphaTab from '@coderline/alphatab';
@@ -34,11 +35,18 @@ export default function Score({
     >([]),
     [visibleTrack, setVisibleTrack] = useState(-1);
   const [manualScoreTime, setManualScoreTime] = useState('0');
+  const [offsetDraft, setOffsetDraft] = useState<string | null>(null);
   const scores = project.attachments.filter((a) =>
     /\.(gp[345x]?|gtp|musicxml|mxl|xml|mid|midi)$/i.test(a.name),
   );
   useEffect(() => {
-    setActive((before) => scores.find((a) => a.id === before?.id) || scores[0] || null);
+    setActive(
+      (before) =>
+        scores.find((a) => a.id === before?.id) ||
+        scores.find((a) => a.id === project.scoreAttachmentId) ||
+        scores[0] ||
+        null,
+    );
   }, [project.id, project.attachments]);
   useEffect(() => {
     if (!active || !host.current) return;
@@ -69,6 +77,7 @@ export default function Score({
         );
         const updated = await jamCall<Project>('attach', {
           id: project.id,
+          attachmentId: active.id,
           midiBytes: Array.from(bytes),
         });
         if (!disposed) {
@@ -110,7 +119,11 @@ export default function Score({
         const handler = new alphaTab.midi.AlphaSynthMidiFileHandler(midi, true);
         const generator = new alphaTab.midi.MidiFileGenerator(score, a.settings, handler);
         generator.generate();
-        void jamCall<Project>('attach', { id: project.id, midiBytes: Array.from(midi.toBinary()) })
+        void jamCall<Project>('attach', {
+          id: project.id,
+          attachmentId: active.id,
+          midiBytes: Array.from(midi.toBinary()),
+        })
           .then((p) => {
             if (!disposed) onProject(p);
           })
@@ -226,21 +239,7 @@ export default function Score({
             <p>{tr('不确定的片段以橙色标记。可整体偏移，或把指定谱面时间对齐到当前原曲位置。')}</p>
           </div>
           <div className="remote-actions">
-            <button
-              className="small"
-              onClick={() => {
-                const value = window.prompt(tr('整体移动同步点（秒），正数表示原曲更晚进入'), '0');
-                if (value === null) return;
-                const delta = Number(value);
-                if (!Number.isFinite(delta)) return;
-                const alignment = structuredClone(project.alignment!);
-                alignment.points = alignment.points.map((p) => ({
-                  ...p,
-                  audioTime: Math.max(0, Math.min(project.duration, p.audioTime + delta)),
-                }));
-                onProject({ ...project, alignment });
-              }}
-            >
+            <button className="small" onClick={() => setOffsetDraft('0')}>
               {tr('整体偏移')}
             </button>
             <label>
@@ -305,17 +304,21 @@ export default function Score({
                     aria-label={tr('谱 {0} 秒对应原曲位置', [p.scoreTime])}
                     type="number"
                     step="0.1"
-                    value={p.audioTime.toFixed(2)}
-                    onChange={(e) => {
+                    key={p.scoreTime + ':' + p.audioTime}
+                    defaultValue={p.audioTime.toFixed(2)}
+                    onBlur={(e) => {
                       const alignment = structuredClone(project.alignment!);
                       const index = alignment.points.findIndex((a) => a.scoreTime === p.scoreTime);
-                      const value = +e.target.value;
+                      const value = e.target.value.trim() === '' ? NaN : Number(e.target.value);
                       const prev = alignment.points[index - 1]?.audioTime ?? 0,
                         next = alignment.points[index + 1]?.audioTime ?? project.duration;
                       if (Number.isFinite(value) && value >= prev && value <= next) {
                         alignment.points[index].audioTime = value;
                         alignment.points[index].confidence = 1;
                         onProject({ ...project, alignment });
+                      } else {
+                        e.target.value = p.audioTime.toFixed(2);
+                        onError(tr('谱面时间超出范围'));
                       }
                     }}
                   />
@@ -325,6 +328,51 @@ export default function Score({
           </div>
         </div>
       )}
+      <ModalFrame
+        open={offsetDraft !== null}
+        onClose={() => setOffsetDraft(null)}
+        label={tr('整体偏移')}
+        className="metadata-dialog"
+      >
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            const delta = offsetDraft?.trim() ? Number(offsetDraft) : NaN;
+            if (!Number.isFinite(delta) || !project.alignment) return;
+            const alignment = structuredClone(project.alignment);
+            alignment.points = alignment.points.map((point) => ({
+              ...point,
+              audioTime: Math.max(0, Math.min(project.duration, point.audioTime + delta)),
+            }));
+            onProject({ ...project, alignment });
+            setOffsetDraft(null);
+          }}
+        >
+          <h2>{tr('整体偏移')}</h2>
+          <label>
+            {tr('整体移动同步点（秒），正数表示原曲更晚进入')}
+            <input
+              type="number"
+              step=".01"
+              autoFocus
+              value={offsetDraft || ''}
+              onChange={(event) => setOffsetDraft(event.target.value)}
+            />
+          </label>
+          <footer>
+            <button type="button" onClick={() => setOffsetDraft(null)}>
+              {tr('取消')}
+            </button>
+            <button
+              type="submit"
+              className="primary"
+              disabled={!offsetDraft?.trim() || !Number.isFinite(Number(offsetDraft))}
+            >
+              {tr('保存')}
+            </button>
+          </footer>
+        </form>
+      </ModalFrame>
     </div>
   );
 }

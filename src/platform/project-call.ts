@@ -1,4 +1,4 @@
-let prepare: (() => Promise<void>) | undefined;
+let prepare: ((id?: string) => Promise<void>) | undefined;
 const ordered = new Set([
   'result-select',
   'result-rename',
@@ -23,7 +23,7 @@ const ordered = new Set([
   'android-lan-upload',
 ]);
 
-export function prepareProjectActions(callback: () => Promise<void>) {
+export function prepareProjectActions(callback: (id?: string) => Promise<void>) {
   prepare = callback;
   return () => {
     if (prepare === callback) prepare = undefined;
@@ -34,6 +34,6 @@ export function prepareProjectActions(callback: () => Promise<void>) {
 // modifying that bridge; Android uses the same ordering for snapshots and edits.
 export function jamCall<T = any>(method: string, data?: any): Promise<T> {
   return ordered.has(method) && prepare
-    ? prepare().then(() => window.jam.call<T>(method, data))
+    ? prepare(data?.id).then(() => window.jam.call<T>(method, data))
     : window.jam.call<T>(method, data);
 }

@@ -37,6 +37,14 @@ async function open(app) {
   window.on('closed', () => clearTimeout(timer));
   return {
     send(event) {
+      if (
+        !event.stage &&
+        !event.file &&
+        !event.message?.trim() &&
+        !Number.isFinite(event.progress) &&
+        !Number.isFinite(event.received)
+      )
+        return;
       if (event.stage) current = { stage: event.stage };
       // A new operation must not retain the preceding file's percentage.
       current = { stage: current.stage, ...event };
