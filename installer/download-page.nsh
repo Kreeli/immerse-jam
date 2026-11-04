@@ -6,6 +6,7 @@
 !define /ifndef PBS_MARQUEE 0x08
 Var IJStatusFile
 Var IJWorker
+Var IJWorkerExit
 Var IJDownloadState
 Var IJStageLabel
 Var IJStepLabel
@@ -44,7 +45,7 @@ Function IJDownloadPage
   Pop $0
   ${NSD_CreateButton} 70% 122u 30% 18u "$(IJRetry)"
   Pop $IJRetryButton
-  ${NSD_OnClick} $IJRetryButton IJDownloadStart
+  ${NSD_OnClick} $IJRetryButton IJDownloadAction
   StrCpy $IJStatusFile "$PLUGINSDIR\immerse-download.ini"
   StrCpy $IJMarquee "0"
   Call IJDownloadStart
@@ -52,8 +53,51 @@ Function IJDownloadPage
   ${NSD_KillTimer} IJDownloadPoll
 FunctionEnd
 
+Function IJDownloadAction
+  ${If} $IJDownloadState == "running"
+    Call IJDownloadStop
+  ${Else}
+    Call IJDownloadStart
+  ${EndIf}
+FunctionEnd
+
+Function IJDownloadStop
+  ${NSD_KillTimer} IJDownloadPoll
+  ${If} $IJWorker != ""
+    System::Call 'kernel32::GetExitCodeProcess(p $IJWorker, *i .r1) i .r0'
+    ${If} $0 != 0
+    ${AndIf} $1 == 259
+      System::Call 'kernel32::GetProcessId(p $IJWorker) i .r1'
+      ${If} $1 > 0
+        nsExec::ExecToStack '"$SYSDIR\taskkill.exe" /PID $1 /T /F'
+        Pop $0
+        Pop $1
+        ${If} $0 != 0
+          System::Call 'kernel32::GetExitCodeProcess(p $IJWorker, *i .r1) i .r0'
+          ${If} $0 != 0
+          ${AndIf} $1 == 259
+            ${NSD_SetText} $IJMessageLabel "$(IJStopFailed)"
+            ${NSD_CreateTimer} IJDownloadPoll 250
+            Return
+          ${EndIf}
+        ${EndIf}
+      ${EndIf}
+    ${EndIf}
+    System::Call 'kernel32::CloseHandle(p $IJWorker)'
+    StrCpy $IJWorker ""
+  ${EndIf}
+  Call IJDownloadFailed
+  StrCpy $IJDownloadState "cancelled"
+  ${NSD_SetText} $IJMessageLabel "$(IJStopped)"
+FunctionEnd
+
 Function IJDownloadStart
-  ShowWindow $IJRetryButton ${SW_HIDE}
+  ${If} $IJDownloadState == "running"
+    Return
+  ${EndIf}
+  ${NSD_KillTimer} IJDownloadPoll
+  ShowWindow $IJRetryButton ${SW_SHOW}
+  ${NSD_SetText} $IJRetryButton "$(IJStop)"
   GetDlgItem $0 $HWNDPARENT 1
   EnableWindow $0 0
   GetDlgItem $0 $HWNDPARENT 2
@@ -83,14 +127,22 @@ Function IJDownloadStart
 FunctionEnd
 
 Function IJDownloadFailed
+  ${NSD_KillTimer} IJDownloadPoll
+  ${NSD_SetText} $IJRetryButton "$(IJRetry)"
+  GetDlgItem $0 $HWNDPARENT 3
+  EnableWindow $0 1
   StrCpy $IJDownloadState "failed"
   GetDlgItem $0 $HWNDPARENT 2
   EnableWindow $0 1
   ShowWindow $IJRetryButton ${SW_SHOW}
   SendMessage $IJDownloadBar ${PBM_SETMARQUEE} 0 0
+  StrCpy $IJMarquee "0"
 FunctionEnd
 
 Function IJDownloadPoll
+  ${If} $IJDownloadState != "running"
+    Return
+  ${EndIf}
   ${If} ${FileExists} $IJStatusFile
     ReadINIStr $0 $IJStatusFile "Progress" "stage"
     ${NSD_SetText} $IJStageLabel $0
@@ -133,13 +185,15 @@ Function IJDownloadPoll
   ${AndIf} $1 == 259
     Return
   ${EndIf}
+  StrCpy $IJWorkerExit $1
   System::Call 'kernel32::CloseHandle(p $IJWorker)'
   StrCpy $IJWorker ""
   ${NSD_KillTimer} IJDownloadPoll
   ReadINIStr $0 $IJStatusFile "Progress" "state"
-  ${If} $1 == 0
+  ${If} $IJWorkerExit == 0
   ${AndIf} $0 == "complete"
     StrCpy $IJDownloadState "complete"
+    ShowWindow $IJRetryButton ${SW_HIDE}
     WriteRegStr HKCU "Software\ImmerseJam" "DataRoot" $IJData
     WriteRegStr HKCU "Software\ImmerseJam" "ProgramRoot" $INSTDIR
     ${NSD_SetText} $IJStageLabel "$(IJDownloadComplete)"

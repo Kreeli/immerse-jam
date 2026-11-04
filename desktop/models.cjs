@@ -147,6 +147,14 @@ function fileHash(file) {
   }
 }
 function validateManifest(m) {
+  if (
+    !m ||
+    typeof m !== 'object' ||
+    Array.isArray(m) ||
+    typeof m.name !== 'string' ||
+    !m.name.trim()
+  )
+    throw new Error('自定义模型清单无效');
   if (typeof m.file !== 'string' || !m.file) throw new Error('模型清单缺少 file');
   if (
     m.chunkSeconds !== undefined &&
@@ -161,12 +169,12 @@ function validateManifest(m) {
     m.stems.length < 1 ||
     m.stems.length > 32 ||
     new Set(m.stems).size !== m.stems.length ||
-    m.stems.some((s) => !/^\w{1,40}$/.test(s))
+    m.stems.some((s) => typeof s !== 'string' || !/^\w{1,40}$/.test(s))
   )
     throw new Error('声部名称缺失、重复或不合法');
   if (![22050, 32000, 44100, 48000].includes(m.sampleRate)) throw new Error('不支持此模型采样率');
   for (const k of ['file', 'config'])
-    if (m[k] && (path.basename(m[k]) !== m[k] || m[k].includes('..')))
+    if (m[k] && (typeof m[k] !== 'string' || path.basename(m[k]) !== m[k] || m[k].includes('..')))
       throw new Error('模型文件必须位于同一目录');
   if (!/^[a-f0-9]{64}$/i.test(m.sha256 || '')) throw new Error('模型清单需要 SHA-256 校验值');
   if (m.adapter === 'onnx-waveform' && !m.file.endsWith('.onnx'))
@@ -193,7 +201,11 @@ class Models {
       .filter((x) => x.isDirectory() && x.name.startsWith('custom-'))
       .flatMap((x) => {
         try {
-          return [JSON.parse(fs.readFileSync(path.join(this.base, x.name, 'manifest.json')))];
+          const model = validateManifest(
+            JSON.parse(fs.readFileSync(path.join(this.base, x.name, 'manifest.json'))),
+          );
+          if (model.id !== x.name || model.custom !== true) return [];
+          return [model];
         } catch {
           return [];
         }

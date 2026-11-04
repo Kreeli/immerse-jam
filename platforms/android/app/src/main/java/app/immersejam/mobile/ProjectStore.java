@@ -31,7 +31,7 @@ public class ProjectStore {
 
   public File dir(String id) throws IOException {
     if (!id.matches("[a-zA-Z0-9_-]{1,100}")) throw new IOException("无效内容编号");
-    return new File(projects, id);
+    return contained(projects, id);
   }
 
   public static File contained(File root, String path) throws IOException {
@@ -88,7 +88,10 @@ public class ProjectStore {
   }
 
   public synchronized JSONObject get(String id) throws Exception {
-    JSONObject p = normalize(read(new File(dir(id), "project.json")));
+    JSONObject p = read(new File(dir(id), "project.json"));
+    if (!id.equals(p.optString("id")))
+      throw new IOException("工程编号与目录不一致，请恢复备份或重新导入工程。");
+    normalize(p);
     if (!p.has("kind")) p.put("kind", "practice");
     ProjectValidation.validate(p);
     File pending = new File(root, "pending-results");

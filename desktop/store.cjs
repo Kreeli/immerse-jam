@@ -42,11 +42,34 @@ function atomicJson(file, value) {
   fs.writeFileSync(temp, JSON.stringify(value, null, 2));
   fs.renameSync(temp, file);
 }
+// Resolve the closest existing ancestor, including links to paths not created yet.
+// A dangling link is an error, rather than an excuse to skip the physical boundary.
+function physicalTarget(file) {
+  let current = path.resolve(file);
+  const tail = [];
+  for (;;) {
+    let exists = true;
+    try {
+      fs.lstatSync(current);
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+      exists = false;
+    }
+    if (exists) return path.resolve(fs.realpathSync(current), ...tail);
+    const parent = path.dirname(current);
+    if (parent === current) return path.resolve(current, ...tail);
+    tail.unshift(path.basename(current));
+    current = parent;
+  }
+}
 function contained(root, relative) {
   if (typeof relative !== 'string' || relative.includes('\0')) throw new Error('无效文件路径');
   const p = path.resolve(root, relative);
   const rel = path.relative(path.resolve(root), p);
   if (rel === '..' || rel.startsWith('..' + path.sep) || path.isAbsolute(rel))
+    throw new Error('文件超出项目范围');
+  const actual = path.relative(physicalTarget(root), physicalTarget(p));
+  if (actual === '..' || actual.startsWith('..' + path.sep) || path.isAbsolute(actual))
     throw new Error('文件超出项目范围');
   return p;
 }
@@ -58,11 +81,12 @@ class Store {
   }
   dir(id) {
     if (!ID.test(id)) throw new Error('无效项目编号');
-    return path.join(this.projects, id);
+    return contained(this.projects, id);
   }
   get(id) {
     const file = path.join(this.dir(id), 'project.json');
     const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
+    if (raw.id !== id) throw new Error('工程编号与目录不一致，请恢复备份或重新导入工程。');
     const repaired = repairLegacyAnalysis(raw);
     const normalized = normalizePlayback(raw) || repaired;
     validateProject(raw);

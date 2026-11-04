@@ -152,8 +152,8 @@ test('source ranking measures transferred data, and both preferred sources can f
     'mirror',
   );
   assert.deepEqual(torch, [
-    'https://mirror.sjtu.edu.cn/pytorch-wheels/cu126/',
-    'https://download.pytorch.org/whl/cu126/',
+    'https://mirror.sjtu.edu.cn/pytorch-wheels/cu128/',
+    'https://download.pytorch.org/whl/cu128/',
   ]);
 });
 

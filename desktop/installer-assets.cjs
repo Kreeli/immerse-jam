@@ -46,6 +46,8 @@ async function copyBundled(relative, destination, sha256, onEvent) {
       });
       return true;
     } catch (error) {
+      const local = require('./install-errors.cjs').localFailure(error);
+      if (local) throw local;
       onEvent?.({ type: 'progress', message: error.message });
     }
   }

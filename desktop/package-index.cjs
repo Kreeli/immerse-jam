@@ -1,4 +1,4 @@
-const { fetch: fetchNetwork, proxyEnv } = require('./network.cjs');
+const { fetch: fetchNetwork, proxyEnv, abortResponse } = require('./network.cjs');
 const OFFICIAL = 'https://pypi.org/simple/';
 const MIRROR = 'https://pypi.tuna.tsinghua.edu.cn/simple/';
 const INDEXES = [MIRROR, OFFICIAL];
@@ -30,7 +30,9 @@ async function probe(index, packageName, filename, fetchIndex = fetchNetwork) {
       bytes += item.value.byteLength;
     }
   } finally {
-    await reader.cancel();
+    abortResponse(file);
+    void reader.cancel().catch(() => {});
+    reader.releaseLock();
   }
   if (bytes < 65536) throw new Error('Insufficient probe data');
   return {
@@ -83,6 +85,8 @@ async function installFromIndexes(uv, args, env, onEvent, run, indexes) {
       );
       return;
     } catch (error) {
+      const local = require('./install-errors.cjs').localFailure(error);
+      if (local) throw local;
       last = error;
     }
   }
@@ -108,7 +112,13 @@ async function installPackages(
   ]);
 }
 async function installTorch(uv, args, env, onEvent, run, mode, preference = 'auto') {
-  const variant = mode === 'cuda' ? 'cu126' : 'cpu';
+  const variant = mode === 'cuda' ? 'cu128' : 'cpu';
+  const pinned = args.map((value) =>
+    String(value).replace(
+      /^(torch|torchaudio|torchvision)==([\d.]+)(?:\+[\w.]+)?$/,
+      '$1==$2+' + variant,
+    ),
+  );
   const indexes = [
     `https://mirror.sjtu.edu.cn/pytorch-wheels/${variant}/`,
     `https://download.pytorch.org/whl/${variant}/`,
@@ -117,7 +127,7 @@ async function installTorch(uv, args, env, onEvent, run, mode, preference = 'aut
     preference === 'auto'
       ? await rankIndexes(indexes, 'torch', `torch-2.8.0+${variant}-cp311-cp311-win_amd64.whl`)
       : preferenceOrder(indexes, preference);
-  return installFromIndexes(uv, args, env, onEvent, run, ranked);
+  return installFromIndexes(uv, pinned, env, onEvent, run, ranked);
 }
 module.exports = {
   selectIndex,

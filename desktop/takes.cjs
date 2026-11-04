@@ -4,6 +4,7 @@ const fs = require('node:fs'),
   crypto = require('node:crypto');
 const { spawn } = require('node:child_process');
 const { atomicJson } = require('./store.cjs');
+const { writeAll } = require('./file-io.cjs');
 const { atempo } = require('./export-audio.cjs');
 const ID = /^[a-f0-9-]{36}$/;
 const PRACTICE_SLOTS = 2;
@@ -196,8 +197,13 @@ class Takes {
         createdAt: new Date().toISOString(),
       },
       fd = fs.openSync(path.join(folder, 'raw.wav'), 'w');
-    fs.writeSync(fd, wavHeader(0, options.sampleRate));
-    atomicJson(path.join(folder, 'pending.json'), meta);
+    try {
+      writeAll(fd, wavHeader(0, options.sampleRate));
+      atomicJson(path.join(folder, 'pending.json'), meta);
+    } catch (error) {
+      fs.closeSync(fd);
+      throw error;
+    }
     this.sessions.set(id, { ...meta, fd });
     return { id };
   }
@@ -224,7 +230,7 @@ class Takes {
         fd: undefined,
       });
     }
-    fs.writeSync(s.fd, buffer, 0, buffer.length, 44 + s.frames * 8);
+    writeAll(s.fd, buffer, 44 + s.frames * 8);
     s.frames += buffer.length / 8;
     s.sequence++;
     return s.frames;
@@ -234,7 +240,7 @@ class Takes {
     if (!s) throw new Error('录音已停止');
     this.sessions.delete(id);
     try {
-      fs.writeSync(s.fd, wavHeader(s.frames, s.sampleRate), 0, 44, 0);
+      writeAll(s.fd, wavHeader(s.frames, s.sampleRate), 0);
     } finally {
       fs.closeSync(s.fd);
     }
@@ -438,7 +444,7 @@ class Takes {
       if (frames < 1) continue;
       const fd = fs.openSync(raw, 'r+');
       try {
-        fs.writeSync(fd, wavHeader(frames, meta.sampleRate), 0, 44, 0);
+        writeAll(fd, wavHeader(frames, meta.sampleRate), 0);
       } finally {
         fs.closeSync(fd);
       }
@@ -449,9 +455,14 @@ class Takes {
   close() {
     for (const s of this.sessions.values()) {
       try {
-        fs.writeSync(s.fd, wavHeader(s.frames, s.sampleRate), 0, 44, 0);
-        fs.closeSync(s.fd);
-      } catch {}
+        writeAll(s.fd, wavHeader(s.frames, s.sampleRate), 0);
+      } catch {
+        /* Keep the raw recording and pending manifest for recovery. */
+      } finally {
+        try {
+          fs.closeSync(s.fd);
+        } catch {}
+      }
     }
     this.sessions.clear();
   }

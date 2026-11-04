@@ -3,6 +3,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { pipeline } = require('node:stream/promises');
 const { contained } = require('./store.cjs');
+const { writeAll } = require('./file-io.cjs');
 const {
   validateProject,
   referencedFiles,
@@ -178,7 +179,7 @@ function extractLocal(file, dir, onProgress = () => {}) {
           let written = 0,
             crc = 0;
           const write = (data) => {
-            fs.writeSync(output, data);
+            writeAll(output, data);
             written += data.length;
             crc = require('node:zlib').crc32(data, crc);
             if (written > entry.uncompressedSize) throw new Error('解压大小与清单不符');

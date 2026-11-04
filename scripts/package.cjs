@@ -1,10 +1,19 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
-const root = path.resolve(__dirname, '..'),
-  temp = path.join(root, '.runtime', 'build-temp'),
-  release = path.join(root, 'release'),
-  staging = path.join(release, 'build-staging');
+const root = path.resolve(__dirname, '..');
+const args = process.argv.slice(2);
+const output = args.find((arg) => arg.startsWith('--output='))?.slice('--output='.length);
+const targetKind = args.find((arg) => !arg.startsWith('--')) || 'nsis';
+if (
+  !['nsis', 'dir'].includes(targetKind) ||
+  args.some((arg) => arg.startsWith('--') && !arg.startsWith('--output='))
+)
+  throw new Error('Usage: package.cjs [nsis|dir] [--output=.runtime/candidate]');
+const { packagePaths, checkPackagePaths } = require('./package-paths.cjs');
+const paths = packagePaths(root, output);
+const { release, staging, prepared, target, previous } = paths;
+const temp = path.join(root, '.runtime', 'build-temp');
 fs.mkdirSync(temp, { recursive: true });
 const env = {
   ...process.env,
@@ -28,8 +37,10 @@ const result = spawnSync(
   [
     path.join(root, 'node_modules', 'electron-builder', 'cli.js'),
     '--win',
-    process.argv[2] || 'nsis',
+    targetKind,
     '--x64',
+    '--publish',
+    'never',
     '--config.directories.output=' + staging,
   ],
   { cwd: root, stdio: 'inherit', windowsHide: true, env },
@@ -38,9 +49,7 @@ if (result.status !== 0) process.exit(result.status ?? 1);
 
 // electron-builder clears its output before packing. It must never pack over
 // the working test application: a locked file or failed build leaves it broken.
-const prepared = path.join(staging, 'win-unpacked'),
-  target = path.join(release, 'win-unpacked'),
-  previous = path.join(staging, 'previous-win-unpacked');
+checkPackagePaths(paths);
 for (const file of ['Immerse Jam.exe', 'icudtl.dat', 'resources.pak', 'resources/app.asar'])
   if (!fs.existsSync(path.join(prepared, file)))
     throw new Error('Incomplete desktop build: ' + file);
@@ -64,6 +73,7 @@ if (running.status !== 0) {
   // complete application until the new directory has been installed successfully.
   if (path.dirname(previous) !== staging || path.dirname(target) !== release)
     throw new Error('Invalid package target');
+  checkPackagePaths(paths);
   if (fs.existsSync(previous)) fs.rmSync(previous, { recursive: true, force: true });
   const hadPrevious = fs.existsSync(target);
   if (hadPrevious) fs.renameSync(target, previous);
