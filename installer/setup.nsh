@@ -1,11 +1,15 @@
 !include "nsDialogs.nsh"
 !include "FileFunc.nsh"
 !include "LogicLib.nsh"
+!ifndef IJ_PREPARE_PREFIX
+  !define IJ_PREPARE_PREFIX ""
+!endif
 
 !ifndef BUILD_UNINSTALLER
   Var IJData
   Var IJPreviousData
   Var IJDrive
+  Var IJDriveFree
   Var IJMode
   Var IJModels
   Var IJAllowC
@@ -38,8 +42,8 @@
   LangString IJBrowse ${LANG_SIMPCHINESE} "浏览…"
   LangString IJConfirmC ${LANG_ENGLISH} "I explicitly allow storing data on the Windows system drive."
   LangString IJConfirmC ${LANG_SIMPCHINESE} "我明确同意将数据存放在 Windows 系统盘。"
-  LangString IJLocationNote ${LANG_ENGLISH} "First download: CPU ~1-2 GB, NVIDIA ~3-5 GB, plus selected models. Usually 5-30 minutes; slow networks take longer. Reserve 10 GB or more. Uninstalling keeps this folder."
-  LangString IJLocationNote ${LANG_SIMPCHINESE} "首次下载：CPU 约 1–2 GB，NVIDIA 约 3–5 GB，另加所选模型。通常 5–30 分钟，慢网络可能更久。请预留至少 10 GB 空间。卸载保留此文件夹。"
+  LangString IJLocationNote ${LANG_ENGLISH} "First download: CPU ~1-2 GB, NVIDIA ~3-5 GB, plus models. Reserve at least 4 GiB for CPU or 16 GiB for NVIDIA, plus models; free space is checked before download. Uninstalling keeps this folder."
+  LangString IJLocationNote ${LANG_SIMPCHINESE} "首次下载：CPU 约 1–2 GB，NVIDIA 约 3–5 GB，模型另计。CPU 至少预留 4 GiB，NVIDIA 至少 16 GiB；下载前会检查剩余空间。卸载保留此文件夹。"
   LangString IJSelectPath ${LANG_ENGLISH} "Select a separate data folder, outside the program folder and drive root. System-drive storage requires confirmation."
   LangString IJSelectPath ${LANG_SIMPCHINESE} "请选择独立的数据文件夹，不能使用程序文件夹或磁盘根目录。使用系统盘需要勾选确认。"
   LangString IJComponents ${LANG_ENGLISH} "The installer prepares all dependencies before finishing. Select acceleration and optional models below. An internet connection is required."
@@ -66,6 +70,14 @@
   LangString IJDownloadComplete ${LANG_SIMPCHINESE} "所选组件已全部准备完成"
   LangString IJDownloadDone ${LANG_ENGLISH} "Click Next to finish. Your data folder is retained."
   LangString IJDownloadDone ${LANG_SIMPCHINESE} "点击下一步完成安装。原有曲库与录音保留。"
+  LangString IJStopFailed ${LANG_ENGLISH} "Preparation could not be stopped yet. Try Stop again."
+  LangString IJStopFailed ${LANG_SIMPCHINESE} "暂时无法停止准备，请再次点击停止准备。"
+  LangString IJStop ${LANG_ENGLISH} "Stop preparation"
+  LangString IJStop ${LANG_SIMPCHINESE} "停止准备"
+  LangString IJStopped ${LANG_ENGLISH} "Preparation stopped. Saved downloads are retained; change the folder, retry, or cancel."
+  LangString IJStopped ${LANG_SIMPCHINESE} "已停止准备，已下载内容保留。可返回修改目录、重试或取消安装。"
+  LangString IJNotWritable ${LANG_ENGLISH} "The data folder is not writable. Choose another folder or check permissions."
+  LangString IJNotWritable ${LANG_SIMPCHINESE} "无法写入数据文件夹，请选择其他目录或检查权限。"
   LangString IJRetry ${LANG_ENGLISH} "Resume download"
   LangString IJRetry ${LANG_SIMPCHINESE} "从断点重试"
   LangString IJNoModels ${LANG_ENGLISH} "Runtime only; models can be added in Settings later."
@@ -85,11 +97,18 @@
   StrCpy $IJSelected5 ${BST_CHECKED}
   ReadRegStr $IJData HKCU "Software\ImmerseJam" "DataRoot"
   StrCpy $IJPreviousData $IJData
-  ReadRegStr $0 HKCU "Software\ImmerseJam" "ProgramRoot"
+  ; NSIS hides /D= from $CMDLINE. Use electron-builder's full-command-line helper.
+  !insertmacro GetDParameter $1
+  ${If} $1 != ""
+    StrCpy $0 $1
+  ${Else}
+    ReadRegStr $0 HKCU "Software\ImmerseJam" "ProgramRoot"
+  ${EndIf}
   ${If} $0 != ""
     StrCpy $INSTDIR $0
   ${Else}
     StrCpy $IJDrive ""
+    StrCpy $IJDriveFree "0"
     ${GetDrives} "HDD" IJChooseDrive
     ${If} $IJDrive != ""
       StrCpy $INSTDIR "$IJDrive\Immerse Jam"
@@ -124,11 +143,22 @@
 
   Function IJChooseDrive
     Push $0
+    Push $1
+    Push $2
     StrCpy $0 $WINDIR 3
-    ${If} $IJDrive == ""
-    ${AndIf} $9 != $0
-      StrCpy $IJDrive $9 -1
+    ${If} $9 != $0
+      System::Call 'kernel32::GetDiskFreeSpaceExW(w r9, *l .r1, p 0, p 0) i .r2'
+      ${If} $2 != 0
+        System::Int64Op $1 > $IJDriveFree
+        Pop $2
+        ${If} $2 == 1
+          StrCpy $IJDrive $9 -1
+          StrCpy $IJDriveFree $1
+        ${EndIf}
+      ${EndIf}
     ${EndIf}
+    Pop $2
+    Pop $1
     Pop $0
     Push 1
   FunctionEnd
@@ -163,18 +193,40 @@
   Function IJStorageLeave
     ${NSD_GetText} $IJDataEdit $IJData
     ${NSD_GetState} $IJConfirm $IJAllowC
-    GetFullPathName $IJData $IJData
+    ; The NSIS instruction fails for some not-yet-created directories.
+    ; Normalize with the Windows API without requiring the folder to exist.
+    StrCpy $0 $IJData
+    System::Call 'kernel32::GetFullPathNameW(w r0, i ${NSIS_MAX_STRLEN}, w .r1, p 0) i .r2'
+    ${If} $2 == 0
+    ${OrIf} $2 >= ${NSIS_MAX_STRLEN}
+      MessageBox MB_OK|MB_ICONEXCLAMATION "$(IJSelectPath)"
+      Abort
+    ${EndIf}
+    StrCpy $IJData $1
     StrLen $0 $IJData
     ${If} $0 < 4
       MessageBox MB_OK|MB_ICONEXCLAMATION "$(IJSelectPath)"
       Abort
     ${EndIf}
-    GetFullPathName $1 $INSTDIR
+    System::Call 'kernel32::GetFullPathNameW(w "$INSTDIR", i ${NSIS_MAX_STRLEN}, w .r1, p 0) i .r2'
+    ${If} $2 == 0
+    ${OrIf} $2 >= ${NSIS_MAX_STRLEN}
+      MessageBox MB_OK|MB_ICONEXCLAMATION "$(IJSelectPath)"
+      Abort
+    ${EndIf}
     StrCpy $2 "$1\"
     StrLen $3 $2
     StrCpy $4 $IJData $3
     ${If} $IJData == $1
     ${OrIf} $4 == $2
+      MessageBox MB_OK|MB_ICONEXCLAMATION "$(IJSelectPath)"
+      Abort
+    ${EndIf}
+    ; Also reject a data folder that contains the program folder.
+    StrCpy $2 "$IJData\"
+    StrLen $3 $2
+    StrCpy $4 $1 $3
+    ${If} $4 == $2
       MessageBox MB_OK|MB_ICONEXCLAMATION "$(IJSelectPath)"
       Abort
     ${EndIf}
@@ -190,6 +242,19 @@
       MessageBox MB_OK|MB_ICONEXCLAMATION "$(IJSelectPath)"
       Abort
     ${EndIf}
+    ClearErrors
+    CreateDirectory "$IJData"
+    ${If} ${Errors}
+      MessageBox MB_OK|MB_ICONEXCLAMATION "$(IJNotWritable)"
+      Abort
+    ${EndIf}
+    ClearErrors
+    GetTempFileName $0 "$IJData"
+    ${If} ${Errors}
+      MessageBox MB_OK|MB_ICONEXCLAMATION "$(IJNotWritable)"
+      Abort
+    ${EndIf}
+    Delete "$0"
   FunctionEnd
   Function IJComponentsPage
     !insertmacro MUI_HEADER_TEXT "$(IJSelectModelsTitle)" "$(IJSelectModelsSubtitle)"
@@ -301,14 +366,14 @@
   ; Silent installs keep the blocking preparation path and return its exit code.
   IfSilent 0 ijPrepareEnd
   DetailPrint "$(IJPreparing)"
-  ijPrepareAgain:
   StrCpy $1 ""
   IfSilent 0 +2
     StrCpy $1 "--setup-silent"
-  nsExec::ExecToLog /TIMEOUT=3600000 '"$INSTDIR\${APP_EXECUTABLE_FILENAME}" --prepare-installation "--data-root=$IJData" "--install-root=$INSTDIR" "--legacy-root=$IJPreviousData" --runtime-mode=$IJMode "--models=$IJModels" --allow-system-drive=$IJAllowC $1'
+  nsExec::ExecToLog /TIMEOUT=3600000 '"$INSTDIR\${APP_EXECUTABLE_FILENAME}" ${IJ_PREPARE_PREFIX}--prepare-installation "--data-root=$IJData" "--install-root=$INSTDIR" "--legacy-root=$IJPreviousData" --runtime-mode=$IJMode "--models=$IJModels" --allow-system-drive=$IJAllowC $1'
   Pop $0
   ${If} $0 != "0"
-    MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "$(IJFailed)" IDRETRY ijPrepareAgain
+    ; A silent installer must fail once, never open an interactive retry loop.
+    DetailPrint "$(IJFailed)"
     SetErrorLevel 1
     Abort
   ${EndIf}

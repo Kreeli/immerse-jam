@@ -53,10 +53,23 @@ async function prepare(input, services = {}) {
     if (typeof previous.dataRoot === 'string' && path.isAbsolute(previous.dataRoot))
       input = { ...input, legacyRoot: previous.dataRoot };
   }
+  let mode = input.mode;
+  if (mode === 'auto') {
+    try {
+      await promisify(execFile)('nvidia-smi', ['--query-gpu=name', '--format=csv,noheader'], {
+        windowsHide: true,
+        timeout: 10000,
+      });
+      mode = 'cuda';
+    } catch {
+      mode = 'cpu';
+    }
+  }
   fs.mkdirSync(dataRoot, { recursive: true });
   const probe = path.join(dataRoot, '.write-test-' + require('node:crypto').randomUUID());
   fs.writeFileSync(probe, '');
   fs.unlinkSync(probe);
+  (services.preflight || require('./install-space.cjs').checkSpace)(dataRoot, mode, input.models);
   const log = (event) => {
     services.onEvent?.(event);
     if (event.message) {
@@ -127,29 +140,15 @@ async function prepare(input, services = {}) {
       });
     }
   }
-  let mode = input.mode;
   stage(1, 'runtime');
-  if (mode === 'auto') {
-    try {
-      await promisify(execFile)('nvidia-smi', ['--query-gpu=name', '--format=csv,noheader'], {
-        windowsHide: true,
-        timeout: 10000,
-      });
-      mode = 'cuda';
-    } catch {
-      mode = 'cpu';
-    }
-  }
   const python = await (services.runtime || ensureRuntime)(runtime, mode, log);
   if (mode === 'cuda' && !services.runtime) {
-    const result = await promisify(execFile)(
-      python,
-      ['-c', 'import torch; print(int(torch.cuda.is_available()))'],
-      { windowsHide: true, timeout: 60000 },
-    );
-    if (result.stdout.trim() !== '1') {
+    const result = await require('./gpu-health.cjs').probeGpu(python);
+    if (!result.ready) {
       if (input.mode === 'cuda')
-        throw new Error('NVIDIA 驱动不兼容，请重新安装并选择 CPU 或自动模式');
+        throw new Error('NVIDIA 无法执行计算，请更新驱动或选择 CPU 模式。', {
+          cause: new Error(result.detail),
+        });
       mode = 'cpu';
       log({ message: 'NVIDIA acceleration unavailable; preparing CPU runtime.' });
       await ensureRuntime(runtime, mode, log);

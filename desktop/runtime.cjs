@@ -3,7 +3,14 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { spawn } = require('node:child_process');
 const { atomicJson } = require('./store.cjs');
-const { fetch: fetchNetwork, chunks, downloadError, proxyEnv } = require('./network.cjs');
+const { writeAll } = require('./file-io.cjs');
+const {
+  fetch: fetchNetwork,
+  chunks,
+  downloadError,
+  proxyEnv,
+  abortResponse,
+} = require('./network.cjs');
 function readState(file) {
   try {
     return JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -164,7 +171,7 @@ async function downloadFile(url, dest, sha256, onEvent) {
   report(size, 'download', true);
   try {
     for await (const chunk of chunks(response)) {
-      fs.writeSync(fd, chunk);
+      writeAll(fd, chunk);
       hash.update(chunk);
       size += chunk.length;
       report(size);
@@ -208,6 +215,7 @@ async function ensureRuntime(base, mode = 'cpu', onEvent = () => {}) {
     if (
       state?.recipe === 3 &&
       state.mode === mode &&
+      state.flavor === (mode === 'cuda' ? 'cu128' : 'cpu') &&
       (await require('./runtime-health.cjs').healthy(python))
     )
       return python;
@@ -311,7 +319,12 @@ async function ensureRuntime(base, mode = 'cpu', onEvent = () => {}) {
   onEvent({ type: 'progress', message: '正在检查环境…' });
   if (!(await require('./runtime-health.cjs').healthy(python, true)))
     throw new Error('本地环境验证失败，请重试安装');
-  atomicJson(marker, { recipe: 3, mode, createdAt: new Date().toISOString() });
+  atomicJson(marker, {
+    recipe: 3,
+    mode,
+    flavor: mode === 'cuda' ? 'cu128' : 'cpu',
+    createdAt: new Date().toISOString(),
+  });
   onEvent({ type: 'ready', message: '本地环境已就绪' });
   return python;
 }
@@ -328,7 +341,8 @@ async function downloadModel(url, dest, sha256, onEvent) {
     throw downloadError(error);
   }
   const total = Number(probe.headers.get('content-range')?.split('/')[1]);
-  await probe.body?.cancel();
+  abortResponse(probe);
+  void probe.body?.cancel().catch(() => {});
   if (probe.status !== 206 || !Number.isSafeInteger(total) || total < 16 * 1048576)
     return download(url, dest, sha256, onEvent);
   fs.mkdirSync(path.dirname(dest), { recursive: true });
@@ -383,7 +397,7 @@ async function downloadModel(url, dest, sha256, onEvent) {
             for await (const chunk of chunks(r)) {
               if (range.start + range.received + chunk.length > range.end + 1)
                 throw new Error('下载分块大小错误');
-              fs.writeSync(fd, chunk, 0, chunk.length, range.start + range.received);
+              writeAll(fd, chunk, range.start + range.received);
               range.received += chunk.length;
               report(received());
               if (Date.now() - last > 1000) {
@@ -396,6 +410,8 @@ async function downloadModel(url, dest, sha256, onEvent) {
             return;
           } catch (error) {
             atomicJson(stateFile, state);
+            const local = require('./install-errors.cjs').localFailure(error);
+            if (local) throw local;
             if (range.start + range.received === range.end + 1) return;
             failures = range.received > before ? 0 : failures + 1;
             if (failures >= 3) throw error;
@@ -442,6 +458,8 @@ async function downloadSources(urls, dest, sha256, onEvent) {
     try {
       return await downloadModel(url, dest, sha256, onEvent);
     } catch (error) {
+      const local = require('./install-errors.cjs').localFailure(error);
+      if (local) throw local;
       last = error;
     }
   }

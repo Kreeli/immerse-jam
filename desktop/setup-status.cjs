@@ -82,7 +82,7 @@ function create(file, english = false) {
     finish(error) {
       state = error ? 'failed' : 'complete';
       pending = error
-        ? { message: error.message || String(error) }
+        ? { message: require('./install-errors.cjs').errorMessage(error, english) }
         : {
             progress: 1,
             file: english ? 'Selected components are ready' : '所选组件已就绪',

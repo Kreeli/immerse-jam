@@ -67,6 +67,10 @@ function createNetwork(electron, env = process.env) {
   };
 }
 const network = createNetwork(process.versions.electron ? require('electron') : null);
+function abortResponse(response) {
+  responseControllers.get(response)?.abort();
+  responseControllers.delete(response);
+}
 async function* chunks(response, idleMs = 45000) {
   const reader = response.body.getReader();
   try {
@@ -89,8 +93,7 @@ async function* chunks(response, idleMs = 45000) {
       }
     }
   } finally {
-    responseControllers.get(response)?.abort();
-    responseControllers.delete(response);
+    abortResponse(response);
     // Some transports never settle cancel() on a broken connection. Cleanup
     // must not prevent the idle timeout from reaching retry/error handling.
     void reader.cancel().catch(() => {});
@@ -98,6 +101,8 @@ async function* chunks(response, idleMs = 45000) {
   }
 }
 function downloadError(error) {
+  const local = require('./install-errors.cjs').localFailure(error);
+  if (local) return local;
   if (/ENOSPC/.test(error.message))
     return new Error('磁盘空间不足，请腾出空间后重试。', { cause: error });
   if (/EACCES|EPERM/.test(error.message))
@@ -108,4 +113,4 @@ function downloadError(error) {
     { cause: error },
   );
 }
-module.exports = { ...network, chunks, downloadError, createNetwork };
+module.exports = { ...network, chunks, downloadError, createNetwork, abortResponse };

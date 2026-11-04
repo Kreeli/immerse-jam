@@ -35,6 +35,7 @@ if (process.argv.includes('--prepare-installation')) {
         statusFile,
         process.argv.includes('--setup-en'),
       );
+    failureRoot = statusFile ? path.dirname(statusFile) : undefined;
     const dataRoot = require('./locations.cjs').validateRoot(
       input.dataRoot,
       input.installRoot,
