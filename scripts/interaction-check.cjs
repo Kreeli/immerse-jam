@@ -13,6 +13,7 @@ async function waitReady() {
   await page.waitForFunction(() => !document.querySelector('.play-main').disabled);
 }
 (async () => {
+  delete process.env.ELECTRON_RUN_AS_NODE;
   app = await electron.launch({
     executablePath: process.env.TEST_PACKAGED
       ? path.resolve('release/win-unpacked/Immerse Jam.exe')
@@ -49,7 +50,7 @@ async function waitReady() {
       document.querySelector('.waveform').dataset.source === 'vocals' &&
       Number(document.querySelector('.waveform').dataset.peakMax) > 0.1,
   );
-  await page.getByRole('button', { name: '总混音波形', exact: true }).click();
+  await page.getByRole('button', { name: '显示人声波形', exact: true }).click();
   await page.waitForFunction(
     () =>
       document.querySelector('.waveform').dataset.source === 'mix' &&
