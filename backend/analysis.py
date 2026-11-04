@@ -1,12 +1,27 @@
-import json, math, os, subprocess
+import json, math, os, subprocess, uuid
 from pathlib import Path
 import numpy as np
 import soundfile as sf
 
 def decode(source, destination, sr=44100):
-    Path(destination).parent.mkdir(parents=True,exist_ok=True)
-    subprocess.run([os.environ['IMMERSE_FFMPEG'],'-nostdin','-v','error','-y','-i',str(source),'-vn','-ac','2','-ar',str(sr),'-c:a','pcm_f32le',str(destination)],check=True,creationflags=0x08000000 if os.name=='nt' else 0)
-    return sf.info(destination)
+    destination = Path(destination)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = destination.parent / ('.decode-' + uuid.uuid4().hex + '.wav')
+    try:
+        subprocess.run(
+            [os.environ['IMMERSE_FFMPEG'], '-nostdin', '-v', 'error', '-y',
+             '-i', str(source), '-vn', '-t', '14401', '-ac', '2', '-ar', str(sr),
+             '-c:a', 'pcm_f32le', '-rf64', 'auto', str(temporary)],
+            check=True, creationflags=0x08000000 if os.name == 'nt' else 0)
+        info = sf.info(temporary)
+        if not math.isfinite(info.duration) or info.duration <= 0:
+            raise ValueError('音频中没有可读取的采样')
+        if info.duration > 14400:
+            raise ValueError('音频最长四小时，请先分段处理')
+        os.replace(temporary, destination)
+        return sf.info(destination)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 def peaks(file, count=1800):
     info=sf.info(file); size=max(1,math.ceil(info.frames/count)); result=[]

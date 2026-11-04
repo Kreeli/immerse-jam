@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { pack } = require('./archive.cjs');
+const { writeAll } = require('./file-io.cjs');
 class PeerFiles {
   constructor(store, onIncoming) {
     this.store = store;
@@ -14,31 +15,53 @@ class PeerFiles {
   async prepare(ids) {
     const generation = this.generation;
     if (!Array.isArray(ids) || ids.length > 100) throw new Error('一次最多传输 100 首歌曲');
-    const result = [];
-    for (const id of ids) {
-      const p = this.store.get(id),
-        key = crypto.randomUUID();
-      const file = path.join(this.store.base, 'transfers', key + '.ijam');
-      fs.mkdirSync(path.dirname(file), { recursive: true });
-      try {
-        await pack(this.store, id, file, true);
-        if (generation !== this.generation) throw new Error('连接已关闭');
-      } catch (error) {
-        fs.rmSync(file, { force: true });
-        throw error;
+    const result = [],
+      prepared = [];
+    try {
+      for (const id of ids) {
+        const p = this.store.get(id),
+          key = crypto.randomUUID();
+        const file = path.join(this.store.base, 'transfers', key + '.ijam');
+        fs.mkdirSync(path.dirname(file), { recursive: true });
+        try {
+          await pack(this.store, id, file, true);
+          if (generation !== this.generation) throw new Error('连接已关闭');
+          const hash = crypto.createHash('sha256');
+          for await (const b of fs.createReadStream(file)) hash.update(b);
+          // A close can arrive while the hash stream is awaiting its next block.
+          if (generation !== this.generation) throw new Error('连接已关闭');
+          const item = {
+            id: key,
+            name: p.title + '.ijam',
+            size: fs.statSync(file).size,
+            sha256: hash.digest('hex'),
+          };
+          this.outgoing.set(key, { ...item, file, fd: fs.openSync(file, 'r') });
+          prepared.push(key);
+          result.push(item);
+        } catch (error) {
+          fs.rmSync(file, { force: true });
+          throw error;
+        }
       }
-      const hash = crypto.createHash('sha256');
-      for await (const b of fs.createReadStream(file)) hash.update(b);
-      const item = {
-        id: key,
-        name: p.title + '.ijam',
-        size: fs.statSync(file).size,
-        sha256: hash.digest('hex'),
-      };
-      this.outgoing.set(key, { ...item, file, fd: fs.openSync(file, 'r') });
-      result.push(item);
+      return result;
+    } catch (error) {
+      // Roll back only this attempt, preserving other batches or newer connections.
+      this.releaseOutgoing(prepared);
+      throw error;
     }
-    return result;
+  }
+  releaseOutgoing(keys = this.outgoing.keys()) {
+    for (const key of keys) {
+      const item = this.outgoing.get(key);
+      if (!item) continue;
+      this.outgoing.delete(key);
+      try {
+        fs.closeSync(item.fd);
+      } finally {
+        fs.rmSync(item.file, { force: true });
+      }
+    }
   }
   read({ id, offset, binary = false }) {
     const item = this.outgoing.get(id);
@@ -46,7 +69,12 @@ class PeerFiles {
       throw new Error('无效传输片段');
     const buffer = Buffer.alloc(Math.min(48 * 1024, item.size - offset)),
       fd = item.fd;
-    fs.readSync(fd, buffer, 0, buffer.length, offset);
+    let received = 0;
+    while (received < buffer.length) {
+      const count = fs.readSync(fd, buffer, received, buffer.length - received, offset + received);
+      if (count < 1) throw new Error('发送文件已变化，请重新准备传输');
+      received += count;
+    }
     return binary ? new Uint8Array(buffer) : buffer.toString('base64');
   }
   begin(item) {
@@ -86,7 +114,7 @@ class PeerFiles {
     const buffer = typeof chunk === 'string' ? Buffer.from(chunk, 'base64') : Buffer.from(chunk);
     if (!buffer.length || item.received + buffer.length > item.size)
       throw new Error('文件长度无效');
-    fs.writeSync(item.fd, buffer);
+    writeAll(item.fd, buffer, item.received);
     item.hash.update(buffer);
     item.received += buffer.length;
     return item.received;
@@ -111,11 +139,7 @@ class PeerFiles {
       fs.unlinkSync(item.file);
     }
     this.incoming.clear();
-    for (const item of this.outgoing.values()) {
-      fs.closeSync(item.fd);
-      fs.rmSync(item.file, { force: true });
-    }
-    this.outgoing.clear();
+    this.releaseOutgoing();
     for (const item of this.pending.values()) fs.rmSync(item.file, { force: true });
     this.pending.clear();
   }
