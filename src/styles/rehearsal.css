@@ -501,6 +501,9 @@ textarea {
 .nr-nav .nr-nav-mini .nr-btn {
   white-space: nowrap;
 }
+.nr-nav .nr-nav-item > span {
+  white-space: nowrap;
+}
 .nr-nav .nr-donate {
   border: 0;
   background: none;

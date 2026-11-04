@@ -101,6 +101,7 @@ export default function LatencyCalibration({
           cancel.current = true;
         },
         abort.signal,
+        true,
       );
       abort.signal.throwIfAborted();
       const start = player.context!.currentTime + (isAndroid ? 0.6 : 0.35),

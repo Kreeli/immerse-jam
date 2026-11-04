@@ -12,13 +12,18 @@ export class AudioCapture {
     _settings: unknown,
     onChunk: (sequence: number, time: number, bytes: Uint8Array) => Promise<unknown>,
     onProgress: (elapsed: number, level: number) => void,
-    _onLost: () => void,
+    onLost: () => void,
     signal?: AbortSignal,
+    calibration = false,
   ): Promise<CaptureSession> {
-    if (signal) throw new Error('网页试用不测量真实设备延迟。请在 PC 版戴耳机进行校准。');
+    if (calibration)
+      throw new Error('网页试用不测量真实设备延迟。请在 PC 版戴耳机进行校准。');
+    signal?.throwIfAborted();
     let timer = 0,
       sequence = 0,
       start = Infinity;
+    const onAbort = () => onLost();
+    signal?.addEventListener('abort', onAbort, { once: true });
     const session: CaptureSession = {
       frames: 0,
       error: null,
@@ -42,6 +47,7 @@ export class AudioCapture {
       },
       async stop() {
         clearInterval(timer);
+        signal?.removeEventListener('abort', onAbort);
         await session.queue;
       },
     };

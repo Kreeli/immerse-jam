@@ -78,6 +78,7 @@ export class AudioCapture implements CaptureSession {
     onProgress: (seconds: number, level: number) => void,
     onLost: () => void,
     signal?: AbortSignal,
+    calibration = false,
   ): Promise<CaptureSession> {
     signal?.throwIfAborted();
     if (window.ImmerseNative) {
