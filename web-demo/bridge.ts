@@ -26,6 +26,12 @@ export const models = [
     installed: true,
     recommended: true,
     license: '模型遵循各自许可',
+    sourceFiles: ['BS-Roformer-SW.ckpt', 'BS-Roformer-SW.yaml'].map((file) => ({
+      file,
+      url:
+        'https://github.com/nomadkaraoke/python-audio-separator/releases/download/model-configs/' +
+        file,
+    })),
   },
   {
     id: 'htdemucs',
@@ -247,9 +253,14 @@ async function call(method: string, data: Data = {}): Promise<any> {
     case 'folders-list':
       return clone(folders);
     case 'folders-edit': {
-      if (data.action === 'create') folders.push({ id: makeId(), name: data.name, projectIds: [] });
+      if (data.action === 'create')
+        folders.push({ id: makeId(), name: data.name, cover: data.cover, projectIds: [] });
       if (data.action === 'rename')
-        folders = folders.map((f) => (f.id === data.id ? { ...f, name: data.name } : f));
+        folders = folders.map((f) =>
+          f.id === data.id
+            ? { ...f, name: data.name, ...(data.cover !== undefined ? { cover: data.cover } : {}) }
+            : f,
+        );
       if (data.action === 'delete') folders = folders.filter((f) => f.id !== data.id);
       if (data.action === 'move')
         folders = folders.map((f) => ({
@@ -391,6 +402,7 @@ async function call(method: string, data: Data = {}): Promise<any> {
           sourceTitle: source.title,
           tracks: clone(source.tracks).map((track: Data) => ({ ...track, id: makeId() })),
           gain: 1,
+          pan: 0,
           mute: false,
           solo: false,
           start: data.position || 0,

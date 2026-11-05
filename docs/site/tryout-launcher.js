@@ -18,6 +18,15 @@
       standalone.href = url;
       document.querySelector('.tryout-pill').textContent =
         (platform === 'android' ? 'Android' : 'PC') + ' 原版界面 · 预置六轨 · 无需安装';
+      const preview = launch.querySelector('img');
+      preview.src =
+        platform === 'android' ? 'assets/android_create.png' : 'assets/Win_practice.png';
+      preview.alt =
+        platform === 'android'
+          ? '当前 Android 创作界面，分组与各声部均可调整音量和左右声像'
+          : '当前 Windows 跟练工作台';
+      preview.width = platform === 'android' ? 2464 : 1584;
+      preview.height = platform === 'android' ? 2078 : 1058;
     }),
   );
   start.addEventListener('click', () => {

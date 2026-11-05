@@ -71,12 +71,12 @@
             <a
               class="button"
               data-download-kind="windows"
-              href="https://github.com/Kreeli/immerse-jam/releases/download/v0.1.11/Immerse.Jam.Setup.0.1.11.exe"
+              href="https://github.com/Kreeli/immerse-jam/releases/download/v0.1.12/Immerse.Jam.Setup.0.1.12.exe"
               >下载 Windows 版 <span aria-hidden="true">↓</span></a
             ><a
               class="button ghost"
               data-download-kind="android-arm64"
-              href="https://github.com/Kreeli/immerse-jam/releases/download/v0.1.11/Immerse-Jam-Android-0.1.0-preview.3-arm64.apk"
+              href="https://github.com/Kreeli/immerse-jam/releases/download/v0.1.12/Immerse-Jam-Android-0.1.0-preview.4-arm64.apk"
               >下载 Android 版 <span aria-hidden="true">↓</span></a
             ><a class="text-link" href="#stems">先听听分轨效果 →</a>
           </div>
@@ -86,7 +86,7 @@
         </div>
         <div class="hero-visual">
           <div class="screen-top">
-            <span><i></i> 跟练工作台</span><span>WINDOWS · 实际界面</span>
+            <span><i></i> 跟练工作台</span><span>WINDOWS · 当前界面</span>
           </div>
           <button
             class="screenshot-button"
@@ -133,7 +133,7 @@
               <h2 id="tryout-title">先点几下，<br />再决定要不要下载。</h2>
             </div>
             <p>
-              直接操作 PC 端工作台。已导入 Fabulous 排练片段，<br />选择 Windows 或
+              直接操作当前版本的工作台。已导入 Fabulous 排练片段，<br />选择 Windows 或
               Android，体验混音与跟练。
             </p>
           </div>
@@ -151,7 +151,7 @@
                 src="assets/Win_practice.png"
                 width="1584"
                 height="1058"
-                alt="即将进入的 Immerse Jam PC 工作台"
+                alt="当前 Windows 跟练工作台"
                 loading="lazy"
               />
               <div>
@@ -175,6 +175,10 @@
           <p class="tryout-note">
             播放、混音、变速移调、循环与编辑可实际操作；分析使用预置结果，录音载入预置吉他片段，不使用麦克风。和弦／节拍／谱例仅作流程示意。导出、互传和本机文件操作展示入口；修改仅在本页会话中保留。选择
             Android 可体验适合手机和平板的界面；Windows 演示建议电脑或横屏体验。
+          </p>
+          <p class="tryout-note">
+            Windows 与 Android 界面更新于 2026-11-05。下方截图使用公开演示素材；创作模式包含分组 L/R
+            总控、右侧实际电平和录音微调。
           </p>
         </div>
       </section>
@@ -374,7 +378,7 @@
             <img
               src="assets/Win_create.png"
               width="1584"
-              height="1058"
+              height="1250"
               alt="创作模式中的分轨项目组、混音录音和添加音频入口"
               loading="lazy"
             /><span class="zoom-hint">放大查看 ↗</span>
@@ -493,7 +497,7 @@
                   class="screenshot-button guide-image-button"
                   id="guide-image-button"
                   data-image="assets/Win_home.png"
-                  data-caption="音乐库：点右上角「导入音乐」，或直接把文件拖进窗口。"
+                  data-caption="音乐库：点工具栏「导入音乐」，或直接把文件拖进窗口。"
                   aria-label="放大当前步骤截图"
                 >
                   <img
@@ -501,7 +505,7 @@
                     src="assets/Win_home.png"
                     width="1584"
                     height="1058"
-                    alt="音乐库右上角的导入音乐按钮"
+                    alt="音乐库工具栏的导入音乐按钮"
                     loading="lazy"
                   /><span
                     class="hotspot"
@@ -518,7 +522,7 @@
                   <h3 id="guide-heading">拖进来，就从这里开始。</h3>
                 </div>
                 <p id="guide-text">
-                  在「音乐库」点右上角「导入音乐」，或把本地音频、视频直接拖进窗口。已有的 .ijam /
+                  在「音乐库」工具栏点「导入音乐」，或把本地音频、视频直接拖进窗口。已有的 .ijam /
                   .aum 项目也能导入。第一次建议选一首听熟的歌。
                 </p>
               </div>
@@ -612,6 +616,25 @@
               <figcaption>控制台：逐轨静音、选听、音量、声像。</figcaption>
             </figure>
           </div>
+          <figure class="android-creation-shot">
+            <button
+              class="screenshot-button"
+              data-image="assets/android_create.png"
+              data-caption="当前 Android 创作界面：分组与声部的左右声像共同作用，右侧显示实际电平；录音通过铅笔、微调和垃圾桶管理。"
+              aria-label="放大 Android 创作模式截图"
+            >
+              <img
+                src="assets/android_create.png"
+                width="2464"
+                height="2078"
+                alt="Android 创作模式：导入分轨的 L/R 总控、各声部右侧电平和录音卡片"
+                loading="lazy"
+              /><span class="zoom-hint">放大 ↗</span>
+            </button>
+            <figcaption>
+              创作模式：分组与声部共同控制音量和 L/R，录音控件与 Windows 保持一致。
+            </figcaption>
+          </figure>
           <div class="android-points">
             <ul class="check-list">
               <li>播放切后台、锁屏都继续，来电打断也会保存已录内容</li>
@@ -629,13 +652,13 @@
               <a
                 class="button"
                 data-download-kind="android-arm64"
-                href="https://github.com/Kreeli/immerse-jam/releases/download/v0.1.11/Immerse-Jam-Android-0.1.0-preview.3-arm64.apk"
+                href="https://github.com/Kreeli/immerse-jam/releases/download/v0.1.12/Immerse-Jam-Android-0.1.0-preview.4-arm64.apk"
                 >下载 Android 版（arm64）</a
               >
               <a
                 class="text-link"
                 data-download-kind="android-x64"
-                href="https://github.com/Kreeli/immerse-jam/releases/download/v0.1.11/Immerse-Jam-Android-0.1.0-preview.3-x86_64.apk"
+                href="https://github.com/Kreeli/immerse-jam/releases/download/v0.1.12/Immerse-Jam-Android-0.1.0-preview.4-x86_64.apk"
                 >模拟器用 x86_64 包 →</a
               >
               <p class="tiny-note">
@@ -821,7 +844,7 @@
           <a
             class="download-card"
             data-download-kind="windows"
-            href="https://github.com/Kreeli/immerse-jam/releases/download/v0.1.11/Immerse.Jam.Setup.0.1.11.exe"
+            href="https://github.com/Kreeli/immerse-jam/releases/download/v0.1.12/Immerse.Jam.Setup.0.1.12.exe"
           >
             <span class="download-platform">Windows 10 / 11 x64</span>
             <strong>下载 Windows 版</strong>
@@ -834,19 +857,19 @@
           <a
             class="download-card"
             data-download-kind="android-arm64"
-            href="https://github.com/Kreeli/immerse-jam/releases/download/v0.1.11/Immerse-Jam-Android-0.1.0-preview.3-arm64.apk"
+            href="https://github.com/Kreeli/immerse-jam/releases/download/v0.1.12/Immerse-Jam-Android-0.1.0-preview.4-arm64.apk"
           >
             <span class="download-platform">Android 8.0+ · arm64</span>
             <strong>下载 Android 版</strong>
             <span class="download-meta"
-              >当前版本 <span data-release-version="android">0.1.0-preview.3</span> · 预览版</span
+              >当前版本 <span data-release-version="android">0.1.0-preview.4</span> · 预览版</span
             >
             <span class="download-go">获取 APK ↓</span>
           </a>
           <a
             class="download-card secondary"
             data-download-kind="android-x64"
-            href="https://github.com/Kreeli/immerse-jam/releases/download/v0.1.11/Immerse-Jam-Android-0.1.0-preview.3-x86_64.apk"
+            href="https://github.com/Kreeli/immerse-jam/releases/download/v0.1.12/Immerse-Jam-Android-0.1.0-preview.4-x86_64.apk"
           >
             <span class="download-platform">Android · x86_64</span>
             <strong>模拟器专用包</strong>
@@ -866,7 +889,7 @@
             <span data-release-date-inline>发布于 2026-11-04</span>
           </p>
           <p class="release-notes" data-release-notes>
-            Windows 0.1.12 与 Android 0.1.0-preview.3 已发布，完整更新说明见 GitHub Releases。
+            Windows 0.1.12 与 Android 0.1.0-preview.4 已发布，完整更新说明见 GitHub Releases。
           </p>
         </div>
       </section>

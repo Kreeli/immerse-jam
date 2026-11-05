@@ -30,7 +30,7 @@ export default defineConfig({
           return path.join(here, 'environment.ts');
         if (/\/audio\/capture$/.test(source)) return path.join(here, 'capture.ts');
         if (/\/android\/NativeCapture$/.test(source)) return path.join(here, 'devices.ts');
-        if (/app-icon\.png$/.test(source)) return path.join(repo, 'docs/site/assets/app-icon.ico');
+        if (/app-icon\.png$/.test(source)) return path.join(desktop, 'assets/app-icon.png');
       },
       transform(code, id) {
         if (id.replaceAll('\\', '/').endsWith('/shared/types.ts')) {

@@ -866,6 +866,20 @@ input[type='range']::-moz-range-thumb {
   color: var(--quiet);
   text-align: center;
 }
+.android-creation-shot {
+  margin: 24px 0 0;
+}
+.android-creation-shot img {
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius);
+}
+.android-creation-shot figcaption {
+  margin: 10px 0 0;
+  color: var(--quiet);
+  font-size: 0.85rem;
+  text-align: center;
+}
 .android-points {
   display: grid;
   grid-template-columns: 1.2fr 0.8fr;

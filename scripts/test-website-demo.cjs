@@ -119,8 +119,89 @@ async function main() {
           .length === 1,
     );
     assert.deepEqual(errors, []);
+    const androidContext = await browser.newContext({
+      viewport: { width: 985, height: 680 },
+      hasTouch: true,
+    });
+    const android = await androidContext.newPage();
+    android.on('pageerror', (error) => errors.push(error.message));
+    await android.goto(base + 'tryout/index.html?platform=android');
+    await android.getByRole('button', { name: '返回列表', exact: true }).click();
+    await android.getByRole('button', { name: '新建创作', exact: true }).click();
+    await android
+      .locator('.session-create-dialog')
+      .getByRole('button', { name: '创建', exact: true })
+      .click();
+    await android.getByRole('button', { name: '添加分轨项目', exact: true }).click();
+    await android
+      .locator('.source-group-dialog')
+      .getByRole('button', { name: '添加', exact: true })
+      .click();
+    const androidGroup = android.locator('.source-object').first();
+    assert.equal(
+      await androidGroup.locator(':scope > .creation-object-heading .nr-pan').count(),
+      1,
+    );
+    assert.equal(
+      await androidGroup.locator(':scope > .creation-object-heading [role="meter"]').count(),
+      1,
+    );
+    await androidGroup.locator('.object-expand').click();
+    await androidGroup.getByRole('button', { name: '显示所有音轨', exact: true }).click();
+    assert.equal(await androidGroup.locator('.source-stems-toggle small').count(), 0);
+    await android.waitForFunction(
+      () => Number(document.querySelector('.source-object .waveform')?.dataset.peakMax) > 0,
+    );
+    const originalPeak = Number(
+      await androidGroup.locator('.waveform').first().getAttribute('data-peak-max'),
+    );
+    const androidGain = androidGroup
+      .locator(':scope > .creation-object-heading .nr-strip-ctl input')
+      .first();
+    await androidGain.focus();
+    await android.keyboard.press('Home');
+    for (let i = 0; i < 40; i++) await android.keyboard.press('ArrowRight');
+    assert.ok(
+      Number(await androidGroup.locator('.waveform').first().getAttribute('data-peak-count')) > 0,
+    );
+    await android.waitForFunction(
+      (peak) =>
+        Math.abs(
+          Number(document.querySelector('.source-object .waveform')?.dataset.peakMax) - peak * 0.4,
+        ) < 0.005,
+      originalPeak,
+    );
+    const androidStem = androidGroup.locator('.source-stem-row').first();
+    await androidStem.locator('.track-name').click();
+    assert.equal(
+      await androidStem.locator('.nr-strip').evaluate((el) => getComputedStyle(el).backgroundColor),
+      'rgba(0, 0, 0, 0)',
+    );
+    for (const width of [985, 412]) {
+      await android.setViewportSize({ width, height: 800 });
+      assert.ok(
+        await android.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
+      );
+      const meter = await androidStem.locator('.nr-live-meter').boundingBox(),
+        body = await androidStem.locator('.nr-strip-body').boundingBox();
+      assert.ok(meter.x >= body.x + body.width, 'Android stem meter stays on the right');
+    }
+    await androidContext.close();
+    assert.deepEqual(errors, []);
     await page.goto(base + 'index.html');
     assert.equal(await page.locator('#tryout-mount iframe').count(), 0);
+    await page.getByRole('button', { name: 'Android', exact: true }).click();
+    assert.ok(
+      (await page.locator('#tryout-launch img').getAttribute('src')).endsWith('android_create.png'),
+    );
+    await page.locator('#tryout-start').click();
+    await page
+      .frameLocator('#tryout-mount iframe')
+      .getByRole('button', { name: '打开控制台', exact: true })
+      .waitFor();
+    await page.locator('#tryout-close').click();
+    assert.equal(await page.locator('#tryout-mount iframe').count(), 0);
+    await page.getByRole('button', { name: 'Windows', exact: true }).click();
     await page.locator('#tryout-start').click();
     await page
       .frameLocator('#tryout-mount iframe')
