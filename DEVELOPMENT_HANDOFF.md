@@ -224,3 +224,7 @@
 新增可重复截图脚本 `scripts/capture-website-screenshots.cjs`，维护说明见 `docs/WEBSITE_MAINTENANCE.md`。网页检查扩展到 Android 创作分组 L/R / 总电平、子轨右侧电平、无选中底色 / 冗余数量、调总音量时波形保留并按比例更新，以及 985 / 412 宽度与两个嵌入式入口。原有 PC 分析、播放、混音、跟练、模拟录音、和弦、乐谱 / 对齐和主页响应式检查保留。
 
 本轮按本地验证后的代码树正常快进同步 main 与工作分支，保留历史和贡献者署名，不强推、不删除其他分支、不合并 PR #8。官网由 main 的 Pages 工作流发布；部署状态及线上截图按对应提交核对。临时构建、模型、安装包、私人数据与系统网络设置不在同步范围。
+
+实际同步提交为 `e4f9052`：本地主分支、工作分支和对应两个远端分支一致，工作区干净。九张截图已刷新；完整网页检查（含 Android 创作与两个嵌入式入口）、格式、544 项源码材料审计和两项下载目录检查通过。
+
+**本次官网尚未发布成功。** Pages run `41946125843`、main Source checks `41946125736` 与工作分支 Source checks `41946125608` 均在执行任何步骤前失败。检查注释明确为 `The job was not started because your account is locked due to a billing issue.`，不是构建或测试失败。已向用户说明并请求处理 GitHub 账户限制；不修改付款、托管或网络配置，也不把之前绿色检查冒充本次检查。准备好的完整静态站点含两端 tryout，保存在被忽略的 `release/website-ready/Immerse-Jam-site-e4f9052.zip`，待账户恢复后重新触发 Pages 和源码检查。GitHub 官方文档说明分支发布也依赖 Actions，不切换托管分支来尝试绕过此账户限制。

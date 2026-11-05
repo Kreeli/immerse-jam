@@ -27,3 +27,7 @@ node scripts/test-website-demo.cjs
 - 推送后确认 Source checks 与 Deploy introduction website，核对 Pages 部署提交和线上截图；最后确认本地 / 远端代码树一致、工作目录干净。
 
 2026-11-05 整理时，旧失败通知对应的后续源码检查和官网部署已成功，littleclock2 已出现在 GitHub Contributors 列表。PR #8 保持未合并，Issue #5 / #7 / #9 保留状态；本轮不代表这些报告已经全部完成。
+
+本次 `e4f9052` 推送后发现新的账户限制：Pages 和两个分支的 Source checks 都没有执行步骤，注释为 `The job was not started because your account is locked due to a billing issue.`。因此源码同步已完成，官网发布仍待账户解锁。解锁后重新运行 Pages 和 Source checks；不能把旧提交的绿色结果当成本次验证。
+
+参考：[解锁账单受限账户](https://docs.github.com/en/billing/how-tos/troubleshooting/locked-account)、[Pages 发布源说明](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site)。改为分支发布仍会使用 Actions，不在本轮擅自改变托管设置。
