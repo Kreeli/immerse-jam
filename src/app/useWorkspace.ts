@@ -3,6 +3,7 @@ import { prepareProjectActions } from '../platform/project-call';
 import { difference, merge } from '../../shared/project-patch.cjs';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Player } from '../audio/Player';
+import { useAudioDefaults } from '../audio/device-preferences';
 import { sourceTracks } from '../audio/performance';
 import { toggleTrackState } from '../audio/track-state';
 import { t as tr, message as translateMessage } from '../i18n';
@@ -19,6 +20,13 @@ import { isAndroid } from '../platform/environment';
 import { isPlaybackToggleKey, playerShortcut } from '../shared/shortcuts';
 export function useWorkspace() {
   usePreferences();
+  const audioDefaults = useAudioDefaults();
+  const [libraryReady, setLibraryReady] = useState(false);
+  const [settingsSection, setSettingsSection] = useState('general');
+  const openSettings = (section = 'general') => {
+    setSettingsSection(section);
+    setModal('settings');
+  };
   const [library, setLibrary] = useState<Project[]>([]),
     [folders, setFolders] = useState<ProjectFolder[]>([]),
     [project, setProject] = useState<Project | null>(null),
@@ -81,6 +89,37 @@ export function useWorkspace() {
 
     toastTimer.current = setTimeout(() => setToast(''), 6500);
   }, []);
+  useEffect(() => {
+    if (isAndroid || !project || recording) return;
+    let cancelled = false;
+    const route = async () => {
+      try {
+        await player.current.setOutputDevice(
+          project.recordingSettings?.outputDeviceId || audioDefaults.outputDeviceId,
+        );
+      } catch {
+        if (!cancelled) {
+          await player.current.setOutputDevice('default');
+          notify(tr('输出设备不可用，播放已临时使用系统默认设备'));
+        }
+      }
+    };
+    void route().catch((error) => !cancelled && notify(error.message));
+    const changed = () => {
+      void route().catch((error) => !cancelled && notify(error.message));
+    };
+    navigator.mediaDevices?.addEventListener('devicechange', changed);
+    return () => {
+      cancelled = true;
+      navigator.mediaDevices?.removeEventListener('devicechange', changed);
+    };
+  }, [
+    project?.id,
+    project?.recordingSettings?.outputDeviceId,
+    audioDefaults.outputDeviceId,
+    recording,
+    notify,
+  ]);
   const refresh = useCallback(async () => {
     const [projects, groups] = await Promise.all([
       jamCall<Project[]>('library'),
@@ -88,6 +127,7 @@ export function useWorkspace() {
     ]);
     setLibrary(projects);
     setFolders(groups);
+    setLibraryReady(true);
   }, []);
   const adopt = useCallback((p: Project) => {
     const notes = pendingNotes.current.get(p.id);
@@ -360,6 +400,8 @@ export function useWorkspace() {
         notify(e.message || '');
         return;
       }
+      // Native output errors belong to the player; they must not clear a processing job.
+      if (e.scope === 'native-audio') return;
       if (e.scope === 'audio-tools') {
         if (e.type === 'ready') setJob(null);
         else setJob({ ...e, operation: 'tools' });
@@ -672,8 +714,7 @@ export function useWorkspace() {
       setCheckingRuntime(false);
       setReady(!!status?.ready);
       if (!status?.ready) {
-        setModal('settings');
-
+        openSettings('models');
         notify(tr('请先准备应用自己的本地运行环境'));
 
         return;
@@ -968,6 +1009,9 @@ export function useWorkspace() {
     setView,
     modal,
     setModal,
+    settingsSection,
+    openSettings,
+    libraryReady,
     query,
     setQuery,
     position,

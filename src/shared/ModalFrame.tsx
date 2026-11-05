@@ -1,8 +1,16 @@
 import * as Dialog from '@radix-ui/react-dialog';
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react';
 import { createPortal } from 'react-dom';
 import { isAndroid } from '../platform/environment';
 import { t as tr } from '../i18n';
+let desktopModalCount = 0;
 const dialogClosers: { close: () => void }[] = [];
 export function closeTopDialog() {
   const top = dialogClosers.at(-1);
@@ -15,14 +23,30 @@ export default function ModalFrame({
   onClose,
   className = '',
   label,
+  managedFocus = false,
   children,
 }: {
   open: boolean;
   onClose: () => void;
   className?: string;
   label?: string;
+  managedFocus?: boolean;
   children: ReactNode;
 }) {
+  const returnFocus = useRef<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    if (isAndroid || !open || !managedFocus) return;
+    desktopModalCount++;
+    document.documentElement.dataset.desktopModal = 'open';
+    return () => {
+      if (--desktopModalCount === 0) delete document.documentElement.dataset.desktopModal;
+    };
+  }, [open, managedFocus]);
+  useLayoutEffect(() => {
+    if (open)
+      returnFocus.current =
+        document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  }, [open]);
   const [viewport, setViewport] = useState<CSSProperties>({});
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
@@ -58,7 +82,7 @@ export default function ModalFrame({
       window.removeEventListener('resize', update);
     };
   }, [open]);
-  if (!isAndroid)
+  if (!isAndroid && !managedFocus)
     return open
       ? createPortal(
           <div
@@ -73,12 +97,29 @@ export default function ModalFrame({
   return (
     <Dialog.Root open={open} onOpenChange={(value) => !value && onClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="mobile-dialog-overlay" />
+        <Dialog.Overlay
+          className={isAndroid ? 'mobile-dialog-overlay' : 'desktop-dialog-overlay'}
+        />
         <Dialog.Content
-          className={'modal mobile-dialog ' + className}
+          className={'modal ' + (isAndroid ? 'mobile-dialog ' : 'managed-dialog ') + className}
           style={viewport}
           aria-describedby={undefined}
-          onOpenAutoFocus={(e) => e.preventDefault()}
+          onOpenAutoFocus={(e) => {
+            if (isAndroid) e.preventDefault();
+            else if (e.target instanceof HTMLElement) {
+              const initial = e.target.querySelector<HTMLElement>('[data-initial-focus]');
+              if (initial) {
+                e.preventDefault();
+                initial.focus();
+              }
+            }
+          }}
+          onCloseAutoFocus={(e) => {
+            if (!isAndroid) {
+              e.preventDefault();
+              if (returnFocus.current?.isConnected) returnFocus.current.focus();
+            }
+          }}
         >
           <Dialog.Title className="sr-only">{label || tr('选项')}</Dialog.Title>
           {children}

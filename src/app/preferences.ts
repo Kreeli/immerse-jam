@@ -11,6 +11,9 @@ export type Preferences = {
   sidebarCollapsed: boolean;
   defaultFolderName: string;
   defaultFolderCover: string;
+  uiScale: number;
+  helpTooltips: boolean;
+  onboardingSeen: boolean;
 };
 const listeners = new Set<() => void>();
 const defaults: Preferences = {
@@ -27,6 +30,9 @@ const defaults: Preferences = {
   sidebarCollapsed: false,
   defaultFolderName: '',
   defaultFolderCover: '',
+  uiScale: 1,
+  helpTooltips: true,
+  onboardingSeen: false,
 };
 let preferences: Preferences = defaults;
 try {
@@ -54,6 +60,18 @@ try {
       /^data:image\/(jpeg|png|webp);base64,/.test(saved.defaultFolderCover)
         ? saved.defaultFolderCover
         : '',
+    uiScale:
+      typeof saved.uiScale === 'number' &&
+      Number.isFinite(saved.uiScale) &&
+      saved.uiScale >= 0.8 &&
+      saved.uiScale <= 1.5
+        ? saved.uiScale
+        : 1,
+    helpTooltips: saved.helpTooltips !== false,
+    onboardingSeen:
+      typeof saved.onboardingSeen === 'boolean'
+        ? saved.onboardingSeen
+        : Object.keys(saved).length > 0,
   };
 } catch {}
 if (typeof window !== 'undefined' && window.jam?.language)
@@ -80,8 +98,11 @@ export function getPreferences() {
   return preferences;
 }
 export function setPreferences(patch: Partial<Preferences>) {
-  preferences = { ...preferences, ...patch };
-  localStorage.setItem('immerse.preferences', JSON.stringify(preferences));
+  const next = { ...preferences, ...patch };
+  if (!Number.isFinite(next.uiScale) || next.uiScale < 0.8 || next.uiScale > 1.5)
+    throw new Error('界面缩放需要在80%至150%之间');
+  localStorage.setItem('immerse.preferences', JSON.stringify(next));
+  preferences = next;
   apply();
   listeners.forEach((listener) => listener());
 }

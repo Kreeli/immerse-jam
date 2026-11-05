@@ -1,6 +1,15 @@
 const { audioToolPath, ensureAudioTools } = require('./audio-tools.cjs');
 const { text: t, nativeDialogs } = require('./locale.cjs');
-const { app, BrowserWindow, ipcMain, dialog, protocol, net, shell } = require('electron');
+const {
+  app,
+  BrowserWindow,
+  ipcMain,
+  dialog,
+  protocol,
+  net,
+  shell,
+  clipboard,
+} = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
@@ -28,7 +37,10 @@ let win,
   peerFiles,
   takes,
   installing = false,
-  pending = false;
+  pending = false,
+  modelTransfers = 0,
+  maintenance,
+  nativeAudio;
 const base =
   process.env.IMMERSE_DATA_DIR ||
   (development
@@ -135,6 +147,24 @@ async function importFiles(files) {
 function handle(name, fn) {
   ipcMain.handle('jam:' + name, async (event, data) => {
     if (event.sender !== win.webContents) throw new Error('无效调用来源');
+    if (
+      maintenance?.cleaning &&
+      ![
+        'settings-storage',
+        'settings-diagnostics',
+        'ui-language',
+        'ui-scale',
+        'library',
+        'models',
+        'runtime-status',
+        'window',
+        'audio-output-info',
+        'audio-output-start',
+        'audio-output-stop',
+        'audio-output-write',
+      ].includes(name)
+    )
+      throw new Error('正在清理临时内容，请稍后重试');
     return fn(data || {});
   });
 }
@@ -183,6 +213,32 @@ app
         sandbox: true,
         backgroundThrottling: false,
       },
+    });
+    const {
+      NativeAudio,
+      hostCommand,
+      validate: validateAudioOutput,
+    } = require('./native-audio.cjs');
+    nativeAudio = new NativeAudio({
+      ...hostCommand(root, app.isPackaged, process.resourcesPath),
+      emit,
+    });
+    handle('audio-output-info', () => nativeAudio.info());
+    handle('audio-output-start', (data) => {
+      if (
+        takes.sessions.size &&
+        JSON.stringify(validateAudioOutput(data)) !== JSON.stringify(nativeAudio.lastConfig)
+      )
+        throw new Error('请先停止播放、录音或校准再切换音频系统');
+      return nativeAudio.start(data);
+    });
+    handle('audio-output-stop', ({ streamId }) => nativeAudio.stop(streamId));
+    handle('audio-output-write', (data) => nativeAudio.write(data));
+    win.webContents.on('render-process-gone', () => {
+      void nativeAudio.stop();
+    });
+    win.on('closed', () => {
+      void nativeAudio.stop();
     });
     win.removeMenu();
     const emitWindowState = () => {
@@ -397,6 +453,38 @@ app
       }
     });
     const updates = new (require('./updates.cjs').Updates)(runtimeBase, app.getVersion());
+    maintenance = require('./settings-ipc.cjs')({
+      handle,
+      app,
+      shell,
+      clipboard,
+      getWindow: () => win,
+      roots: {
+        library: base,
+        runtime: runtimeBase,
+        profile: app.getPath('userData'),
+        logs: app.getPath('logs'),
+      },
+      isBusy: () =>
+        !!(
+          installing ||
+          pending ||
+          jobs.active ||
+          modelTransfers ||
+          updates.downloading ||
+          takes.sessions.size
+        ),
+      getState: () => {
+        const status = runtimeStatus();
+        return {
+          ready: status.ready,
+          runtimeMode: status.mode,
+          installing,
+          processing: !!jobs.active,
+          modelDownloads: modelTransfers,
+        };
+      },
+    });
     handle('update-check', () => updates.check());
     handle('update-download', () =>
       updates.download((event) => emit({ ...event, scope: 'update' })),
@@ -447,6 +535,7 @@ app
     });
     handle('models', () => models.list());
     handle('model-download', async ({ id }) => {
+      modelTransfers++;
       try {
         emit({
           scope: 'model-download',
@@ -467,6 +556,8 @@ app
       } catch (error) {
         emit({ scope: 'model-download', modelId: id, type: 'error', message: error.message });
         throw error;
+      } finally {
+        modelTransfers--;
       }
     });
     handle('model-source-open', ({ id, file }) => {
@@ -708,7 +799,11 @@ app
     dialog.showErrorBox('Immerse Jam', error.message || String(error));
     app.exit(1);
   });
+app.on('before-quit', () => {
+  void nativeAudio?.stop();
+});
 app.on('window-all-closed', () => {
+  void nativeAudio?.stop();
   takes?.close();
   jobs?.close();
   transfer?.stop();

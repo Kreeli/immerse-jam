@@ -23,16 +23,11 @@ import { time, type Project, type RecordingSettings } from '../../shared/types';
 import LatencyCalibration from './LatencyCalibration';
 import { requestTakeRemoval, requestTakeTrash } from './TakeRemoval';
 import { reconcileRecordingDevices } from './device-selection';
-const defaults: RecordingSettings = {
-  mode: 'instrument',
-  inputDeviceId: 'default',
-  outputDeviceId: 'default',
-  channel: 'stereo',
-  latencyMs: 0,
-};
-function profile(input: string, output: string) {
-  return 'immerse.recording.latency.' + input + '|' + output;
-}
+import {
+  calibrationKey as profile,
+  effectiveRecordingSettings,
+  useAudioDefaults,
+} from '../../audio/device-preferences';
 export default function PracticeRecorder({
   project,
   player,
@@ -54,22 +49,24 @@ export default function PracticeRecorder({
   disabled?: boolean;
   libraryOnly?: boolean;
 }) {
+  const audioDefaults = useAudioDefaults();
   const [dialog, setDialog] = useState<'settings' | 'library' | null>(null),
     [devices, setDevices] = useState<InputDevice[]>([]),
-    [settings, setSettings] = useState<RecordingSettings>(() => {
-      const value = {
-          ...defaults,
-          ...project.recordingSettings,
-          ...(project.kind === 'practice' ? { mode: project.practiceMode || 'instrument' } : {}),
-          ...(isAndroid ? { outputDeviceId: 'default' } : {}),
-        },
-        saved = localStorage.getItem(profile(value.inputDeviceId, value.outputDeviceId));
-      return saved === null ? value : { ...value, latencyMs: Number(saved) || 0 };
-    }),
+    [settings, setSettings] = useState<RecordingSettings>(() => ({
+      ...effectiveRecordingSettings(project),
+      ...(isAndroid ? { outputDeviceId: 'default' } : {}),
+    })),
     [active, setActive] = useState(false),
     [busy, setBusy] = useState(false),
     [routeNotice, setRouteNotice] = useState(''),
     [importPosition, setImportPosition] = useState('0');
+  useEffect(() => {
+    if (!dialog && !active && !busy)
+      setSettings({
+        ...effectiveRecordingSettings(project),
+        ...(isAndroid ? { outputDeviceId: 'default' } : {}),
+      });
+  }, [audioDefaults, project.id, project.recordingSettings, dialog, active, busy]);
   const lastDialog = useRef(dialog);
   if (dialog) lastDialog.current = dialog;
   const shownDialog = dialog || lastDialog.current;

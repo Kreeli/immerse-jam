@@ -1,3 +1,11 @@
+import {
+  getEnginePreferences,
+  setEnginePreferences,
+  validateEngine,
+  type AudioEnginePreferences,
+  type AudioOutputState,
+} from './engine-preferences';
+import { NativeAudioOutput } from './NativeAudioOutput';
 import { StreamTrack } from '../platform/android/StreamTrack';
 import streamProcessorUrl from './stream-processor.js?url';
 import { StreamingAudio } from '../platform/android/StreamingAudio';
@@ -31,6 +39,64 @@ type Channel = {
 };
 export class Player {
   context: AudioContext | null = null;
+  private audioSettings = getEnginePreferences();
+  private nativeOutput: NativeAudioOutput | null = null;
+  private changingAudio = false;
+  get audioOutputState(): AudioOutputState {
+    return (
+      this.nativeOutput?.info || {
+        backend: 'web-audio',
+        sampleRate: this.context?.sampleRate || this.audioSettings.sampleRate,
+      }
+    );
+  }
+  async configureAudio(input: AudioEnginePreferences) {
+    const next = validateEngine(input);
+    if (
+      window.ImmerseNative ||
+      this.captureActive ||
+      this.audioLeases ||
+      this.playing ||
+      this.starting ||
+      this.changingAudio
+    )
+      throw new Error(tr('请先停止播放、录音或校准再切换音频系统'));
+    this.changingAudio = true;
+    const previous = this.audioSettings,
+      project = this.project,
+      position = this.position();
+    try {
+      if (this.initPromise) await this.initPromise;
+      await this.outputQueue;
+      await this.dispose();
+      this.audioSettings = next;
+      try {
+        if (project) {
+          await this.load(project);
+          this.seek(position);
+        } else await this.init();
+        setEnginePreferences(next);
+      } catch (error) {
+        await this.dispose();
+        this.audioSettings = previous;
+        try {
+          if (project) {
+            await this.load(project);
+            this.seek(position);
+          } else await this.init();
+        } catch (restoreError) {
+          throw Object.assign(new Error((restoreError as Error).message), {
+            restorationFailed: true,
+          });
+        }
+        throw error;
+      }
+    } finally {
+      this.changingAudio = false;
+    }
+  }
+  private outputQueue: Promise<void> = Promise.resolve();
+  private browserOutputDevice = 'default';
   private streaming: StreamingAudio | null = null;
   scrubbing = false;
   private seekSerial = 0;
@@ -202,6 +268,7 @@ export class Player {
       this.scheduleIdleSuspend();
     };
     try {
+      await this.nativeOutput?.resume();
       await this.context!.resume();
     } catch (error) {
       release();
@@ -254,22 +321,45 @@ export class Player {
     const lifecycle = this.lifecycleSerial;
     // A 4 ms interactive sink underruns repeatedly on the tested Android
     // tablet. A bounded 40 ms render budget keeps six stems continuous.
+    const useNative = !window.ImmerseNative && this.audioSettings.backend !== 'web-audio';
     const ctx = new AudioContext({
       latencyHint: window.ImmerseNative ? 0.04 : 'interactive',
-      sampleRate: 48000,
+      sampleRate: window.ImmerseNative ? 48000 : this.audioSettings.sampleRate,
+      ...(useNative ? { sinkId: { type: 'none' as const } } : {}),
     });
+    let nativeOutput: NativeAudioOutput | null = null;
     try {
       await SoundTouchNode.register(ctx, processorUrl);
       if (window.ImmerseNative) await ctx.audioWorklet.addModule(streamProcessorUrl);
+      const browserContext = ctx as AudioContext & { setSinkId?: (id: string) => Promise<void> };
+      if (!useNative && this.browserOutputDevice !== 'default' && browserContext.setSinkId) {
+        try {
+          await browserContext.setSinkId(this.browserOutputDevice);
+        } catch {
+          this.browserOutputDevice = 'default';
+          this.onError(tr('输出设备不可用，播放已临时使用系统默认设备'));
+        }
+      }
+      if (useNative) {
+        nativeOutput = await NativeAudioOutput.open(ctx, this.audioSettings, (error) => {
+          this.pause();
+          window.dispatchEvent(new CustomEvent('immerse-audio', { detail: 'route-changed' }));
+          this.onError(error.message);
+        });
+        if (ctx.state !== 'running') await nativeOutput.suspend();
+      }
     } catch (error) {
+      await nativeOutput?.close();
       await ctx.close();
       throw error;
     }
     if (lifecycle !== this.lifecycleSerial) {
+      await nativeOutput?.close();
       await ctx.close();
       return;
     }
     this.context = ctx;
+    this.nativeOutput = nativeOutput;
     window.addEventListener('immerse-audio', this.nativeEvent);
     this.mix = ctx.createGain();
     this.metronomeGain = ctx.createGain();
@@ -288,7 +378,7 @@ export class Player {
     this.transportGain.gain.value = 0;
     this.transportGain.connect(this.master);
     this.master.connect(this.limiter);
-    this.limiter.connect(ctx.destination);
+    this.limiter.connect(nativeOutput?.node || ctx.destination);
     this.initWaveWorker();
     this.rebuildDsp();
     this.scheduleIdleSuspend();
@@ -707,6 +797,7 @@ export class Player {
     try {
       await this.nativePlayback(true);
       if (serial !== this.playSerial) return;
+      await this.nativeOutput?.resume();
       await context.resume();
     } catch (error) {
       if (serial !== this.playSerial) return;
@@ -790,19 +881,29 @@ export class Player {
     this.onUpdate(this.offset, true);
     this.raf = requestAnimationFrame(tick);
   }
-  async setOutputDevice(id: string) {
-    await this.init();
-    const context = this.context as AudioContext & {
-      setSinkId?: (id: string) => Promise<void>;
+  setOutputDevice(id: string): Promise<void> {
+    const apply = async () => {
+      await this.init();
+      if (this.audioSettings.backend !== 'web-audio' && !window.ImmerseNative) {
+        this.browserOutputDevice = id;
+        return;
+      }
+      const context = this.context as AudioContext & {
+        setSinkId?: (id: string) => Promise<void>;
+        sinkId?: string;
+      };
+      if (!context.setSinkId) {
+        if (id && id !== 'default')
+          throw new Error(tr('此系统暂不支持切换播放设备，请在 Windows 声音设置中选择输出'));
+        return;
+      }
+      const sink = id === 'default' ? '' : id;
+      if (context.sinkId !== sink) await context.setSinkId(sink);
+      this.browserOutputDevice = id;
     };
-    if (!context.setSinkId) {
-      if (id && id !== 'default')
-        throw new Error(tr('此系统暂不支持切换播放设备，请在 Windows 声音设置中选择输出'));
-      return;
-    }
-    const sink = id === 'default' ? '' : id;
-    if ((context as AudioContext & { sinkId?: string }).sinkId !== sink)
-      await context.setSinkId(sink);
+    const pending = this.outputQueue.then(apply, apply);
+    this.outputQueue = pending.catch(() => {});
+    return pending;
   }
   pause(releaseNative = true, seekPosition?: number) {
     if (seekPosition === undefined) this.seekSerial++;
@@ -1606,7 +1707,9 @@ export class Player {
     for (const job of this.peakJobs.values()) job.reject(new Error(tr('播放器已关闭')));
     this.peakJobs.clear();
     for (const channel of this.channels) channel.stream?.close();
-    void this.context?.close();
+    const closed = this.context?.close().catch(() => {});
+    const nativeClosed = this.nativeOutput?.close();
+    this.nativeOutput = null;
     this.context = null;
     this.dsp?.port.close();
     this.dsp = null;
@@ -1622,5 +1725,6 @@ export class Player {
     this.mixWaves.clear();
     this.mixInFlight.clear();
     this.waveHistory.clear();
+    return Promise.all([closed, nativeClosed]).then(() => {});
   }
 }

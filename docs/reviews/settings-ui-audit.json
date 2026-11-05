@@ -1,0 +1,24 @@
+{
+  "profile": "product-admin",
+  "sourceRoots": ["src/features/settings"],
+  "locale": "zh-CN",
+  "canonicalMap": "UX-CONTRACT.md",
+  "requiredCapabilities": ["Select/Listbox", "Form", "Scrollbar", "Toast"],
+  "ownership": {
+    "Select/Listbox": "native"
+  },
+  "manualChecks": [
+    "Dialog and Tooltip are documented in UX-CONTRACT.md and exercised by desktop UI tests; the static auditor does not recognize these capability names."
+  ],
+  "scopeNote": "Static rules cover the settings feature. App-wide legacy findings are recorded separately; shared integration is verified by repository checks and desktop tests.",
+  "requiredCommands": ["check", "unit", "ui"],
+  "commands": {
+    "check": "npm run check",
+    "unit": "npm test",
+    "ui": "node scripts/settings-ui-check.cjs"
+  },
+  "evidence": {
+    "crudFullFlow": "scripts/settings-ui-check.cjs",
+    "failurePaths": "tests/settings-storage.test.cjs"
+  }
+}

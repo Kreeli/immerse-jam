@@ -101,8 +101,10 @@ let browser;
   await page.goto('http://127.0.0.1:' + server.address().port);
   assert.equal(await page.locator('.practice-guide, .brand small').count(), 0);
   await page.getByRole('button', { name: '第一次使用？', exact: true }).first().click();
+  await page.getByRole('heading', { name: '从一首歌开始', exact: true }).waitFor();
+  await page.getByText('查看界面图解与快捷操作', { exact: true }).click();
   await page.getByRole('img', { name: '练习界面图解', exact: true }).waitFor();
-  await page.getByRole('button', { name: '关闭窗口', exact: true }).click();
+  await page.getByRole('button', { name: '跳过引导', exact: true }).click();
   await page.screenshot({ path: '.runtime/review-desktop-library.png' });
   await page
     .getByRole('button', { name: /交互验收/ })

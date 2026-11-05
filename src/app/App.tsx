@@ -4,6 +4,10 @@ import WindowControls from '../shared/WindowControls';
 import Select from '../shared/Select';
 import MobileActions from '../platform/android/MobileActions';
 import UsageHelp from '../features/settings/UsageHelp';
+import OnboardingGuide from '../features/settings/OnboardingGuide';
+import SettingsWorkspace from '../features/settings/SettingsWorkspace';
+import HelpTooltips from '../shared/HelpTooltips';
+import { getPreferences, setPreferences, usePreferences } from './preferences';
 import { jamCall } from '../platform/project-call';
 import MobileHome from '../platform/android/MobileHome';
 import AndroidPointer from '../platform/android/AndroidPointer';
@@ -17,9 +21,7 @@ import {
   FileMusic,
   FolderInput,
   Library,
-  LoaderCircle,
   Music2,
-  Plus,
   Share2,
   SlidersHorizontal,
   Sparkles,
@@ -47,7 +49,6 @@ import ProjectDetails from '../features/library/ProjectDetails';
 import Sidebar from '../features/library/Sidebar';
 import DatabaseMigration from '../features/migration/DatabaseMigration';
 import { compatible } from '../features/models/compatibility';
-import ModelManager from '../features/models/ModelManager';
 import ResultPicker from '../features/models/ResultPicker';
 import Mixer from '../features/player/Mixer';
 import PracticeToolbar from '../features/player/PracticeToolbar';
@@ -69,10 +70,9 @@ import AppearanceSettings from '../features/settings/AppearanceSettings';
 import StorageLocations from '../features/settings/StorageLocations';
 import AnalysisNote from '../features/settings/AnalysisNote';
 import UpdateCheck from '../features/settings/UpdateCheck';
-import DownloadSettings from '../features/settings/DownloadSettings';
 import RemoteTransfer from '../features/transfer/RemoteTransfer';
 import { t as tr, message as translateMessage } from '../i18n';
-import { type Model, type Project, type Track } from '../shared/types';
+import { type Project, type Track } from '../shared/types';
 import { useWorkspace } from './useWorkspace';
 const colors = ['#ed7894', '#d9a86c', '#91bda9', '#a092cd', '#7fa8d3', '#8e949d'];
 const modes = () => [
@@ -86,6 +86,25 @@ const modes = () => [
 ];
 export default function App() {
   const controller = useWorkspace();
+  const preferences = usePreferences();
+  useEffect(() => {
+    if (isDesktop) void jamCall('ui-scale', { scale: preferences.uiScale }).catch(() => {});
+  }, [preferences.uiScale]);
+  useEffect(() => {
+    if (
+      !isDesktop ||
+      !controller.libraryReady ||
+      getPreferences().onboardingSeen ||
+      controller.modal
+    )
+      return;
+    try {
+      setPreferences({ onboardingSeen: true });
+      if (!controller.library.length) controller.setModal('help');
+    } catch (error) {
+      controller.notify((error as Error).message);
+    }
+  }, [controller.libraryReady, controller.library.length, controller.modal]);
   const [live, setLive] = useState<LiveEnvelope | null>(null);
   const [creatingFolder, setCreatingFolder] = useState(false);
   const [sessionSource, setSessionSource] = useState<Project | null>(null);
@@ -115,15 +134,12 @@ export default function App() {
     setPosition,
     playing,
     setPlaying,
-    ready,
-    setReady,
     loading,
     loadProgress,
     setLoading,
     peaks,
     setPeaks,
     models,
-    setModels,
     modelId,
     setModelId,
     mode,
@@ -132,13 +148,6 @@ export default function App() {
     setJob,
     toast,
     setToast,
-    runtimeMode,
-    setRuntimeMode,
-    runtimeMessage,
-    runtimeDownload,
-    setRuntimeMessage,
-    installing,
-    setInstalling,
     selected,
     setSelected,
     pair,
@@ -173,8 +182,6 @@ export default function App() {
     setWaveWindow,
     waveLoading,
     setWaveLoading,
-    modelDownloads,
-    setModelDownloads,
     player,
     notify,
     refresh,
@@ -829,6 +836,7 @@ export default function App() {
           )}
         </div>
       )}
+      <HelpTooltips />
       <ModalFrame
         open={discardingChanges}
         onClose={() => setDiscardingChanges(false)}
@@ -855,6 +863,14 @@ export default function App() {
       </ModalFrame>
       <ModalFrame
         open={!!modal}
+        managedFocus={!isAndroid && (shownModal === 'settings' || shownModal === 'help')}
+        label={
+          shownModal === 'settings'
+            ? tr('设置')
+            : shownModal === 'help'
+              ? tr('使用引导')
+              : undefined
+        }
         onClose={closeModal}
         className={
           shownModal === 'separate'
@@ -862,37 +878,43 @@ export default function App() {
             : shownModal === 'transfer'
               ? 'transfer-dialog'
               : shownModal === 'settings'
-                ? 'wide'
-                : ''
+                ? isAndroid
+                  ? 'wide'
+                  : 'settings-workspace-dialog'
+                : shownModal === 'help' && !isAndroid
+                  ? 'onboarding-dialog'
+                  : ''
         }
       >
-        <div className="modal-heading">
-          <div>
-            <span className="eyebrow">IMMERSE JAM</span>
-            <h2>
-              {
+        {!(!isAndroid && (shownModal === 'settings' || shownModal === 'help')) && (
+          <div className="modal-heading">
+            <div>
+              <span className="eyebrow">IMMERSE JAM</span>
+              <h2>
                 {
-                  separate: tr('分析音乐'),
-                  help: tr('第一次使用？'),
-                  settings: isAndroid ? tr('设置') : tr('设置与模型'),
-                  transfer: tr('设备互传'),
-                  migration: tr('迁移 Audio Jam'),
-                  donate: tr('请作者喝一瓶冰可乐'),
-                  feedback: tr('用户反馈'),
-                  export: tr('导出音乐'),
-                  files: tr('导入与导出'),
-                }[shownModal || '']
-              }
-            </h2>
+                  {
+                    separate: tr('分析音乐'),
+                    help: tr('第一次使用？'),
+                    settings: isAndroid ? tr('设置') : tr('设置与模型'),
+                    transfer: tr('设备互传'),
+                    migration: tr('迁移 Audio Jam'),
+                    donate: tr('请作者喝一瓶冰可乐'),
+                    feedback: tr('用户反馈'),
+                    export: tr('导出音乐'),
+                    files: tr('导入与导出'),
+                  }[shownModal || '']
+                }
+              </h2>
+            </div>
+            <button
+              className="icon-button nr-icon-btn"
+              aria-label={tr('关闭窗口')}
+              onClick={closeModal}
+            >
+              <X size={22} />
+            </button>
           </div>
-          <button
-            className="icon-button nr-icon-btn"
-            aria-label={tr('关闭窗口')}
-            onClick={closeModal}
-          >
-            <X size={22} />
-          </button>
-        </div>
+        )}
         {shownModal === 'separate' && !isAndroid && (
           <>
             <p className="muted">
@@ -994,8 +1016,19 @@ export default function App() {
             </div>
           </>
         )}
-        {shownModal === 'help' && <UsageHelp />}
-        {shownModal === 'settings' && (
+        {shownModal === 'help' &&
+          (isAndroid ? (
+            <UsageHelp />
+          ) : (
+            <OnboardingGuide
+              onClose={closeModal}
+              onModels={() => controller.openSettings('models')}
+            />
+          ))}
+        {shownModal === 'settings' && !isAndroid && (
+          <SettingsWorkspace controller={controller} onClose={closeModal} />
+        )}
+        {shownModal === 'settings' && isAndroid && (
           <>
             {isAndroid && (
               <nav className="mobile-settings-nav">
@@ -1030,131 +1063,8 @@ export default function App() {
                 player.current.pause();
               }}
             />
-            {!isAndroid && <AnalysisNote />}
             <StorageLocations />
-            {!isAndroid && (
-              <>
-                <div className="setup-card">
-                  <div className="setup-icon">
-                    <AudioLines size={26} />
-                  </div>
-                  <div>
-                    <h3>
-                      {controller.checkingRuntime
-                        ? tr('正在检查环境…')
-                        : ready
-                          ? tr('本地运行环境已准备好')
-                          : tr('准备 Immerse Jam 的本地引擎')}
-                    </h3>
-                    <p>
-                      {tr('自动下载应用专用运行库，无需预装 Python 或开发工具。模型按需下载。')}
-                    </p>
-                  </div>
-                  <span className={'badge ' + (ready ? 'green' : '')}>
-                    {controller.checkingRuntime ? tr('检查中') : ready ? tr('就绪') : tr('待安装')}
-                  </span>
-                </div>
-                <div className="runtime-controls">
-                  <Select
-                    value={runtimeMode}
-                    onChange={(e) => setRuntimeMode(e.target.value)}
-                    disabled={installing || controller.checkingRuntime}
-                  >
-                    <option value="cuda">{tr('NVIDIA 显卡加速')}</option>
-                    <option value="cpu">{tr('CPU 通用兼容')}</option>
-                  </Select>
-                  <button
-                    className="primary"
-                    disabled={installing || controller.checkingRuntime}
-                    onClick={() =>
-                      void act(async () => {
-                        setInstalling(true);
-                        await jamCall('runtime-install', { mode: runtimeMode });
-                      })
-                    }
-                  >
-                    {installing ? (
-                      <LoaderCircle className="spin" size={16} />
-                    ) : (
-                      <Download size={16} />
-                    )}{' '}
-                    {installing
-                      ? tr('准备中…')
-                      : ready
-                        ? tr('重新检查 / 切换引擎')
-                        : tr('自动安装环境')}
-                  </button>
-                </div>
-                <DownloadSettings disabled={installing} />
-                {installing && (
-                  <div className="runtime-download-status" aria-live="polite">
-                    {runtimeDownload?.file && <strong>{runtimeDownload.file}</strong>}
-                    <progress
-                      aria-label={tr('当前步骤进度')}
-                      max="1"
-                      value={runtimeDownload?.progress ?? undefined}
-                    />
-                    <span className="muted">
-                      {runtimeDownload?.progress !== undefined &&
-                        `${Math.round(runtimeDownload.progress * 100)}% · `}
-                      {runtimeDownload?.received !== undefined &&
-                        `${(runtimeDownload.received / 1048576).toFixed(1)} MiB`}
-                      {!!runtimeDownload?.total &&
-                        ` / ${(runtimeDownload.total / 1048576).toFixed(1)} MiB`}
-                      {runtimeDownload?.bytesPerSecond !== undefined &&
-                        ` · ${(runtimeDownload.bytesPerSecond / 1048576).toFixed(1)} MiB/s`}
-                    </span>
-                  </div>
-                )}
-                <p className="muted setup-estimate">
-                  {tr(
-                    '首次下载：CPU 约 1–2 GB，NVIDIA 约 3–5 GB，另加所选模型。通常需 5–30 分钟，慢网络可能更久；已有缓存会复用。',
-                  )}
-                </p>
-                {runtimeMessage && (
-                  <pre className="install-status">
-                    {translateMessage(runtimeMessage.slice(-1400))}
-                  </pre>
-                )}
-              </>
-            )}
-            {isAndroid && <p className="notice">{tr('手机端仅支持外部导入的音轨与分析')}</p>}
-            {!isAndroid && (
-              <>
-                <div className="section-heading">
-                  <h3>{tr('模型管理')}</h3>
-                  <button className="small" onClick={() => void act(() => jamCall('model-import'))}>
-                    <Plus size={14} />
-                    {tr('导入本地模型')}
-                  </button>
-                </div>
-                <ModelManager
-                  onError={notify}
-                  models={models}
-                  downloads={modelDownloads}
-                  onDownload={(id) => {
-                    setModelDownloads((list) => ({
-                      ...list,
-                      [id]: { status: 'progress', progress: 0, message: tr('正在准备下载…') },
-                    }));
-                    void jamCall<Model[]>('model-download', { id })
-                      .then(setModels)
-                      .catch((e) => {
-                        setModelDownloads((list) => ({
-                          ...list,
-                          [id]: { ...list[id], status: 'error', message: e.message },
-                        }));
-                        notify(tr('模型下载未完成，可重试继续下载'));
-                      });
-                  }}
-                />
-                <p className="muted fine-print">
-                  {tr(
-                    '自定义模型需包含 manifest.json，导入时验证声部定义与实际输出。模型文件和运行库均保存在应用自己的目录中。',
-                  )}
-                </p>
-              </>
-            )}
+            <p className="notice">{tr('手机端仅支持外部导入的音轨与分析')}</p>
           </>
         )}
         {shownModal === 'files' && (
