@@ -34,7 +34,7 @@ let app, page;
     };
   });
   await page.getByRole('button', { name: '跟练/创作', exact: true }).click();
-  await page.getByRole('button', { name: '打开 偏好验收', exact: true }).click();
+  await page.locator('.session-title').filter({ hasText: '偏好验收' }).click();
   await page.waitForFunction(() => !document.querySelector('.play-main').disabled);
   await page.getByRole('button', { name: '设置与模型', exact: true }).click();
   await page.getByRole('combobox', { name: '界面语言', exact: true }).selectOption('en');
@@ -42,6 +42,7 @@ let app, page;
   await page.getByRole('combobox', { name: 'Accent color', exact: true }).selectOption('blue');
   assert.equal(await page.locator('html').getAttribute('lang'), 'en');
   assert.equal(await page.locator('html').getAttribute('data-theme'), 'light');
+  await page.getByRole('button', { name: 'Models and runtime', exact: true }).click();
   assert.ok(
     await page
       .locator('.model-description strong')
@@ -52,9 +53,9 @@ let app, page;
   assert.ok(!/[\u4e00-\u9fff]/.test(settingsText.replace('简体中文', '')), settingsText);
   await page.waitForTimeout(250);
   await page.screenshot({ path: 'test-output/v014-settings-en-light.png' });
-  await page.getByRole('button', { name: 'Close window', exact: true }).click();
+  await page.getByRole('button', { name: 'Return to the music workspace', exact: true }).click();
   await page.screenshot({ path: 'test-output/v014-player-en-light.png' });
-  await page.getByRole('button', { name: 'Practice recording', exact: true }).click();
+  await page.getByRole('button', { name: 'Recording setup', exact: true }).click();
   await page.evaluate(() => {
     const context = window.__testContext,
       destination = context.createMediaStreamDestination();
@@ -100,6 +101,29 @@ let app, page;
   assert.equal(saved.language, 'en');
   assert.equal(saved.theme, 'light');
   assert.equal(saved.accent, 'blue');
+  await page.getByRole('button', { name: 'Audio and recording', exact: true }).click();
+  const globalLatency = page.getByRole('spinbutton', {
+    name: 'Default latency correction',
+    exact: true,
+  });
+  await globalLatency.fill('350');
+  await globalLatency.blur();
+  await page.waitForFunction(
+    () => JSON.parse(localStorage.getItem('immerse.audio.defaults')).latencyMs === 350,
+  );
+  await page.getByRole('button', { name: 'Return to the music workspace', exact: true }).click();
+  await page.getByRole('button', { name: 'Recording setup', exact: true }).click();
+  assert.equal(
+    Number(
+      await page
+        .getByRole('spinbutton', { name: 'Recording latency correction', exact: true })
+        .inputValue(),
+    ),
+    Number(match[1]),
+    'changing global calibration must preserve the current project correction',
+  );
+  await page.getByRole('button', { name: 'Close recording window', exact: true }).click();
+  await page.getByRole('button', { name: 'Settings & models', exact: true }).click();
   await page
     .getByRole('combobox', { name: 'Interface language', exact: true })
     .selectOption('zh-CN');
@@ -108,7 +132,14 @@ let app, page;
   assert.deepEqual(errors, []);
   console.log(
     'PREFERENCES_CHECK_PASSED',
-    JSON.stringify({ english: true, lightBlue: true, preferencesSaved: true, calibration, errors }),
+    JSON.stringify({
+      english: true,
+      lightBlue: true,
+      preferencesSaved: true,
+      projectOverridePreserved: true,
+      calibration,
+      errors,
+    }),
   );
 })()
   .catch(async (error) => {

@@ -31,6 +31,7 @@ type Props = Pick<
   | 'setPage'
   | 'setSelected'
   | 'setModal'
+  | 'openSettings'
   | 'folders'
   | 'setFolders'
   | 'notify'
@@ -48,6 +49,7 @@ export default function Sidebar({
   setPage,
   setSelected,
   setModal,
+  openSettings,
   folders,
   setFolders,
   notify,
@@ -197,7 +199,8 @@ export default function Sidebar({
           <button
             className="nr-nav-item"
             title={tr('设置与模型')}
-            onClick={() => setModal('settings')}
+            data-help={tr('更改界面、音频设备与存储设置。')}
+            onClick={() => openSettings()}
           >
             <Settings size={18} />
             <span>{tr('设置与模型')}</span>
@@ -205,17 +208,22 @@ export default function Sidebar({
         </nav>
       </div>
       <div className="nr-nav-foot">
-        <button className="nr-engine" onClick={() => setModal('settings')} title={tr('设置与模型')}>
+        <button
+          className="nr-engine"
+          onClick={() => openSettings('models')}
+          data-help={tr('查看运行环境状态，下载或校验模型。')}
+          title={tr('设置与模型')}
+        >
           <span className="nr-pulse" style={{ background: ready ? 'var(--ok)' : 'var(--warn)' }} />
           <div>
             <b>
               {checkingRuntime
                 ? tr('正在检查环境…')
                 : ready
-                  ? tr('本地引擎就绪')
-                  : tr('本地引擎待准备')}
+                  ? tr('运行环境：就绪')
+                  : tr('运行环境：待准备')}
             </b>
-            <small>{tr('音乐留在你的设备上')}</small>
+            <small>{tr('查看状态与模型')}</small>
           </div>
         </button>
         <div className="nr-nav-mini">

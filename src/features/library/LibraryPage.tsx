@@ -29,6 +29,7 @@ type Props = Pick<
   | 'setDeletingProject'
   | 'importSongs'
   | 'setModal'
+  | 'openSettings'
   | 'setLibrary'
   | 'songList'
   | 'folders'
@@ -49,6 +50,7 @@ export default function LibraryPage({
   setDeletingProject,
   importSongs,
   setModal,
+  openSettings,
   setLibrary,
   songList,
   folders,
@@ -165,7 +167,7 @@ export default function LibraryPage({
             <Waves size={16} />
             {tr('本地分轨 · 同步乐谱 · 自由练习')}
           </span>
-          <button className="nr-btn nr-ghost nr-sm" onClick={() => setModal('settings')}>
+          <button className="nr-btn nr-ghost nr-sm" onClick={() => openSettings('models')}>
             {tr('管理模型')}
             <ChevronRight size={14} />
           </button>

@@ -8,6 +8,7 @@
   "main": "desktop/main.cjs",
   "scripts": {
     "dev": "node scripts/dev.cjs",
+    "build:native-audio": "node scripts/prepare-native-audio.cjs",
     "build": "node scripts/prepare-preload.cjs && tsc --noEmit && vite build && node scripts/prepare-notices.cjs && node scripts/copy-assets.cjs",
     "start": "electron .",
     "test": "node --test tests/*.test.cjs",
@@ -79,6 +80,10 @@
       {
         "from": "assets",
         "to": "assets"
+      },
+      {
+        "from": ".runtime/native-audio/package",
+        "to": "native-audio"
       },
       {
         "from": "release/installer-payload",
