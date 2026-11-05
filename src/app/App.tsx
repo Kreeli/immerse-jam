@@ -4,6 +4,10 @@ import WindowControls from '../shared/WindowControls';
 import Select from '../shared/Select';
 import MobileActions from '../platform/android/MobileActions';
 import UsageHelp from '../features/settings/UsageHelp';
+import OnboardingGuide from '../features/settings/OnboardingGuide';
+import SettingsWorkspace from '../features/settings/SettingsWorkspace';
+import HelpTooltips from '../shared/HelpTooltips';
+import { getPreferences, setPreferences, usePreferences } from './preferences';
 import { jamCall } from '../platform/project-call';
 import MobileHome from '../platform/android/MobileHome';
 import AndroidPointer from '../platform/android/AndroidPointer';
@@ -85,6 +89,25 @@ const modes = () => [
 ];
 export default function App() {
   const controller = useWorkspace();
+  const preferences = usePreferences();
+  useEffect(() => {
+    if (isDesktop) void jamCall('ui-scale', { scale: preferences.uiScale }).catch(() => {});
+  }, [preferences.uiScale]);
+  useEffect(() => {
+    if (
+      !isDesktop ||
+      !controller.libraryReady ||
+      getPreferences().onboardingSeen ||
+      controller.modal
+    )
+      return;
+    try {
+      setPreferences({ onboardingSeen: true });
+      if (!controller.library.length) controller.setModal('help');
+    } catch (error) {
+      controller.notify((error as Error).message);
+    }
+  }, [controller.libraryReady, controller.library.length, controller.modal]);
   const [live, setLive] = useState<LiveEnvelope | null>(null);
   const [creatingFolder, setCreatingFolder] = useState(false);
   const [sessionSource, setSessionSource] = useState<Project | null>(null);
@@ -833,8 +856,17 @@ export default function App() {
           </button>
         </div>
       )}
+      <HelpTooltips />
       <ModalFrame
         open={!!modal}
+        managedFocus={!isAndroid && (shownModal === 'settings' || shownModal === 'help')}
+        label={
+          shownModal === 'settings'
+            ? tr('设置')
+            : shownModal === 'help'
+              ? tr('使用引导')
+              : undefined
+        }
         onClose={closeModal}
         className={
           shownModal === 'separate'
@@ -842,37 +874,43 @@ export default function App() {
             : shownModal === 'transfer'
               ? 'transfer-dialog'
               : shownModal === 'settings'
-                ? 'wide'
-                : ''
+                ? isAndroid
+                  ? 'wide'
+                  : 'settings-workspace-dialog'
+                : shownModal === 'help' && !isAndroid
+                  ? 'onboarding-dialog'
+                  : ''
         }
       >
-        <div className="modal-heading">
-          <div>
-            <span className="eyebrow">IMMERSE JAM</span>
-            <h2>
-              {
+        {!(!isAndroid && (shownModal === 'settings' || shownModal === 'help')) && (
+          <div className="modal-heading">
+            <div>
+              <span className="eyebrow">IMMERSE JAM</span>
+              <h2>
                 {
-                  separate: tr('分析音乐'),
-                  help: tr('第一次使用？'),
-                  settings: isAndroid ? tr('设置') : tr('设置与模型'),
-                  transfer: tr('设备互传'),
-                  migration: tr('迁移 Audio Jam'),
-                  donate: tr('请作者喝一瓶冰可乐'),
-                  feedback: tr('用户反馈'),
-                  export: tr('导出音乐'),
-                  files: tr('导入与导出'),
-                }[shownModal || '']
-              }
-            </h2>
+                  {
+                    separate: tr('分析音乐'),
+                    help: tr('第一次使用？'),
+                    settings: isAndroid ? tr('设置') : tr('设置与模型'),
+                    transfer: tr('设备互传'),
+                    migration: tr('迁移 Audio Jam'),
+                    donate: tr('请作者喝一瓶冰可乐'),
+                    feedback: tr('用户反馈'),
+                    export: tr('导出音乐'),
+                    files: tr('导入与导出'),
+                  }[shownModal || '']
+                }
+              </h2>
+            </div>
+            <button
+              className="icon-button nr-icon-btn"
+              aria-label={tr('关闭窗口')}
+              onClick={closeModal}
+            >
+              <X size={22} />
+            </button>
           </div>
-          <button
-            className="icon-button nr-icon-btn"
-            aria-label={tr('关闭窗口')}
-            onClick={closeModal}
-          >
-            <X size={22} />
-          </button>
-        </div>
+        )}
         {shownModal === 'separate' && !isAndroid && (
           <>
             <p className="muted">
@@ -974,8 +1012,19 @@ export default function App() {
             </div>
           </>
         )}
-        {shownModal === 'help' && <UsageHelp />}
-        {shownModal === 'settings' && (
+        {shownModal === 'help' &&
+          (isAndroid ? (
+            <UsageHelp />
+          ) : (
+            <OnboardingGuide
+              onClose={closeModal}
+              onModels={() => controller.openSettings('models')}
+            />
+          ))}
+        {shownModal === 'settings' && !isAndroid && (
+          <SettingsWorkspace controller={controller} onClose={closeModal} />
+        )}
+        {shownModal === 'settings' && isAndroid && (
           <>
             {isAndroid && (
               <nav className="mobile-settings-nav">

@@ -7,6 +7,9 @@ export type Preferences = {
   waveColor: string;
   pointerStyle: 'arrow' | 'ring' | 'crosshair' | 'system';
   libraryLayout: 'grid' | 'list';
+  uiScale: number;
+  helpTooltips: boolean;
+  onboardingSeen: boolean;
 };
 const listeners = new Set<() => void>();
 const defaults: Preferences = {
@@ -19,6 +22,9 @@ const defaults: Preferences = {
   waveColor: '',
   pointerStyle: 'arrow',
   libraryLayout: 'grid',
+  uiScale: 1,
+  helpTooltips: true,
+  onboardingSeen: false,
 };
 let preferences: Preferences = defaults;
 try {
@@ -32,6 +38,18 @@ try {
       ? saved.pointerStyle
       : 'arrow',
     libraryLayout: saved.libraryLayout === 'list' ? 'list' : 'grid',
+    uiScale:
+      typeof saved.uiScale === 'number' &&
+      Number.isFinite(saved.uiScale) &&
+      saved.uiScale >= 0.8 &&
+      saved.uiScale <= 1.5
+        ? saved.uiScale
+        : 1,
+    helpTooltips: saved.helpTooltips !== false,
+    onboardingSeen:
+      typeof saved.onboardingSeen === 'boolean'
+        ? saved.onboardingSeen
+        : Object.keys(saved).length > 0,
   };
 } catch {}
 if (typeof window !== 'undefined' && window.jam?.language)
@@ -56,8 +74,11 @@ export function getPreferences() {
   return preferences;
 }
 export function setPreferences(patch: Partial<Preferences>) {
-  preferences = { ...preferences, ...patch };
-  localStorage.setItem('immerse.preferences', JSON.stringify(preferences));
+  const next = { ...preferences, ...patch };
+  if (!Number.isFinite(next.uiScale) || next.uiScale < 0.8 || next.uiScale > 1.5)
+    throw new Error('界面缩放需要在80%至150%之间');
+  localStorage.setItem('immerse.preferences', JSON.stringify(next));
+  preferences = next;
   apply();
   listeners.forEach((listener) => listener());
 }

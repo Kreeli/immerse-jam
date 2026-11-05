@@ -21,6 +21,12 @@ const env = {
   TMP: temp,
   ELECTRON_BUILDER_CACHE: path.join(root, '.runtime', 'builder-cache'),
 };
+const nativeAudioBuild = spawnSync(
+  process.execPath,
+  [path.join(root, 'scripts/prepare-native-audio.cjs')],
+  { cwd: root, env, stdio: 'inherit', windowsHide: true },
+);
+if (nativeAudioBuild.status !== 0) process.exit(nativeAudioBuild.status ?? 1);
 const payload = spawnSync(
   process.execPath,
   [path.join(root, 'scripts/prepare-installer-assets.cjs')],

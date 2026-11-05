@@ -2,14 +2,29 @@ import { useEffect, useState } from 'react';
 import { setPreferences, usePreferences } from '../../app/preferences';
 import { t as tr } from '../../i18n';
 import { isAndroid } from '../../platform/environment';
-const colors = ['#aa92b8', '#ed7894', '#62a9e8', '#67bd9b', '#d7ad68', '#5dc9c7'];
-export default function WaveColorSettings() {
+const defaultColor = '#aa92b8';
+const colors = ['#66CCFF', defaultColor, '#ed7894', '#62a9e8', '#67bd9b', '#d7ad68', '#5dc9c7'];
+export default function WaveColorSettings({
+  onError,
+  onSaved,
+}: {
+  onError?: (error: string) => void;
+  onSaved?: () => void;
+}) {
   const { waveColor } = usePreferences(),
-    [draft, setDraft] = useState(waveColor || colors[0]);
-  useEffect(() => setDraft(waveColor || colors[0]), [waveColor]);
+    [draft, setDraft] = useState(waveColor || defaultColor);
+  useEffect(() => setDraft(waveColor || defaultColor), [waveColor]);
   const choose = (value: string) => {
     setDraft(value);
-    if (/^#[0-9a-f]{6}$/i.test(value)) setPreferences({ waveColor: value });
+    if (value === '' || /^#[0-9a-f]{6}$/i.test(value)) {
+      try {
+        setPreferences({ waveColor: value });
+        onSaved?.();
+      } catch (error) {
+        setDraft(waveColor || defaultColor);
+        onError?.((error as Error).message);
+      }
+    }
   };
   return (
     <fieldset className="wave-color-settings">
@@ -21,7 +36,7 @@ export default function WaveColorSettings() {
               key={color}
               type="button"
               aria-label={tr('波形颜色 {0}', [color])}
-              aria-pressed={waveColor === color}
+              aria-pressed={(waveColor || defaultColor).toLowerCase() === color.toLowerCase()}
               style={{ background: color }}
               onClick={() => choose(color)}
             />
@@ -31,7 +46,7 @@ export default function WaveColorSettings() {
           <input
             type="color"
             aria-label={tr('选择波形颜色')}
-            value={/^#[0-9a-f]{6}$/i.test(draft) ? draft : colors[0]}
+            value={/^#[0-9a-f]{6}$/i.test(draft) ? draft : defaultColor}
             onChange={(e) => choose(e.target.value)}
           />
         )}
@@ -42,9 +57,9 @@ export default function WaveColorSettings() {
           maxLength={7}
           spellCheck={false}
           onChange={(e) => choose(e.target.value)}
-          onBlur={() => setDraft(waveColor || colors[0])}
+          onBlur={() => setDraft(waveColor || defaultColor)}
         />
-        <button className="nr-btn nr-sm" onClick={() => setPreferences({ waveColor: '' })}>
+        <button className="nr-btn nr-sm" onClick={() => choose('')}>
           {tr('恢复默认')}
         </button>
       </div>

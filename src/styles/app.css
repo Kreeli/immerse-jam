@@ -8,3 +8,4 @@
 @import './rehearsal-reset.css' layer(component-reset);
 @import './rehearsal-design.css' layer(design);
 @import './rehearsal.css' layer(integration);
+@import './settings.css' layer(integration);
