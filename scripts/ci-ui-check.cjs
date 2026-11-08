@@ -36,12 +36,25 @@ const server = http.createServer((req, res) => {
 let browser;
 (async () => {
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
-  browser = await chromium.launch({ args: ['--mute-audio'] });
-  const page = await browser.newPage({ viewport: { width: 1440, height: 940 } }),
+  browser = await chromium.launch({
+    args: ['--mute-audio'],
+    ...(process.platform === 'win32' ? { channel: 'msedge' } : {}),
+  });
+  const page = await browser.newPage({
+      viewport: { width: 1440, height: 940 },
+      userAgent: 'Mozilla/5.0 Electron/45.1.0',
+    }),
     errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.exposeFunction('__qaUpdate', (data) => store.update(data.id, data.patch));
+  let firstProjectWrites = 0;
+  let failFirstProject = false;
+  await page.exposeFunction('__qaUpdate', (data) => {
+    firstProjectWrites++;
+    if (failFirstProject) throw new Error('模拟保存失败');
+    return store.update(data.id, data.patch);
+  });
   await page.addInitScript((project) => {
+    let second = { ...project, id: 'second-fixture', title: '保存验收 B' };
     const fetchOriginal = window.fetch.bind(window);
     window.fetch = (input, init) =>
       fetchOriginal(
@@ -55,13 +68,29 @@ let browser;
       filePath: () => '',
       onEvent: () => () => {},
       call: async (method, data) => {
-        if (method === 'library') return [project];
+        if (method === 'library') return [project, second];
         if (method === 'folders-list' || method === 'models') return [];
         if (method === 'runtime-status') return { ready: true };
         if (method === 'download-settings') return { source: 'auto' };
-        if (method === 'update') return (project = await window.__qaUpdate(data));
+        if (method === 'window') {
+          if (data.action !== 'state') (window.__windowActions ||= []).push(data.action);
+          return { maximized: false };
+        }
+        if (method === 'update') {
+          if (data.id === second.id) {
+            window.__secondProjectWrites = (window.__secondProjectWrites || 0) + 1;
+            second = {
+              ...second,
+              ...data.patch,
+              practice: { ...second.practice, ...data.patch.practice },
+            };
+            return second;
+          }
+          return (project = await window.__qaUpdate(data));
+        }
         if (method === 'playback-budget') {
-          await new Promise((resolve) => (window.__releaseLoad = resolve));
+          if (!window.__releaseLoad)
+            await new Promise((resolve) => (window.__releaseLoad = resolve));
           return {};
         }
         if (method === 'ui-language') return true;
@@ -147,6 +176,41 @@ let browser;
   await page.screenshot({ path: 'test-output/current-player-1024.png' });
   await page.getByRole('button', { name: '播放', exact: true }).click();
   await page.getByRole('button', { name: '暂停', exact: true }).waitFor();
+  const seek = page.getByRole('slider', { name: '播放进度', exact: true });
+  const bar = await seek.boundingBox();
+  await seek.focus();
+  await page.keyboard.press('Tab');
+  await page.mouse.click(bar.x + bar.width * 0.6, bar.y + bar.height / 2);
+  await page.waitForFunction(() => +document.querySelector('.seek').value > 4.8);
+  assert.ok(await seek.evaluate((el) => el === document.activeElement));
+  assert.equal(await seek.evaluate((el) => getComputedStyle(el).outlineStyle), 'none');
+  await page.keyboard.press('Space');
+  await page.getByRole('button', { name: '播放', exact: true }).waitFor();
+  assert.ok(Number(await seek.inputValue()) > 4.8);
+  assert.equal(await seek.evaluate((el) => getComputedStyle(el).outlineStyle), 'none');
+  await page.keyboard.press('Space');
+  await page.getByRole('button', { name: '暂停', exact: true }).waitFor();
+  for (const [i, name] of ['选听', '关闭声音', '最大化', '最小化'].entries()) {
+    const control = page.getByRole('button', { name, exact: true }).first();
+    const pressed = await control.getAttribute('aria-pressed');
+    await control.focus();
+    await page.keyboard.down('Space');
+    await page.keyboard.down('Space');
+    await page.keyboard.up('Space');
+    await page.getByRole('button', { name: i % 2 ? '暂停' : '播放', exact: true }).waitFor();
+    assert.equal(await control.evaluate((el) => getComputedStyle(el).outlineStyle), 'none');
+    assert.equal(await control.getAttribute('aria-pressed'), pressed);
+  }
+  assert.deepEqual(await page.evaluate(() => window.__windowActions || []), []);
+  await page.keyboard.press('Tab');
+  assert.ok(
+    await page.evaluate(
+      () =>
+        document.activeElement.matches(':focus-visible') &&
+        getComputedStyle(document.activeElement).outlineStyle !== 'none',
+    ),
+    'Tab must still show the keyboard focus outline',
+  );
   await page.getByRole('button', { name: '音乐库', exact: true }).click();
   await page.getByRole('button', { name: '暂停', exact: true }).click();
   assert.equal(
@@ -170,6 +234,33 @@ let browser;
         ),
     );
   }
+  const search = page.getByPlaceholder('搜索歌曲、艺术家…', { exact: true });
+  await search.focus();
+  await page.keyboard.type('a b');
+  assert.equal(await search.inputValue(), 'a b');
+  await search.fill('');
+  await page
+    .getByRole('button', { name: /交互验收/ })
+    .first()
+    .click();
+  failFirstProject = true;
+  await page.getByRole('button', { name: '播放', exact: true }).click();
+  await page.getByRole('button', { name: '重试保存', exact: true }).waitFor();
+  const failedWrites = firstProjectWrites;
+  await page.getByRole('button', { name: '音乐库', exact: true }).click();
+  await page
+    .getByRole('button', { name: /保存验收 B/ })
+    .first()
+    .click();
+  await page.getByRole('button', { name: '播放', exact: true }).click();
+  await page.waitForFunction(() => window.__secondProjectWrites > 0);
+  await page.keyboard.press('Tab');
+  await page.getByRole('button', { name: '重试保存', exact: true }).waitFor();
+  assert.equal(firstProjectWrites, failedWrites, 'Project B must not retry project A');
+  failFirstProject = false;
+  await page.getByRole('button', { name: '重试保存', exact: true }).click();
+  await page.getByRole('button', { name: '重试保存', exact: true }).waitFor({ state: 'hidden' });
+  assert.equal(firstProjectWrites, failedWrites + 1);
   assert.deepEqual(errors, []);
   console.log('CI_UI_CHECK_PASSED');
 })()

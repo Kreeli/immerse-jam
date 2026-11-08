@@ -1096,6 +1096,7 @@ nav button.active svg {
   color: var(--tone-736579, #736579);
 }
 .seek {
+  touch-action: none;
   flex: 1;
   accent-color: var(--tone-e6c5d8, #e6c5d8);
 }

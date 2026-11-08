@@ -16,7 +16,7 @@ import type {
 } from '../shared/types';
 import { usePreferences } from './preferences';
 import { isAndroid } from '../platform/environment';
-import { playerShortcut } from '../shared/shortcuts';
+import { isPlaybackToggleKey, playerShortcut } from '../shared/shortcuts';
 export function useWorkspace() {
   usePreferences();
   const [library, setLibrary] = useState<Project[]>([]),
@@ -105,13 +105,24 @@ export function useWorkspace() {
     [adopt],
   );
   const notesTasks = useRef(new Map<string, Promise<void>>());
-  const automaticSaveFailed = useRef(false);
+  const edits = useRef(new Map<string, { base: Project; next: Project; task?: Promise<void> }>());
+  const failedNotes = useRef(new Set<string>());
+  const failedEdits = useRef(new Set<string>());
+  const [saveState, setSaveState] = useState<'saved' | 'saving' | 'error'>('saved');
+  const updateSaveState = useCallback(() => {
+    if (failedNotes.current.size || failedEdits.current.size) setSaveState('error');
+    else setSaveState(edits.current.size || pendingNotes.current.size ? 'saving' : 'saved');
+  }, []);
+  const canAutoSave = useCallback(
+    (id: string) => !failedNotes.current.has(id) && !failedEdits.current.has(id),
+    [],
+  );
   const flushNotes = useCallback(
-    async (targetId?: string) => {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
+    async (targetId?: string, automatic = false) => {
+      if (!targetId && saveTimer.current) clearTimeout(saveTimer.current);
       await Promise.all(
         [...pendingNotes.current.keys()]
-          .filter((id) => !targetId || id === targetId)
+          .filter((id) => (!targetId || id === targetId) && (!automatic || canAutoSave(id)))
           .map((id) => {
             const existing = notesTasks.current.get(id);
             if (existing) return existing;
@@ -122,40 +133,33 @@ export function useWorkspace() {
                   await jamCall('update', { id, patch: { notes } });
                   if (pendingNotes.current.get(id) === notes) pendingNotes.current.delete(id);
                 }
+                failedNotes.current.delete(id);
               } catch (error) {
-                automaticSaveFailed.current = true;
-                setSaveState('error');
+                failedNotes.current.add(id);
                 notify((error as Error).message);
                 throw error;
               } finally {
                 notesTasks.current.delete(id);
+                updateSaveState();
               }
             })();
             notesTasks.current.set(id, task);
             return task;
-          }),
+          })
+          .map((task) => (automatic ? task.catch(() => {}) : task)),
       );
     },
-    [notify],
+    [notify, canAutoSave, updateSaveState],
   );
   const saveNotes = useCallback(
     (p: Project) => {
       pendingNotes.current.set(p.id, p.notes || '');
       adopt(p);
-      automaticSaveFailed.current = false;
-      setSaveState('saving');
+      updateSaveState();
       if (saveTimer.current) clearTimeout(saveTimer.current);
-      saveTimer.current = setTimeout(
-        () =>
-          void flushNotes()
-            .then(() => {
-              if (!edits.current.size) setSaveState('saved');
-            })
-            .catch(() => {}),
-        300,
-      );
+      saveTimer.current = setTimeout(() => void flushNotes(undefined, true).catch(() => {}), 300);
     },
-    [adopt, flushNotes],
+    [adopt, flushNotes, updateSaveState],
   );
   const openProject = useCallback(
     (p: Project) => {
@@ -163,7 +167,7 @@ export function useWorkspace() {
         notify(tr('请先停止录音后再返回'));
         return;
       }
-      void flushNotes().catch(() => {});
+      void flushNotes(undefined, true).catch(() => {});
       if (p.broken) {
         setRecoveryProject(p);
         return;
@@ -188,18 +192,18 @@ export function useWorkspace() {
     setDeletingProject(null);
     notify(tr('已移至回收站'));
   };
-  const edits = useRef(new Map<string, { base: Project; next: Project; task?: Promise<void> }>());
   const editTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const firstEdit = useRef(0);
-  const [saveState, setSaveState] = useState<'saved' | 'saving' | 'error'>('saved');
   const flushEdits = useCallback(
-    async (targetId?: string) => {
-      if (editTimer.current) clearTimeout(editTimer.current);
-      firstEdit.current = 0;
-      await flushNotes(targetId);
+    async (targetId?: string, automatic = false) => {
+      if (!targetId) {
+        if (editTimer.current) clearTimeout(editTimer.current);
+        firstEdit.current = 0;
+      }
+      await flushNotes(targetId, automatic);
       await Promise.all(
         [...edits.current]
-          .filter(([id]) => !targetId || id === targetId)
+          .filter(([id]) => (!targetId || id === targetId) && (!automatic || canAutoSave(id)))
           .map(async ([id, edit]) => {
             if (edit.task) return edit.task;
             edit.task = (async () => {
@@ -215,23 +219,21 @@ export function useWorkspace() {
                   else setLibrary((list) => list.map((p) => (p.id === id ? edit.next : p)));
                 }
                 edits.current.delete(id);
-                automaticSaveFailed.current = false;
-                if (!edits.current.size) setSaveState('saved');
+                failedEdits.current.delete(id);
               } catch (error) {
-                automaticSaveFailed.current = true;
-                setSaveState('error');
+                failedEdits.current.add(id);
                 notify((error as Error).message);
                 throw error;
               } finally {
                 edit.task = undefined;
+                updateSaveState();
               }
             })();
             return edit.task;
           }),
       );
-      if (!edits.current.size && !pendingNotes.current.size) setSaveState('saved');
     },
-    [adopt, notify, flushNotes],
+    [adopt, notify, flushNotes, canAutoSave, updateSaveState],
   );
   useEffect(() => prepareProjectActions(flushEdits), [flushEdits]);
   const discardChanges = useCallback(async () => {
@@ -243,13 +245,14 @@ export function useWorkspace() {
     if (!restored) throw new Error(tr('项目不存在'));
     edits.current.delete(id);
     pendingNotes.current.delete(id);
-    automaticSaveFailed.current = edits.current.size > 0 || pendingNotes.current.size > 0;
+    failedNotes.current.delete(id);
+    failedEdits.current.delete(id);
     if (current.current?.id === id) {
       adopt(restored);
       if (player.current.project?.id === id) player.current.apply(restored);
     }
-    setSaveState(automaticSaveFailed.current ? 'error' : 'saved');
-  }, [adopt]);
+    updateSaveState();
+  }, [adopt, updateSaveState]);
   const save = useCallback(
     (p: Project) => {
       const base = project?.id === p.id ? project : library.find((item) => item.id === p.id);
@@ -266,25 +269,23 @@ export function useWorkspace() {
       const edit = edits.current.get(p.id) || { base, next: base };
       edit.next = merge(edit.next, patch);
       edits.current.set(p.id, edit);
-      automaticSaveFailed.current = false;
       const latest = current.current?.id === p.id ? current.current : base;
       adopt(merge(latest, patch));
       // Sound changes immediately; writes are coalesced during a gesture.
       if (player.current.project?.id === p.id) player.current.apply(merge(latest, patch));
-      setSaveState('saving');
+      updateSaveState();
       if (editTimer.current) clearTimeout(editTimer.current);
       if (!firstEdit.current) firstEdit.current = Date.now();
       editTimer.current = setTimeout(
-        () => void flushEdits().catch(() => {}),
+        () => void flushEdits(undefined, true).catch(() => {}),
         Math.max(0, Math.min(250, 1000 - (Date.now() - firstEdit.current))),
       );
     },
-    [project, library, adopt, flushEdits],
+    [project, library, adopt, flushEdits, updateSaveState],
   );
   useEffect(() => {
     const flush = () => {
-      if (automaticSaveFailed.current) return;
-      void flushEdits().catch(() => {});
+      void flushEdits(undefined, true).catch(() => {});
     };
     window.addEventListener('pointerup', flush);
     window.addEventListener('keyup', flush);
@@ -468,20 +469,12 @@ export function useWorkspace() {
       setCountInRemaining(player.current.countInRemaining());
     };
     const dispose = () => player.current.dispose();
-    const flush = () => {
-      if (!automaticSaveFailed.current) void flushNotes().catch(() => {});
-    };
-    window.addEventListener('blur', flush);
-    window.addEventListener('pagehide', flush);
     window.addEventListener('pagehide', dispose);
 
     return () => {
       off();
 
       window.removeEventListener('pagehide', dispose);
-      window.removeEventListener('blur', flush);
-      window.removeEventListener('pagehide', flush);
-      void flushNotes().catch(() => {});
       player.current.dispose();
     };
   }, []);
@@ -837,21 +830,49 @@ export function useWorkspace() {
     else
       void player.current.play(!!current.current?.practice.countIn).catch((e) => notify(e.message));
   }, [loading, notify, save]);
+  const playbackSpaceHeld = useRef(false);
   useEffect(() => {
-    const listener = (e: KeyboardEvent) => {
+    const focusStyle = document.documentElement.dataset;
+    const clearControlFocus = () => {
+      delete focusStyle.controlFocus;
+    };
+    const onPointerDown = () => {
+      focusStyle.controlFocus = 'pointer';
+    };
+    const onFocusIn = () => {
+      if (focusStyle.controlFocus === 'space') clearControlFocus();
+    };
+    const consumeSpace = (e: KeyboardEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+    const listener = (e: KeyboardEvent, playbackSpace = false) => {
       const target = e.target instanceof HTMLElement ? e.target : null;
       if (
+        e.defaultPrevented ||
+        e.isComposing ||
         target?.closest(
-          'input,textarea,select,[contenteditable="true"],[role="combobox"],[role="menu"],.desktop-window-controls,.layout-switch',
+          'textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"],[role="combobox"],[role="menu"]',
         ) ||
+        (!playbackSpace && target?.closest('.desktop-window-controls,.layout-switch')) ||
+        (target instanceof HTMLInputElement &&
+          !(playbackSpace && ['range', 'button', 'checkbox', 'radio'].includes(target.type))) ||
         modal ||
         creatingSession ||
         deletingProject ||
-        recording ||
+        (!playbackSpace && recording) ||
         document.querySelector('[role="dialog"],[role="menu"][data-state="open"],[role="listbox"]')
       )
         return;
 
+      if (playbackSpace) {
+        consumeSpace(e);
+        playbackSpaceHeld.current = true;
+        // Chromium can switch to keyboard focus styling even on a cancelled keydown.
+        focusStyle.controlFocus = 'space';
+        if (!e.repeat && !recording && !loading && current.current?.duration) togglePlay();
+        return;
+      }
       const action = playerShortcut(e);
       if (!action) return;
       e.preventDefault();
@@ -862,10 +883,50 @@ export function useWorkspace() {
       else if (action === 'marker') addPoint();
     };
 
-    window.addEventListener('keydown', listener);
-
-    return () => window.removeEventListener('keydown', listener);
-  }, [modal, creatingSession, deletingProject, recording, togglePlay, captureRange, addPoint]);
+    const onSpaceDown = (e: KeyboardEvent) => {
+      if (!isPlaybackToggleKey(e) || e.ctrlKey || e.metaKey || e.altKey) {
+        clearControlFocus();
+        return;
+      }
+      if (playbackSpaceHeld.current && e.repeat) consumeSpace(e);
+      else listener(e, true);
+    };
+    const onSpaceUp = (e: KeyboardEvent) => {
+      if (!playbackSpaceHeld.current || !isPlaybackToggleKey(e)) return;
+      playbackSpaceHeld.current = false;
+      consumeSpace(e);
+    };
+    const onWindowBlur = () => {
+      playbackSpaceHeld.current = false;
+      clearControlFocus();
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!isPlaybackToggleKey(e)) listener(e);
+    };
+    window.addEventListener('keydown', onSpaceDown, true);
+    window.addEventListener('keyup', onSpaceUp, true);
+    window.addEventListener('pointerdown', onPointerDown, true);
+    window.addEventListener('focusin', onFocusIn, true);
+    window.addEventListener('blur', onWindowBlur);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onSpaceDown, true);
+      window.removeEventListener('keyup', onSpaceUp, true);
+      window.removeEventListener('pointerdown', onPointerDown, true);
+      window.removeEventListener('focusin', onFocusIn, true);
+      window.removeEventListener('blur', onWindowBlur);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [
+    modal,
+    creatingSession,
+    deletingProject,
+    recording,
+    loading,
+    togglePlay,
+    captureRange,
+    addPoint,
+  ]);
   const songList = library.filter(
     (p) =>
       !p.kind &&

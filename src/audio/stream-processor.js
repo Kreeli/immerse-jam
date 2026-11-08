@@ -129,7 +129,8 @@ class StreamProcessor extends AudioWorkletProcessor {
       let left = 0,
         right = 0;
       if (this.pendingState && frame >= this.pendingState.frame) {
-        this.transition = { state, frame: this.pendingState.frame };
+        this.transition =
+          this.pendingState.crossfade === false ? null : { state, frame: this.pendingState.frame };
         this.state = state = this.pendingState;
         this.pendingState = null;
       }

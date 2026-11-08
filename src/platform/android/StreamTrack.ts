@@ -61,8 +61,18 @@ export class StreamTrack {
     start: number,
     duration: number,
     loop: { a: number; b: number } | null,
+    crossfade = true,
   ) {
-    this.node.port.postMessage({ type: 'play', frame, offset, tempo, start, duration, loop });
+    this.node.port.postMessage({
+      type: 'play',
+      frame,
+      offset,
+      tempo,
+      start,
+      duration,
+      loop,
+      crossfade,
+    });
   }
   stop(frame: number) {
     this.node.port.postMessage({ type: 'stop', frame });

@@ -1,3 +1,7 @@
+export function isPlaybackToggleKey(event: Pick<KeyboardEvent, 'key' | 'code'>) {
+  return event.code === 'Space' || event.key === ' ' || event.key.toLowerCase() === 'spacebar';
+}
+
 export function playerShortcut(
   event: Pick<KeyboardEvent, 'key' | 'code' | 'ctrlKey' | 'metaKey' | 'altKey' | 'repeat'>,
 ) {
@@ -7,7 +11,7 @@ export function playerShortcut(
   if (code === 'ArrowLeft' || key === 'arrowleft') return 'back';
   if (code === 'ArrowRight' || key === 'arrowright') return 'forward';
   if (event.repeat) return null;
-  if (code === 'Space' || key === ' ' || key === 'spacebar') return 'toggle';
+  if (isPlaybackToggleKey(event)) return 'toggle';
   if (key === 'l' || code === 'KeyL') return 'loop';
   if (key === 'm' || code === 'KeyM') return 'marker';
   return null;

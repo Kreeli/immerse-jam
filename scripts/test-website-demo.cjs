@@ -126,6 +126,42 @@ async function main() {
     const android = await androidContext.newPage();
     android.on('pageerror', (error) => errors.push(error.message));
     await android.goto(base + 'tryout/index.html?platform=android');
+    await android.getByRole('button', { name: '播放', exact: true }).click();
+    const androidSeek = android.getByRole('slider', { name: '播放进度', exact: true });
+    await androidSeek.evaluate((slider) => {
+      window.__seekFrames = [];
+      slider.addEventListener(
+        'pointerup',
+        () => {
+          const draw = () => {
+            window.__seekFrames.push(Number(slider.value));
+            if (window.__seekFrames.length < 12) requestAnimationFrame(draw);
+          };
+          requestAnimationFrame(draw);
+        },
+        { once: true },
+      );
+    });
+    const androidSeekBounds = await androidSeek.boundingBox();
+    await androidSeek.tap({
+      position: { x: androidSeekBounds.width * 0.6, y: androidSeekBounds.height * 0.5 },
+    });
+    await android.waitForFunction(() => window.__seekFrames.length === 12);
+    const seekFrames = await android.evaluate(() => window.__seekFrames);
+    assert.ok(
+      seekFrames.every((value) => value >= 35),
+      JSON.stringify(seekFrames),
+    );
+    assert.ok(seekFrames.at(-1) > seekFrames[0], 'Audio must continue at the touch target');
+    await androidSeek.focus();
+    await android.keyboard.press('Space');
+    await android.getByRole('button', { name: '播放', exact: true }).waitFor();
+    assert.equal(await androidSeek.evaluate((el) => getComputedStyle(el).outlineStyle), 'none');
+    assert.ok(Number(await androidSeek.inputValue()) >= seekFrames.at(-1));
+    await android.keyboard.press('Space');
+    await android.getByRole('button', { name: '暂停', exact: true }).waitFor();
+    await android.keyboard.press('Space');
+    await android.getByRole('button', { name: '播放', exact: true }).waitFor();
     await android.getByRole('button', { name: '返回列表', exact: true }).click();
     await android.getByRole('button', { name: '新建创作', exact: true }).click();
     await android

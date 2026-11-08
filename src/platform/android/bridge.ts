@@ -14,7 +14,7 @@ if (window.ImmerseNative) {
     number,
     {
       method: string;
-      timer: ReturnType<typeof setTimeout>;
+      timer?: ReturnType<typeof setTimeout>;
       resolve: (value: any) => void;
       reject: (error: Error) => void;
     }
@@ -55,13 +55,15 @@ if (window.ImmerseNative) {
         return Promise.reject(new Error('Unsupported operation'));
       const id = ++next;
       return new Promise((resolve, reject) => {
-        const timer = setTimeout(
-          () => {
-            pending.delete(id);
-            reject(new Error('原生操作长时间未响应，请检查当前任务后重试'));
-          },
-          method === 'android-playback-state' ? 15000 : 10 * 60 * 1000,
-        );
+        // General requests can queue behind large native jobs. A JS timeout
+        // cannot cancel those jobs, so settle only on the actual native reply.
+        const timer =
+          method === 'android-playback-state'
+            ? setTimeout(() => {
+                pending.delete(id);
+                reject(new Error('原生操作长时间未响应，请检查当前任务后重试'));
+              }, 15000)
+            : undefined;
         pending.set(id, { method, timer, resolve, reject });
         try {
           let payload = data;

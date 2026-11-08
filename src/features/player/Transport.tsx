@@ -35,8 +35,7 @@ export default function Transport({
   task,
 }: Props) {
   const [speedOpen, setSpeedOpen] = useState(false);
-  const scrub = useRef<boolean>(false);
-  const [scrubPosition, setScrubPosition] = useState<number | null>(null);
+  const scrub = useRef<number | null>(null);
   const [visualPosition, setVisualPosition] = useState(position);
   const [starting, setStarting] = useState(false);
   const audition = useRef<{ position: number; playing: boolean } | null>(null);
@@ -61,56 +60,62 @@ export default function Transport({
     return () => cancelAnimationFrame(frame);
   }, [player]);
   useEffect(() => {
-    if (!player.playing && !player.scrubbing) setVisualPosition(position);
+    setVisualPosition(player.displayPosition());
   }, [position, player]);
-  const finishSeek = () => {
-    if (!scrub.current) return;
-    scrub.current = false;
+  const changeSeek = (value: number) => {
+    player.seek(value);
+    setVisualPosition(player.displayPosition());
+  };
+  const finishSeek = (e: React.PointerEvent<HTMLInputElement>) => {
+    if (scrub.current !== e.pointerId) return;
+    scrub.current = null;
     player.endScrub();
-    setScrubPosition(null);
+    setVisualPosition(player.displayPosition());
+  };
+  const seekAtPointer = (e: React.PointerEvent<HTMLInputElement>) => {
+    const { left, width } = e.currentTarget.getBoundingClientRect();
+    const thumb = isAndroid ? 20 : 14;
+    const fraction = (e.clientX - left - thumb / 2) / Math.max(1, width - thumb);
+    changeSeek(Math.round(Math.max(0, Math.min(1, fraction)) * seekMax * 100) / 100);
   };
   const startSeek = (e: React.PointerEvent<HTMLInputElement>) => {
-    scrub.current = true;
+    if (e.button !== 0 || scrub.current !== null) return;
+    // Own the pointer gesture so native range events cannot race playback updates.
+    e.preventDefault();
+    scrub.current = e.pointerId;
+    e.currentTarget.focus({ preventScroll: true });
     player.beginScrub();
     e.currentTarget.setPointerCapture(e.pointerId);
+    seekAtPointer(e);
   };
-  const changeSeek = (value: number) => {
-    setScrubPosition(value);
-    player.seek(value);
-  };
+  const seekMax = Math.max(project.duration, position, 0.01);
+  const seekBar = (
+    <input
+      className="seek nr-range"
+      style={{ '--p': (visualPosition / seekMax) * 100 + '%' } as React.CSSProperties}
+      aria-label={tr('播放进度')}
+      type="range"
+      min="0"
+      max={seekMax}
+      step=".01"
+      value={visualPosition}
+      disabled={recording || loading}
+      onPointerDown={startSeek}
+      onPointerMove={(e) => {
+        if (scrub.current === e.pointerId) seekAtPointer(e);
+      }}
+      onChange={(e) => changeSeek(+e.target.value)}
+      onPointerUp={finishSeek}
+      onPointerCancel={finishSeek}
+      onLostPointerCapture={finishSeek}
+    />
+  );
   if (isAndroid)
     return (
       <footer className="mobile-transport nr-m-dock">
         <div className="mobile-seek-row">
-          <span>{time(scrubPosition ?? visualPosition)}</span>
-          <input
-            className="seek nr-range"
-            style={
-              {
-                '--p':
-                  ((scrubPosition ?? visualPosition) / Math.max(project.duration, position, 0.01)) *
-                    100 +
-                  '%',
-              } as React.CSSProperties
-            }
-            aria-label={tr('播放进度')}
-            type="range"
-            min="0"
-            max={Math.max(project.duration, position, 0.01)}
-            step=".01"
-            value={scrubPosition ?? visualPosition}
-            disabled={recording}
-            onPointerDown={startSeek}
-            onChange={(e) => changeSeek(+e.target.value)}
-            onPointerUp={finishSeek}
-            onPointerCancel={finishSeek}
-            onLostPointerCapture={finishSeek}
-            onKeyUp={() => setScrubPosition(null)}
-            onBlur={() => {
-              finishSeek();
-              setScrubPosition(null);
-            }}
-          />
+          <span>{time(visualPosition)}</span>
+          {seekBar}
           <span>{time(Math.max(project.duration, position))}</span>
         </div>
         {task}
@@ -224,41 +229,14 @@ export default function Transport({
           )}
         </button>
         {recorder}
-        <span className="time-now">{time(scrubPosition ?? visualPosition)}</span>
+        <span className="time-now">{time(visualPosition)}</span>
         {countInRemaining > 0 && (
           <span className="count-in-badge">
             {tr('预备拍')}
             {countInRemaining}
           </span>
         )}
-        <input
-          className="seek nr-range"
-          style={
-            {
-              '--p':
-                ((scrubPosition ?? visualPosition) / Math.max(project.duration, position, 0.01)) *
-                  100 +
-                '%',
-            } as React.CSSProperties
-          }
-          aria-label={tr('播放进度')}
-          type="range"
-          min="0"
-          max={Math.max(project.duration, position, 0.01)}
-          step=".01"
-          value={scrubPosition ?? visualPosition}
-          disabled={recording}
-          onPointerDown={startSeek}
-          onChange={(e) => changeSeek(+e.target.value)}
-          onPointerUp={finishSeek}
-          onPointerCancel={finishSeek}
-          onLostPointerCapture={finishSeek}
-          onKeyUp={() => setScrubPosition(null)}
-          onBlur={() => {
-            finishSeek();
-            setScrubPosition(null);
-          }}
-        />
+        {seekBar}
         <span className="time-total">{time(project.duration)}</span>
         <button
           className="icon-button"

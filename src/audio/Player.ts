@@ -775,7 +775,7 @@ export class Player {
     const tick = (stamp: number) => {
       if (!this.playing) return;
       const p = this.position();
-      if (!this.captureActive && p >= this.duration - 0.005) {
+      if (!this.captureActive && this.preview === null && p >= this.duration - 0.005) {
         this.pause();
         this.offset = this.duration;
         this.onUpdate(this.offset, false);
@@ -804,8 +804,10 @@ export class Player {
     if ((context as AudioContext & { sinkId?: string }).sinkId !== sink)
       await context.setSinkId(sink);
   }
-  pause(releaseNative = true, preserveSeek = false) {
-    if (!preserveSeek) this.seekSerial++;
+  pause(releaseNative = true, seekPosition?: number) {
+    if (seekPosition === undefined) this.seekSerial++;
+    this.scrubbing = false;
+    this.visualClock = null;
     this.preview = null;
     this.seekTarget = null;
     if (this.scrubWarmTimer) clearTimeout(this.scrubWarmTimer);
@@ -813,7 +815,8 @@ export class Player {
     if (releaseNative) void this.nativePlayback(false);
     this.playSerial++;
     this.resumeRequested = false;
-    if (this.playing) this.offset = this.position();
+    if (seekPosition !== undefined) this.offset = seekPosition;
+    else if (this.playing) this.offset = this.position();
     this.playing = false;
     if (this.loopAfterCapture !== undefined) {
       this._loop = this.loopAfterCapture;
@@ -908,10 +911,10 @@ export class Player {
     }
     if (this.playing) {
       void this.movePlayback(target, serial).catch((error) => {
-        if (serial !== this.seekSerial || error.name === 'AbortError') return;
+        if (serial !== this.seekSerial) return;
         this.preview = null;
         this.seekTarget = null;
-        this.onError(error.message);
+        if (error.name !== 'AbortError') this.onError(error.message);
       });
       return;
     }
@@ -924,22 +927,34 @@ export class Player {
     if (wasStarting) void this.play().catch((error) => this.onError(error.message));
   }
   private async movePlayback(target: number, serial: number) {
-    // Storage preparation happens while the old position continues playing.
+    if (target >= this.duration - 0.01) {
+      this.pause(true, target);
+      return;
+    }
+    // Prepare the target's short lead-in while the old position keeps playing.
     if (this.streaming) await this.prepareStream(target, true);
     if (serial !== this.seekSerial || !this.playing || !this.context) return;
-    if (this.tempo !== 1 || this.pitch !== 0) {
+    const resetDsp = this.tempo !== 1 || this.pitch !== 0;
+    if (resetDsp && !this.streaming) {
       // Time stretching owns a FIFO; clear it to prevent old-position residue.
       // Only the short DSP reset remains silent, never the storage request.
-      this.pause(false, true);
-      this.offset = target;
+      this.pause(false, target);
       await this.play();
       return;
     }
     const context = this.context,
-      frame = Math.ceil(
-        (context.currentTime + Math.max(0.012, context.baseLatency)) * context.sampleRate,
-      ),
+      lead = Math.max(0.012, context.baseLatency),
+      quantum = resetDsp ? 128 : 1,
+      frame = Math.ceil(((context.currentTime + lead) * context.sampleRate) / quantum) * quantum,
       at = frame / context.sampleRate;
+    // Clear time-stretch residue on the very quantum that switches the streams.
+    // The player, native audio session and clock remain active throughout.
+    if (resetDsp)
+      this.dsp?.port.postMessage({
+        type: 'reset',
+        at: (frame - 0.5) / context.sampleRate,
+        active: true,
+      });
     this.streamCarry = this.streaming
       ? this.streamPlan(
           context.currentTime,
@@ -963,6 +978,7 @@ export class Player {
     this.voices.clear();
     this.offset = target;
     this.started = at;
+    this.visualClock = null;
     this.preview = null;
     this.seekTarget = null;
     this.streamFillAt = -Infinity;
@@ -976,6 +992,7 @@ export class Player {
         channel.track.start || 0,
         channel.duration,
         this.usableLoop(),
+        !resetDsp,
       );
     this.schedule();
     this.onUpdate(target, true);
@@ -1179,7 +1196,12 @@ export class Player {
   }
   schedule() {
     if (!this.context || !this.project) return;
-    if (this.playing && !this.captureActive && this.position() >= this.duration - 0.005) {
+    if (
+      this.playing &&
+      !this.captureActive &&
+      this.preview === null &&
+      this.position() >= this.duration - 0.005
+    ) {
       this.pause();
       this.offset = this.duration;
       this.onUpdate(this.offset, false);

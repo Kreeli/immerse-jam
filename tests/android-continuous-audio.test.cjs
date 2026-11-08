@@ -169,4 +169,14 @@ test('a scheduled seek keeps the old clock audible until a click-free transition
   const out = [new Float32Array(128), new Float32Array(128)];
   processor.process([], [out]);
   assert.ok(out[0].every((v) => v === 0));
+
+  // A DSP reset must receive only the new stream on the transition quantum.
+  post(play(2560, 0.1));
+  post({ ...play(2688, 10.1), crossfade: false });
+  scope.currentFrame = 2560;
+  processor.process([], [out]);
+  assert.ok(out[0].every((v) => Math.abs(v - 0.2) < 1e-6));
+  scope.currentFrame = 2688;
+  processor.process([], [out]);
+  assert.ok(out[0].every((v) => Math.abs(v - 0.6) < 1e-6));
 });

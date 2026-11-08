@@ -17,6 +17,39 @@ function source(file, globals) {
   });
   return module.exports;
 }
+test('Android bridge keeps queued jobs pending until native completion', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const requests = [];
+  const native = {
+    postMessage(message) {
+      requests.push(JSON.parse(message));
+    },
+  };
+  const window = { ImmerseNative: native };
+  source('src/platform/android/bridge.ts', {
+    window,
+    document: { documentElement: { dataset: {} } },
+    setTimeout,
+    clearTimeout,
+    require: (id) => (id.endsWith('ipc-methods.json') ? { default: ['update'] } : {}),
+  });
+  const complete = (method, result) =>
+    native.onmessage({
+      data: JSON.stringify({
+        id: requests.find((request) => request.method === method).id,
+        result,
+      }),
+    });
+  const transfer = window.jam.call('android-lan-upload', { ids: ['example'] });
+  const save = window.jam.call('update', { id: 'example' });
+  const playback = assert.rejects(window.jam.call('android-playback-state'), /长时间未响应/);
+  t.mock.timers.tick(11 * 60 * 1000);
+  await playback;
+  complete('android-lan-upload', true);
+  complete('update', 'saved');
+  assert.equal(await transfer, true);
+  assert.equal(await save, 'saved');
+});
 test('Android recording cancellation releases an input granted after the dialog closes', async () => {
   let grant;
   const calls = [];

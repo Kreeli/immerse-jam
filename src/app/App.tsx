@@ -561,7 +561,7 @@ export default function App() {
                       project={project}
                       onProject={save}
                       onNotes={controller.saveNotes}
-                      onNotesBlur={() => void controller.flushNotes()}
+                      onNotesBlur={() => void controller.flushNotes(project.id, true)}
                       onError={notify}
                     />
                   ) : view === 'score' ? (
