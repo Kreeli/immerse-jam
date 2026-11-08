@@ -3,6 +3,15 @@ const assert = require('node:assert/strict');
 const { server } = require('./preview-website.cjs');
 const path = require('node:path');
 const fs = require('node:fs');
+const appreciationCode = fs.readFileSync('docs/site/assets/author-appreciation.png');
+async function checkAppreciationCode(page, name) {
+  const image = page.getByRole('img', { name, exact: true });
+  await image.scrollIntoViewIfNeeded();
+  const url = await image.evaluate((el) => el.currentSrc || el.src);
+  const response = await page.request.get(url);
+  assert.ok(response.ok());
+  assert.deepEqual(await response.body(), appreciationCode);
+}
 async function main() {
   fs.mkdirSync(path.resolve('test-output'), { recursive: true });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -26,7 +35,13 @@ async function main() {
       };
     });
     const base = `http://127.0.0.1:${server.address().port}/immerse-jam/`;
+    await page.goto(base);
+    await page.locator('#appreciation summary').click();
+    await checkAppreciationCode(page, '作者微信赞赏码，查看原图');
     await page.goto(base + 'tryout/index.html');
+    await page.getByRole('button', { name: '请作者喝一瓶冰可乐', exact: true }).click();
+    await checkAppreciationCode(page, '作者微信赞赏码');
+    await page.getByRole('button', { name: '关闭窗口', exact: true }).click();
     await page
       .getByRole('button', { name: /^(拆分音轨|开始分析)$/ })
       .first()
@@ -126,6 +141,10 @@ async function main() {
     const android = await androidContext.newPage();
     android.on('pageerror', (error) => errors.push(error.message));
     await android.goto(base + 'tryout/index.html?platform=android');
+    await android.getByRole('button', { name: '设置', exact: true }).click();
+    await android.getByRole('button', { name: '请作者喝一瓶冰可乐', exact: true }).click();
+    await checkAppreciationCode(android, '作者微信赞赏码');
+    await android.getByRole('button', { name: '关闭窗口', exact: true }).click();
     await android.getByRole('button', { name: '播放', exact: true }).click();
     const androidSeek = android.getByRole('slider', { name: '播放进度', exact: true });
     await androidSeek.evaluate((slider) => {

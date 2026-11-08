@@ -320,21 +320,14 @@ small {
   color: var(--muted);
 }
 .donation-qr {
-  width: 280px;
-  height: 280px;
-  position: relative;
-  overflow: hidden;
-  background: #fff;
-  margin: 20px auto;
+  width: min(100%, 400px);
+  margin: 16px auto;
 }
 .donation .donation-qr img {
-  position: absolute;
-  width: 557.01px;
+  display: block;
+  width: 100%;
   max-width: none;
   height: auto;
-  left: -138.5px;
-  top: -175.37px;
-  border-radius: 0;
   margin: 0;
 }
 @media (max-width: 1250px) {

@@ -102,16 +102,15 @@ const button = (name) => page.getByRole('button', { name, exact: true });
   assert.equal(links[1], 'https://github.com/Kreeli/immerse-jam/issues/new');
   await button('关闭窗口').click();
   await page.locator('.donate').click();
-  await page.locator('.donation-qr').screenshot({ path: 'test-output/v017-qr.png' });
-  const crop = await page.locator('.donation-qr').evaluate((element) => ({
-    width: element.clientWidth,
-    height: element.clientHeight,
-    overflow: getComputedStyle(element).overflow,
-    naturalWidth: element.querySelector('img').naturalWidth,
+  const appreciationCode = page.getByRole('img', { name: '作者微信赞赏码' });
+  await appreciationCode.screenshot({ path: 'test-output/appreciation-code.png' });
+  const card = await appreciationCode.evaluate((image) => ({
+    width: image.clientWidth,
+    height: image.clientHeight,
+    naturalWidth: image.naturalWidth,
   }));
-  assert.equal(crop.width, crop.height);
-  assert.equal(crop.overflow, 'hidden');
-  assert.equal(crop.naturalWidth, 1118);
+  assert.equal(card.width, card.height);
+  assert.equal(card.naturalWidth, 1037);
   await button('关闭窗口').click();
   await button('音乐库').click();
   for (let i = 0; i < 7; i++)

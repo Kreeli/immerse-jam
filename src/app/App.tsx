@@ -31,7 +31,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { isAndroid, isDesktop } from '../platform/environment';
 import AndroidTransferSharing from '../platform/android/TransferSharing';
-import donation from '../../assets/author-wechat.png';
+import appreciationCode from '../../docs/site/assets/author-appreciation.png';
 import type { LiveEnvelope } from '../audio/live-envelope';
 import { sourceTracks } from '../audio/performance';
 import { transpose } from '../features/analysis/transposition';
@@ -1253,7 +1253,7 @@ export default function App() {
               {tr('如果 Immerse Jam 陪你度过了一段愉快的练琴时间，欢迎自愿请作者喝一瓶冰可乐。')}
             </p>
             <div className="donation-qr">
-              <img src={donation} alt={tr('作者微信收款码')} />
+              <img src={appreciationCode} alt={tr('作者微信赞赏码')} width={1037} height={1037} />
             </div>
             <p className="muted">{tr('所有功能免费使用，打赏完全自愿。')}</p>
           </div>

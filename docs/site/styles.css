@@ -1120,6 +1120,17 @@ input[type='range']::-moz-range-thumb {
   margin: 0 0 16px;
   max-width: 46em;
 }
+.appreciation-code {
+  display: block;
+  width: min(100%, 400px);
+  margin-bottom: 16px;
+}
+.appreciation-code img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+}
 
 /* 下载 */
 .download {
@@ -1265,6 +1276,7 @@ input[type='range']::-moz-range-thumb {
 }
 .footer div {
   display: flex;
+  flex-wrap: wrap;
   gap: 20px;
   font-size: 0.88rem;
 }
