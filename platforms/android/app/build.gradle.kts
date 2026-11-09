@@ -6,8 +6,8 @@ android {
         applicationId = "app.immersejam.mobile"
         minSdk = 28
         targetSdk = 35
-        versionCode = 4
-        versionName = "0.1.0-preview.4"
+        versionCode = 5
+        versionName = "0.1.0-preview.5"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17; isCoreLibraryDesugaringEnabled = true }
