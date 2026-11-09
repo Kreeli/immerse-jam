@@ -1,52 +1,32 @@
-# Immerse Jam Android
+# Immerse Jam Android 开发
 
-## 当前开发构建
+当前 **0.1.0-preview.4**，包名 `app.immersejam.mobile`，versionCode 4。最低 Android 9（API 28），编译 SDK 37，目标 API 35。Android 提供项目导入、播放、跟练、创作、前台录音、导出和设备互传。分轨与自动分析在 Windows 完成。
 
-直接运行 `node scripts/android.cjs assembleDebug`。本轮 Android 只作播放/跟练/创作，不需要模型准备，不打包 ONNX 或模型权重。旧推理服务与模型引擎已移除。仍使用已有包名和调试签名，不在本轮更换签名或发布 Release。
+## 构建与安装
 
-以下模型说明属于旧预览版历史。
+在 Windows 准备 Node.js 24、Android Studio 自带的 JBR、Android SDK 37 和 platform-tools。可设置 `JAVA_HOME` 与 `ANDROID_HOME`，也可在忽略的 `.runtime/android/config.json` 中配置 `java` 与 `sdk` 为本机目录。Gradle wrapper 当前固定 9.6.1，Android Gradle Plugin 为 9.4.1。
 
-
-Android **0.1.0-preview.1**，与 Windows 独立打包、独立存储。当前为已实际运行的首个预览版本；完整能力进度见 [功能表](../../docs/ANDROID.md)。
-
-## 结构
-
-- `app/src/main/java/app/immersejam/mobile/`：Activity、受来源限制的桥接、存储、录音。
-- `inference/`：独立进程中的解码／分块推理／频谱计算；不依赖 Python 或 CUDA。
-- `processing/`：MIDI、节拍／和弦特征、对齐、录音时间换算和 WAV 读取。
-- `transfer/`：原生局域网地址验证与可取消的流式 HTTP 收发；相机入口由 Activity 管理。
-- `app/src/test/`：纯计算测试；`app/src/androidTest/`：Android 存储与恢复测试。
-- `model-catalog.json`：Android 专用格式、体积、SHA-256、声部清单与内存门槛。
-- `../../src/platform/android/`：共享 React 界面的 Android 桥接与手机／平板布局。
-- Windows 主进程仍在 `../../desktop/`，桌面 Python 在 `../../backend/`。Android 不导入两者。
-
-## 构建
-
-需要 Android Studio JBR、Android SDK 37、Build Tools 36，以及 Node.js 24。设置 `JAVA_HOME` 与 `ANDROID_HOME`，然后在仓库根目录：
+在仓库根目录运行：
 
 ```powershell
 npm ci
-npm run android:models
 npm run android:build
 npm run android:test
 ```
 
-开发者首次转换随包 Beat This! 需要桌面 Python 音频／Torch／ONNX 依赖（可复用项目私有运行环境）。`android:models` 下载并校验指定 final0 后调用 `scripts/export-android-beats.py`，生成固定摘要的 ONNX 和 mel 矩阵。手机安装后的运行不需要 Python，也不下载 checkpoint。转换结果、模型和运行环境不提交 Git。
+[构建脚本](../../scripts/android.cjs) 先生成 `dist-android/`，复制 WebView 资源，再调用 Gradle。当前构建无需 `android:models`，也无需准备 Python、ONNX 或分离权重。旧模型脚本与推理文档属于早期预览历史。
 
-节拍对照：开发机先运行 `python scripts/android-beat-fixtures.py` 生成合成样例，再执行 `android:test`；Java 特征与后处理会和电脑结果比较。没有本机合成样例时，对照项跳过，普通计算测试仍执行。详细结果见 [迁移记录](../../docs/ANDROID-MIGRATION-2026-10-30.md)。
+产物位于 `platforms/android/app/build/outputs/apk/debug/`。
 
-Windows 环境也可在忽略的 `.runtime/android/config.json` 中指定 `java`（JBR 目录）与 `sdk`。Gradle wrapper 固定版本；不要提交个人 SDK 路径、Gradle 缓存、签名密钥或模型权重。模型通过构建脚本固定摘要下载，APK 首次使用基础模型不需要联网。
+- `app-arm64-v8a-debug.apk` 用于主流 Android 手机和平板。
+- `app-x86_64-debug.apk` 用于对应模拟器。
 
-Android Studio 打开本目录。先执行一次 `android:build` 准备共享网页和模型资源，再在 Studio 中开发、运行。网页源码修改后重新运行构建脚本。
+经授权后用 `adb devices -l` 确认目标。无线调试配对地址和连接端口会变化，按设备界面当前信息操作。确认应用没有播放、录音或互传后，可用同签名 `adb -s <serial> install -r -t <apk>` 覆盖安装，按系统提示确认。签名不一致时先保全项目数据，避免卸载、清数据或更换调试密钥。调试签名、SDK 路径和连接信息不进 Git。
 
-`app/build/outputs/apk/debug/app-arm64-v8a-debug.apk` 用于 ARM64 手机／平板；`app-x86_64-debug.apk` 用于模拟器。这是调试签名的预览包，正式签名和商店发布尚未配置。
+## 源码与验证
 
-## 自动验收
-
-构建设备测试：`node scripts/android.cjs assembleDebugAndroidTest`。将主 APK 和测试 APK 装入隔离模拟器后运行 AndroidJUnitRunner。设备测试写入合成样例，不读取个人歌曲。
-
-`android-check.cjs`、`android-recording-check.cjs`、`android-tablet-check.cjs` 位于根目录 `scripts/`，连接已启动模拟器中的调试 WebView；平板检查临时更改显示尺寸并在 finally 中恢复。需要现代 Android System WebView。完整结果及性能边界见 [ANDROID.md](../../docs/ANDROID.md)。
-
-`android-device-fixtures.cjs` 从本机合成节拍样例生成电脑格式 `.ijam`，复制到应用 `cache/device-fixtures/source.ijam` 后可执行对应设备测试。`android-native-parity-check.cjs` 验证实际原生节拍、MIDI 对齐、变速录音和强制中断恢复；`android-archive-roundtrip-check.cjs` 启动隔离的电脑实例验证完整包往返与系统接收。
-
-`android-lan-check.cjs --scanner` 使用真实 HTTP 验证电脑和模拟器双向收发、取消和重连，同时检查原生扫码窗口打开和返回取消；不声称已经测试相机识别。上述脚本仅操作合成样例，应在专用测试模拟器执行。构建／安装调试包需获得当前任务授权；这些命令不创建 GitHub Release。
+- [原生宿主](app/src/main/java/app/immersejam/mobile) 包含 Activity、桥接、存储、流式音频、AudioRecord、系统分享和局域网。
+- [共享 Android 前端](../../src/platform/android) 负责 WebView 桥接、播放窗口、录音适配和移动布局。
+- [接口文档](../../docs/INTERFACES.md) 记录消息、媒体路由及取消约束。
+- `node scripts/android.cjs assembleDebugAndroidTest` 构建设备测试 APK。真实录音或互传用独立样例，脚本及前置条件见 [验证指南](../../docs/VALIDATION.md)。
+- [功能与历史说明](../../docs/ANDROID.md) 区分当前路径和早期模型实验。[交接入口](../../DEVELOPMENT_HANDOFF.md) 记录已装平板的包与最近验收结果。

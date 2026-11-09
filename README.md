@@ -4,7 +4,7 @@
 
 免费的本地音乐分轨、练琴与多轨录音工具。拆开声部，关闭自己要练的一轨，放慢难点、设置循环，录下自己的演奏再回听。无会员、无分离次数限制，无需付费云计算。
 
-当前版本：**Windows 0.1.11 / Android 0.1.0-preview.3**。本版修复首次安装下载、增加录音回收站和检查更新，并完善原生安装进度与设置页面。
+当前公开版本为 **Windows 0.1.12 / Android 0.1.0-preview.4**。本地开发构建和官网部署状态见 [开发交接](DEVELOPMENT_HANDOFF.md)。
 
 ## 选哪个版本
 
@@ -77,7 +77,7 @@ npm run dev
 
 CI 运行类型 / 语言检查、Node 单测、构建、共享界面和维护中的 Electron 冒烟检查。界面检查使用生成的临时音频和隔离项目，不需要个人音乐；需要真实模型、麦克风或 ADB 的验证为手动项目。命令、前置条件和历史脚本状态见 [测试说明](docs/VALIDATION.md)，不用把整套 E2E 每次都跑一遍。
 
-[架构](docs/ARCHITECTURE.md) · [项目格式](docs/DATA_FORMAT.md) · [自定义模型](docs/CUSTOM_MODELS.md) · [开发交接](DEVELOPMENT_HANDOFF.md)
+[开发指南](docs/DEVELOPMENT.md) · [接口与契约](docs/INTERFACES.md) · [架构](docs/ARCHITECTURE.md) · [项目格式](docs/DATA_FORMAT.md) · [自定义模型](docs/CUSTOM_MODELS.md) · [开发交接](DEVELOPMENT_HANDOFF.md)
 
 ## 许可与反馈
 

@@ -4,7 +4,7 @@
 
 Free local stem separation, music practice and multitrack recording. Mute the part you play, slow down difficult passages, loop them and record your progress. No subscription or separation quotas.
 
-Current versions: **Windows 0.1.11 / Android 0.1.0-preview.3**. This release improves first-time installation, adds recording recovery and update checks, and cleans up the shared settings page.
+Current public releases are **Windows 0.1.12 / Android 0.1.0-preview.4**. See the [handoff](DEVELOPMENT_HANDOFF.md) for local builds and website deployment status.
 
 ## Platforms
 
@@ -63,7 +63,7 @@ npm run dev
 
 CI runs source/unit/shared UI checks and maintained Electron smoke checks. They generate isolated audio fixtures. Real-model, microphone and ADB checks are opt-in and have additional prerequisites; see [validation guide](docs/VALIDATION.md). Run relevant checks rather than every historical E2E on each change.
 
-[Architecture](docs/ARCHITECTURE.md) · [Project format](docs/DATA_FORMAT.md) · [Custom models](docs/CUSTOM_MODELS.md)
+[Development guide](docs/DEVELOPMENT.md) · [Interface contracts](docs/INTERFACES.md) · [Architecture](docs/ARCHITECTURE.md) · [Project format](docs/DATA_FORMAT.md) · [Custom models](docs/CUSTOM_MODELS.md)
 
 ## License and feedback
 

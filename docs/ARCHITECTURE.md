@@ -1,6 +1,6 @@
 # Architecture / 开发结构
 
-Platform boundaries: `desktop/` and `backend/` are Windows-only; `platforms/android/` owns the native Android host, storage, capture persistence and isolated inference service; `src/platform/android/` owns its browser bridge and responsive layout. Shared React features and Web Audio calculations remain in `src/`. Vite emits separate `dist/` and `dist-android/` builds. Android models have their own fixed catalog and supported tensor contracts; they do not reuse desktop checkpoints. See [Android coverage](ANDROID.md).
+The Windows host is in `desktop/` and its local inference workers are in `backend/`. The Android host in `platforms/android/` handles storage, streamed audio, capture and transfer. Android uses analysis imported with a project. Its WebView bridge and responsive layout live in `src/platform/android/`. Vite builds the shared React and Web Audio code into separate `dist/` and `dist-android/` outputs. The browser demo adapts the same UI through `web-demo/`. See [Android coverage](ANDROID.md) and [interface contracts](INTERFACES.md).
 
 `src/app/App.tsx` composes views; `useWorkspace.ts` coordinates project selection, desktop events and playback. Features are split under `src/features/`: library, player, recording, chords, score, analysis, models, transfer, migration and settings. `src/shared/types.ts` defines the project contract.
 

@@ -17,4 +17,4 @@ npm run build
 
 Audio-device behavior needs Windows testing. Use generated fixtures for automated tests. Describe actual devices separately when reporting latency or routing results, and distinguish measured hardware behavior from simulated-input tests.
 
-请先阅读 `docs/ARCHITECTURE.md` 和 `docs/LICENSING.md`。新界面文案需要同时加入中英文词典，颜色使用主题变量。不要提交私人曲库、录音、调查缓存、模型或安装产物。
+请先阅读 [开发指南](docs/DEVELOPMENT.md)、[接口与契约](docs/INTERFACES.md) 和 [许可说明](docs/LICENSING.md)。新界面文案需要同时加入中英文词典，颜色使用主题变量。不要提交私人曲库、录音、调查缓存、模型或安装产物。

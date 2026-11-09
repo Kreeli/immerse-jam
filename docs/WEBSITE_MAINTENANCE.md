@@ -6,6 +6,8 @@
 
 网页试用直接引用本仓库 `src` 的应用组件和样式。`web-demo` 只适配浏览器环境、公开演示音频和模拟分析 / 录音，不能把它描述为浏览器运行分离模型、访问真实麦克风或连接设备。Windows 与 Android 分别通过默认地址和 `?platform=android` 进入。
 
+赞赏码源图为 `docs/site/assets/author-appreciation.png`。官网 FAQ、页脚和两种网页试用都使用它，原生应用也从这里打包。更换时同时检查当前源码、产物和已部署页面上的旧图片。
+
 截图也使用同一套公开演示项目，不拍摄私人曲库，不发布设备配对信息。更新界面后运行：
 
 ```powershell
@@ -28,6 +30,15 @@ node scripts/test-website-demo.cjs
 
 2026-11-05 整理时，旧失败通知对应的后续源码检查和官网部署已成功，littleclock2 已出现在 GitHub Contributors 列表。PR #8 保持未合并，Issue #5 / #7 / #9 保留状态；本轮不代表这些报告已经全部完成。
 
-本次 `e4f9052` 推送后发现新的账户限制：Pages 和两个分支的 Source checks 都没有执行步骤，注释为 `The job was not started because your account is locked due to a billing issue.`。因此源码同步已完成，官网发布仍待账户解锁。解锁后重新运行 Pages 和 Source checks；不能把旧提交的绿色结果当成本次验证。
+截至 2026-11-08，`6447fe7` 已同步，新官网包位于 `release/website-ready/Immerse-Jam-site-6447fe7.zip`。[部署 42457914848](https://github.com/Kreeli/immerse-jam/actions/runs/42457914848) 仍因账户账单锁定而未运行步骤，线上旧码图片仍可访问。
+
+账户解锁后，部署之前先确认 `main` 为要上线的内容，再手动运行官网工作流：
+
+```powershell
+gh workflow run pages.yml --ref main --repo Kreeli/immerse-jam
+gh run list --workflow pages.yml --repo Kreeli/immerse-jam --limit 3
+```
+
+部署完成后核对实际运行对应的提交和官网内容。检查 FAQ、Windows 与 Android 试用的新图，并检查旧图 URL 的响应。需要复跑源码检查时另行安排。应用安装包及标签按作者决定单独发布。
 
 参考：[解锁账单受限账户](https://docs.github.com/en/billing/how-tos/troubleshooting/locked-account)、[Pages 发布源说明](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site)。改为分支发布仍会使用 Actions，不在本轮擅自改变托管设置。
