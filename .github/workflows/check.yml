@@ -13,6 +13,8 @@ jobs:
       # ffmpeg-static downloads its binary from the GitHub release CDN, which intermittently
       # returns 504 from Azure runners. npmmirror mirrors the same b6.1.1 layout.
       FFMPEG_BINARIES_URL: https://cdn.npmmirror.com/binaries/ffmpeg-static
+      # Electron postinstall hits the same CDN flakiness; point @electron/get at the mirror.
+      ELECTRON_MIRROR: https://cdn.npmmirror.com/binaries/electron/
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
