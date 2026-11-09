@@ -30,15 +30,8 @@ node scripts/test-website-demo.cjs
 
 2026-11-05 整理时，旧失败通知对应的后续源码检查和官网部署已成功，littleclock2 已出现在 GitHub Contributors 列表。PR #8 保持未合并，Issue #5 / #7 / #9 保留状态；本轮不代表这些报告已经全部完成。
 
-截至 2026-11-08，`6447fe7` 已同步，新官网包位于 `release/website-ready/Immerse-Jam-site-6447fe7.zip`。[部署 42457914848](https://github.com/Kreeli/immerse-jam/actions/runs/42457914848) 仍因账户账单锁定而未运行步骤，线上旧码图片仍可访问。
+2026-11-05 至 11-08 期间 GitHub 账户因账单问题锁定，[部署 42457914848](https://github.com/Kreeli/immerse-jam/actions/runs/42457914848) 等任务未运行步骤即失败；期间产物准备照常，完整静态包留存于 `release/website-ready/`。
 
-账户解锁后，部署之前先确认 `main` 为要上线的内容，再手动运行官网工作流：
-
-```powershell
-gh workflow run pages.yml --ref main --repo Kreeli/immerse-jam
-gh run list --workflow pages.yml --repo Kreeli/immerse-jam --limit 3
-```
-
-部署完成后核对实际运行对应的提交和官网内容。检查 FAQ、Windows 与 Android 试用的新图，并检查旧图 URL 的响应。需要复跑源码检查时另行安排。应用安装包及标签按作者决定单独发布。
+2026-11-09 账户解锁后已补发完成：push `b2a8156` 触发的 [部署 42568530764](https://github.com/Kreeli/immerse-jam/actions/runs/42568530764) 成功，官网下载链接与 `releases.json` 指向 v0.1.12（Windows 0.1.12 / Android preview.5），新赞赏图 200、旧图 404，首页版本文案已同步 preview.5。同日 v0.1.12 Release 资产覆盖为同一批重建产物（详情见 Release 的 2026-11-09 覆盖更新段）。
 
 参考：[解锁账单受限账户](https://docs.github.com/en/billing/how-tos/troubleshooting/locked-account)、[Pages 发布源说明](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site)。改为分支发布仍会使用 Actions，不在本轮擅自改变托管设置。

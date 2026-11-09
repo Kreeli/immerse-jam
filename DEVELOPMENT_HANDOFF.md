@@ -1,6 +1,6 @@
 # Immerse Jam 交接入口
 
-**状态日期为 2026-11-08。** 下面的构建、发布和实机状态以功能提交 `6447fe7` 为基线。接手时先运行 `git status --short --branch` 和 `git log -5 --oneline`，再确认本地与远端状态。
+**状态日期为 2026-11-09。** 下面的构建、发布和实机状态以提交 `2fcf61f` 为基线（官网版本文案 `b2a8156`、CI 镜像加固 `2cf3156` 与 `2fcf61f` 均已含）。接手时先运行 `git status --short --branch` 和 `git log -5 --oneline`，再确认本地与远端状态。
 
 ## 从哪里开始
 
@@ -16,13 +16,13 @@
 
 ## 目前交付到哪里
 
-| 目标         | 当前状态                                                                                                                                                                                                                                                       |
-| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GitHub 源码  | `Kreeli/immerse-jam` 的 `main` 已收到 `53d86a0` 播放和保存修复及 `6447fe7` 赞赏码更新。这两次源码同步跳过自动工作流。                                                                                                                                          |
-| 公开发行     | [v0.1.12](https://github.com/Kreeli/immerse-jam/releases/tag/v0.1.12)，Windows **0.1.12**、Android **0.1.0-preview.4**。下面的本地包使用同一版本号，但包含后续源码。                                                                                           |
-| 本地 Windows | `Start-Immerse-Jam.cmd` 启动 `release/win-unpacked/Immerse Jam.exe`。当前目录已经包含新赞赏码，程序包已校验。                                                                                                                                                  |
-| 本地 Android | `release/Immerse-Jam-Android-playback-stable-arm64.apk` 已覆盖安装在作者平板，已比对设备 APK 哈希。包名 `app.immersejam.mobile`，versionCode 4，保留原数据。                                                                                                   |
-| 官网         | 新源码和本地试用均显示附件原图。可部署包在 `release/website-ready/Immerse-Jam-site-6447fe7.zip`。线上部署 [42457914848](https://github.com/Kreeli/immerse-jam/actions/runs/42457914848) 因账户账单锁定，在运行任何步骤前失败。线上旧赞赏图片最后确认仍能访问。 |
+| 目标         | 当前状态                                                                                                                                                                                                |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GitHub 源码  | `Kreeli/immerse-jam` 的 `main` 与工作分支均为 `2fcf61f`，Source checks 双平台绿。                                                                                                                       |
+| 公开发行     | [v0.1.12](https://github.com/Kreeli/immerse-jam/releases/tag/v0.1.12)（tag 未移动），资产已于 2026-11-09 覆盖为含 `53d86a0` / `6447fe7` 源码的重建包：Windows **0.1.12**、Android **0.1.0-preview.5**。 |
+| 本地 Windows | `Start-Immerse-Jam.cmd` 启动 `release/win-unpacked/Immerse Jam.exe`。当前目录已经包含新赞赏码，程序包已校验。                                                                                           |
+| 本地 Android | `release/Immerse-Jam-Android-playback-stable-arm64.apk` 已覆盖安装在作者平板，已比对设备 APK 哈希。包名 `app.immersejam.mobile`，versionCode 4，保留原数据。                                            |
+| 官网         | 线上已是最新部署：下载链接指向 v0.1.12 / preview.5，新赞赏图 200、旧图 404，版本文案与 `releases.json` 已核对。                                                                                         |
 
 本地交付物校验值：
 
@@ -42,8 +42,9 @@
 ## 交接后的操作
 
 1. 本地先从 [开发指南](docs/DEVELOPMENT.md) 选对应平台和最小相关测试。最近一次完整 Node 回归为 **136 项通过**，随后赞赏码改动通过类型、文案、桌面语法、三端构建及网页交互检查。未因换图重新跑大型模型推理或完整安装器流程。
-2. 官网恢复部署前，确认作者的 GitHub 账户限制解除，再按 [官网维护](docs/WEBSITE_MAINTENANCE.md) 手动运行 Pages。部署后核对新图可访问、旧图不再从当前站点提供。单独发布应用由作者决定。
-3. 开发数据默认位于 `.runtime/data`，已安装 Windows 版跟随其 `installation.json`，Android 数据由应用保管。保留原数据、签名、备份和模型缓存。无线 ADB 地址会变化，使用前确认设备空闲和系统授权。
-4. 使用合成媒体或明确允许公开的演示素材。不要上传私人曲库、录音、截图、配对码、本机路径配置或签名。不要修改用户的系统代理、DNS 或网络配置来排查下载。
+2. 官网已于 2026-11-09 补发完成。后续部署按 [官网维护](docs/WEBSITE_MAINTENANCE.md)：push 触碰 `docs/site` 或手动运行 Pages 工作流均可，部署后核对下载链接、版本文案与赞赏图。单独发布应用由作者决定。
+3. CI 依赖 GitHub release CDN 下载 ffmpeg-static 与 Electron 二进制，2026-11-09 起已配置 npmmirror 镜像与重试（见 `.github/workflows/check.yml`），GitHub CDN 再抽风时先怀疑别处。
+4. 开发数据默认位于 `.runtime/data`，已安装 Windows 版跟随其 `installation.json`，Android 数据由应用保管。保留原数据、签名、备份和模型缓存。无线 ADB 地址会变化，使用前确认设备空闲和系统授权。
+5. 使用合成媒体或明确允许公开的演示素材。不要上传私人曲库、录音、截图、配对码、本机路径配置或签名。不要修改用户的系统代理、DNS 或网络配置来排查下载。
 
 早期交接长记录可用 `git show 6447fe7:DEVELOPMENT_HANDOFF.md` 查阅。各轮 [验收记录](docs/VALIDATION.md) 和 [旧交接记录](docs/HANDOFF-RELAY-2026-11-04.md) 保留历史依据，里面的版本与阶段性决定以当时为准。
