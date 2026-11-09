@@ -16,7 +16,17 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - run: npm ci
+      # Retry npm ci so a single 504 from the ffmpeg-static release CDN does not fail the job.
+      - name: Install dependencies
+        run: |
+          $i = 0
+          while ($true) {
+            npm ci
+            if ($LASTEXITCODE -eq 0) { break }
+            $i++
+            if ($i -ge 3) { exit $LASTEXITCODE }
+            Write-Host "npm ci attempt $i failed; retrying"
+          }
       - run: npm run check
       - name: Keep generated and private materials out of source
         run: node scripts/audit-source.cjs
