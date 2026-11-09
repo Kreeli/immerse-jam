@@ -1,20 +1,20 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#131014" />
-    <title>Immerse Jam 路 鍏嶈垂鐨勬湰鍦板垎杞ㄣ€佺粌鐞翠笌褰曢煶宸ュ叿</title>
+    <title>Immerse Jam · 免费的本地分轨、练琴与录音工具</title>
     <meta
       name="description"
-      content="Immerse Jam 鏄厤璐圭殑鏈湴闊充箰鍒嗚建銆佺粌鐞翠笌澶氳建褰曢煶宸ュ叿銆傛妸姝屾洸鎷嗘垚鐙珛澹伴儴锛屽叧鎺変綘瑕佺粌鐨勯偅涓€杞紱鍙橀€熴€佸惊鐜€佸綍闊冲洖鍚€傛ā鍨嬪彲鑷€夛紝鏀寔 Windows 涓?Android銆?
+      content="Immerse Jam 是免费的本地音乐分轨、练琴与多轨录音工具。把歌曲拆成独立声部，关掉你要练的那一轨；变速、循环、录音回听。模型可自选，支持 Windows 与 Android。"
     />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="zh_CN" />
-    <meta property="og:title" content="Immerse Jam 路 鍏嶈垂鐨勬湰鍦板垎杞ㄣ€佺粌鐞翠笌褰曢煶宸ュ叿" />
+    <meta property="og:title" content="Immerse Jam · 免费的本地分轨、练琴与录音工具" />
     <meta
       property="og:description"
-      content="鎷嗗紑涓€棣栨瓕锛屽叧鎺変綘瑕佺粌鐨勯偅涓€杞ㄣ€傚畬鍏ㄥ厤璐癸紝妯″瀷鍙嚜閫夛紝缁冪惔銆佸垱浣溿€佸綍闊抽兘鑳界敤锛屾敮鎸?Windows 涓?Android銆?
+      content="拆开一首歌，关掉你要练的那一轨。完全免费，模型可自选，练琴、创作、录音都能用，支持 Windows 与 Android。"
     />
     <meta property="og:url" content="https://kreeli.github.io/immerse-jam/" />
     <meta
@@ -28,97 +28,100 @@
     <script src="tryout-launcher.js" defer></script>
   </head>
   <body>
-    <a class="skip-link" href="#main">璺冲埌姝ｆ枃</a>
+    <a class="skip-link" href="#main">跳到正文</a>
     <header class="header">
       <div class="nav wrap">
-        <a class="brand" href="#" aria-label="Immerse Jam 棣栭〉"
+        <a class="brand" href="#" aria-label="Immerse Jam 首页"
           ><img src="assets/app-icon.ico" width="32" height="32" alt="" /><span
             >Immerse <b>Jam</b></span
           ></a
         >
-        <nav aria-label="涓诲鑸?>
-          <a href="#tryout">鍦ㄧ嚎璇曠敤</a>
-          <a href="#stems">鍒嗚建璇曞惉</a><a href="#practice">缁冪惔</a><a href="#create">鍒涗綔褰曢煶</a
-          ><a href="#models">妯″瀷</a><a href="#android">Android</a><a href="#faq">甯歌闂</a>
+        <nav aria-label="主导航">
+          <a href="#tryout">在线试用</a>
+          <a href="#stems">分轨试听</a><a href="#practice">练琴</a><a href="#create">创作录音</a
+          ><a href="#models">模型</a><a href="#android">Android</a><a href="#faq">常见问题</a>
         </nav>
         <div class="nav-actions">
           <a
             class="github-link"
             href="https://github.com/Kreeli/immerse-jam"
-            aria-label="GitHub 婧愮爜"
+            aria-label="GitHub 源码"
             ><svg viewBox="0 0 24 24" aria-hidden="true">
               <path
                 d="M9 19c-4.3 1.3-4.3-2.2-6-2.7m12 5v-3.4a3 3 0 0 0-.8-2.3c2.7-.3 5.5-1.3 5.5-6A4.7 4.7 0 0 0 18.4 6a4.4 4.4 0 0 0-.1-3.5s-1-.3-3.6 1.3a12.4 12.4 0 0 0-6.5 0C5.7 2.2 4.6 2.5 4.6 2.5A4.4 4.4 0 0 0 4.5 6a4.7 4.7 0 0 0-1.3 3.6c0 4.7 2.8 5.7 5.5 6a3 3 0 0 0-.8 2.3v3.4"
               /></svg></a
-          ><a class="button small" href="#download">鍏嶈垂涓嬭浇</a>
+          ><a class="button small" href="#download">免费下载</a>
         </div>
       </div>
     </header>
     <main id="main">
       <section class="hero wrap" aria-labelledby="hero-title">
         <div class="hero-copy">
-          <p class="eyebrow">鍏嶈垂 路 鏈湴杩愯 路 Windows 涓?Android</p>
-          <h1 id="hero-title">鎷嗗紑涓€棣栨瓕锛?br />鍏虫帀浣犺缁冪殑閭ｄ竴杞ㄣ€?/h1>
+          <p class="eyebrow">免费 · 本地运行 · Windows 与 Android</p>
+          <h1 id="hero-title">拆开一首歌，<br />关掉你要练的那一轨。</h1>
           <p class="hero-lead">
             Immerse Jam
-            鎶婃瓕鏇叉媶鎴愪汉澹般€侀紦銆佽礉鏂€佸悏浠栬繖浜涚嫭绔嬪０閮ㄣ€傚叧鎺変綘鑷繁瑕佹紨濂忕殑閭ｈ建锛屽墿涓嬬殑灏辨槸浼村鈥斺€斿彉閫熴€佸惊鐜€佸綍闊冲洖鍚紝涓€姝ユ鎶婃瓕缁冧笅鏉ャ€傞『鎵嬩篃鑳藉仛鐐瑰皬鍒涗綔銆佸綍涓?            demo銆?          </p>
+            把歌曲拆成人声、鼓、贝斯、吉他这些独立声部。关掉你自己要演奏的那轨，剩下的就是伴奏——变速、循环、录音回听，一步步把歌练下来。顺手也能做点小创作、录个
+            demo。
+          </p>
           <div class="hero-actions">
             <a class="button ghost" href="#tryout"
-              >鍦ㄧ嚎璇曠敤 PC 宸ヤ綔鍙?<span aria-hidden="true">鈫?/span></a
+              >在线试用 PC 工作台 <span aria-hidden="true">↗</span></a
             >
             <a
               class="button"
               data-download-kind="windows"
               href="https://github.com/Kreeli/immerse-jam/releases/download/v0.1.12/Immerse.Jam.Setup.0.1.12.exe"
-              >涓嬭浇 Windows 鐗?<span aria-hidden="true">鈫?/span></a
+              >下载 Windows 版 <span aria-hidden="true">↓</span></a
             ><a
               class="button ghost"
               data-download-kind="android-arm64"
               href="https://github.com/Kreeli/immerse-jam/releases/download/v0.1.12/Immerse-Jam-Android-0.1.0-preview.5-arm64.apk"
-              >涓嬭浇 Android 鐗?<span aria-hidden="true">鈫?/span></a
-            ><a class="text-link" href="#stems">鍏堝惉鍚垎杞ㄦ晥鏋?鈫?/a>
+              >下载 Android 版 <span aria-hidden="true">↓</span></a
+            ><a class="text-link" href="#stems">先听听分轨效果 →</a>
           </div>
           <p class="hero-note">
-            瀹屽叏鍏嶈垂锛氭棤浼氬憳銆佹棤鍒嗙娆℃暟闄愬埗銆俉indows 10 / 11 x64锛孉ndroid 8.0+锛堥瑙堢増锛夈€?          </p>
+            完全免费：无会员、无分离次数限制。Windows 10 / 11 x64，Android 8.0+（预览版）。
+          </p>
         </div>
         <div class="hero-visual">
           <div class="screen-top">
-            <span><i></i> 璺熺粌宸ヤ綔鍙?/span><span>WINDOWS 路 褰撳墠鐣岄潰</span>
+            <span><i></i> 跟练工作台</span><span>WINDOWS · 当前界面</span>
           </div>
           <button
             class="screenshot-button"
             data-image="assets/Win_practice.png"
-            data-caption="璺熺粌妯″紡锛氫笂鍗婃槸鎬绘贩闊炽€佷笅鍗婃槸浣犵殑婕斿褰曢煶锛屽悓涓€鏃堕棿杞村榻愶紱鍙充晶鎺у埗鍙板彲浠ュ叧鎺変换鎰忓０閮ㄣ€?
-            aria-label="鏀惧ぇ璺熺粌妯″紡鎴浘"
+            data-caption="跟练模式：上半是总混音、下半是你的演奏录音，同一时间轴对齐；右侧控制台可以关掉任意声部。"
+            aria-label="放大跟练模式截图"
           >
             <img
               class="hero-shot"
               src="assets/Win_practice.png"
               width="1584"
               height="1058"
-              alt="Immerse Jam 璺熺粌宸ヤ綔鍙帮細涓婁笅瀵归綈鐨勯煶涔愪笌褰曢煶娉㈠舰锛屽彸渚ф贩闊虫帶鍒跺彴锛屽簳閮ㄦ挱鏀惧拰褰曢煶鎸夐挳"
+              alt="Immerse Jam 跟练工作台：上下对齐的音乐与录音波形，右侧混音控制台，底部播放和录音按钮"
               fetchpriority="high"
-            /><span class="zoom-hint">鏌ョ湅瀹屾暣鐣岄潰 鈫?/span>
+            /><span class="zoom-hint">查看完整界面 ↗</span>
           </button>
         </div>
       </section>
 
-      <section class="selling wrap" aria-label="涓昏鐗圭偣">
+      <section class="selling wrap" aria-label="主要特点">
         <div>
-          <h2>瀹屽叏鍏嶈垂</h2>
-          <p>娌℃湁浼氬憳锛屾病鏈夊垎绂绘鏁伴檺鍒讹紝涓嶅崠浜戞椂闀裤€備笅杞藉氨鑳界敤锛屾兂鍒嗗灏戦鍒嗗灏戦銆?/p>
+          <h2>完全免费</h2>
+          <p>没有会员，没有分离次数限制，不卖云时长。下载就能用，想分多少首分多少首。</p>
         </div>
         <div>
-          <h2>妯″瀷鍙嚜閫?/h2>
-          <p>BS RoFormer銆丠T Demucs銆佽交閲忓洓杞ㄣ€佷笓鐢ㄥ悏浠栵紡浜哄０妯″瀷浠婚€夛紝杩樿兘瑁呰嚜宸辩殑妯″瀷銆?/p>
+          <h2>模型可自选</h2>
+          <p>BS RoFormer、HT Demucs、轻量四轨、专用吉他／人声模型任选，还能装自己的模型。</p>
         </div>
         <div>
-          <h2>缁冪惔銆佸垱浣溿€佸綍闊?/h2>
-          <p>璺熺粌妯″紡甯綘鎶婃瓕缁冪啛锛屽垱浣滄ā寮忓彔褰曟贩闊筹紝褰曢煶搴撶鐞嗘瘡涓€娆″皾璇曘€?/p>
+          <h2>练琴、创作、录音</h2>
+          <p>跟练模式帮你把歌练熟，创作模式叠录混音，录音库管理每一次尝试。</p>
         </div>
         <div>
-          <h2>Android 渚挎惡鐗?/h2>
-          <p>鎵嬫満鍜屽钩鏉夸笂鎾斁銆佽窡缁冦€佸綍闊炽€傞」鐩€氳繃 Wi-Fi 浜掍紶锛岀數鑴戝垎杞紝鎵嬫満鎺ョ潃缁冦€?/p>
+          <h2>Android 便携版</h2>
+          <p>手机和平板上播放、跟练、录音。项目通过 Wi-Fi 互传，电脑分轨，手机接着练。</p>
         </div>
       </section>
 
@@ -127,18 +130,20 @@
           <div class="section-head">
             <div>
               <p class="eyebrow">TRY BEFORE YOU DOWNLOAD</p>
-              <h2 id="tryout-title">鍏堢偣鍑犱笅锛?br />鍐嶅喅瀹氳涓嶈涓嬭浇銆?/h2>
+              <h2 id="tryout-title">先点几下，<br />再决定要不要下载。</h2>
             </div>
             <p>
-              鐩存帴鎿嶄綔褰撳墠鐗堟湰鐨勫伐浣滃彴銆傚凡瀵煎叆 Fabulous 鎺掔粌鐗囨锛?br />閫夋嫨 Windows 鎴?              Android锛屼綋楠屾贩闊充笌璺熺粌銆?            </p>
+              直接操作当前版本的工作台。已导入 Fabulous 排练片段，<br />选择 Windows 或
+              Android，体验混音与跟练。
+            </p>
           </div>
           <div class="tryout-frame" id="tryout-frame">
             <div class="tryout-toolbar">
-              <span><i></i> IMMERSE JAM 路 鍙氦浜掓紨绀?/span>
+              <span><i></i> IMMERSE JAM · 可交互演示</span>
               <div>
-                <button type="button" id="tryout-fullscreen" hidden>鍏ㄥ睆浣撻獙 鈫?/button
-                ><a href="tryout/index.html" target="_blank" rel="noopener">鍗曠嫭鎵撳紑 鈫?/a
-                ><button type="button" id="tryout-close" hidden>鏀惰捣璇曠敤</button>
+                <button type="button" id="tryout-fullscreen" hidden>全屏体验 ↗</button
+                ><a href="tryout/index.html" target="_blank" rel="noopener">单独打开 ↗</a
+                ><button type="button" id="tryout-close" hidden>收起试用</button>
               </div>
             </div>
             <div class="tryout-launch" id="tryout-launch">
@@ -146,14 +151,14 @@
                 src="assets/Win_practice.png"
                 width="1584"
                 height="1058"
-                alt="褰撳墠 Windows 璺熺粌宸ヤ綔鍙?
+                alt="当前 Windows 跟练工作台"
                 loading="lazy"
               />
               <div>
-                <span class="tryout-pill">PC 鍘熺増鐣岄潰 路 棰勭疆鍏建 路 鏃犻渶瀹夎</span>
-                <h3>杩欎竴閬嶏紝璁╀綘鏉ユ搷浣溿€?/h3>
-                <p>宸茶浇鍏ユ帓缁冪墖娈?鈫?寮€濮嬪垎鏋?鈫?鍒涘缓璺熺粌</p>
-                <div class="tryout-platforms" role="group" aria-label="閫夋嫨璇曠敤骞冲彴">
+                <span class="tryout-pill">PC 原版界面 · 预置六轨 · 无需安装</span>
+                <h3>这一遍，让你来操作。</h3>
+                <p>已载入排练片段 → 开始分析 → 创建跟练</p>
+                <div class="tryout-platforms" role="group" aria-label="选择试用平台">
                   <button type="button" data-demo-platform="desktop" aria-pressed="true">
                     Windows</button
                   ><button type="button" data-demo-platform="android" aria-pressed="false">
@@ -161,18 +166,20 @@
                   </button>
                 </div>
                 <button class="button" type="button" id="tryout-start">
-                  鍚姩鍦ㄧ嚎璇曠敤 <span aria-hidden="true">鈻?/span></button
-                ><small>鐐瑰嚮鍚庡姞杞藉伐浣滃彴鍜屾紨绀洪煶棰戯紝涓嶈繍琛屾ā鍨嬨€?/small>
+                  启动在线试用 <span aria-hidden="true">▶</span></button
+                ><small>点击后加载工作台和演示音频，不运行模型。</small>
               </div>
             </div>
             <div id="tryout-mount"></div>
           </div>
           <p class="tryout-note">
-            鎾斁銆佹贩闊炽€佸彉閫熺Щ璋冦€佸惊鐜笌缂栬緫鍙疄闄呮搷浣滐紱鍒嗘瀽浣跨敤棰勭疆缁撴灉锛屽綍闊宠浇鍏ラ缃悏浠栫墖娈碉紝涓嶄娇鐢ㄩ害鍏嬮銆傚拰寮︼紡鑺傛媿锛忚氨渚嬩粎浣滄祦绋嬬ず鎰忋€傚鍑恒€佷簰浼犲拰鏈満鏂囦欢鎿嶄綔灞曠ず鍏ュ彛锛涗慨鏀逛粎鍦ㄦ湰椤典細璇濅腑淇濈暀銆傞€夋嫨
-            Android 鍙綋楠岄€傚悎鎵嬫満鍜屽钩鏉跨殑鐣岄潰锛沇indows 婕旂ず寤鸿鐢佃剳鎴栨í灞忎綋楠屻€?          </p>
+            播放、混音、变速移调、循环与编辑可实际操作；分析使用预置结果，录音载入预置吉他片段，不使用麦克风。和弦／节拍／谱例仅作流程示意。导出、互传和本机文件操作展示入口；修改仅在本页会话中保留。选择
+            Android 可体验适合手机和平板的界面；Windows 演示建议电脑或横屏体验。
+          </p>
           <p class="tryout-note">
-            Windows 涓?Android 鐣岄潰鏇存柊浜?2026-11-05銆備笅鏂规埅鍥句娇鐢ㄥ叕寮€婕旂ず绱犳潗锛涘垱浣滄ā寮忓寘鍚垎缁?L/R
-            鎬绘帶銆佸彸渚у疄闄呯數骞冲拰褰曢煶寰皟銆?          </p>
+            Windows 与 Android 界面更新于 2026-11-05。下方截图使用公开演示素材；创作模式包含分组 L/R
+            总控、右侧实际电平和录音微调。
+          </p>
         </div>
       </section>
 
@@ -181,19 +188,20 @@
           <div class="section-head">
             <div>
               <p class="eyebrow">SEPARATION DEMO</p>
-              <h2 id="stems-title">鍒嗚建鏁堟灉锛岀洿鎺ュ惉銆?/h2>
+              <h2 id="stems-title">分轨效果，直接听。</h2>
             </div>
             <p>
-              涓嬮潰涓€娈垫帓缁冪殑銆奆abulous銆嬶紙BLU-SWING锛夛紝鎴彇 60 绉掞紝鐢ㄩ粯璁ょ殑鍏建妯″瀷鍒嗙銆?br />鍙互瀵规瘮鍘熷褰曢煶锛屽啀璇曡瘯鎶婁汉澹版垨榧撻潤闊筹紝鍚惉浼村鐨勫彉鍖栥€?            </p>
+              下面一段排练的《Fabulous》（BLU-SWING），截取 60 秒，用默认的六轨模型分离。<br />可以对比原始录音，再试试把人声或鼓静音，听听伴奏的变化。
+            </p>
           </div>
           <div class="stem-player" id="stem-player">
-            <div class="stem-modes" role="group" aria-label="璇曞惉鍐呭">
-              <button data-audio-mode="original" aria-pressed="false">鍘熷褰曢煶</button>
-              <button data-audio-mode="stems" aria-pressed="true">鍒嗚建璇曞惉</button>
+            <div class="stem-modes" role="group" aria-label="试听内容">
+              <button data-audio-mode="original" aria-pressed="false">原始录音</button>
+              <button data-audio-mode="stems" aria-pressed="true">分轨试听</button>
             </div>
             <div class="stem-master">
-              <button class="stem-play" id="stem-play" aria-label="鎾斁鍏ㄩ儴澹伴儴">
-                <span aria-hidden="true">鈻?/span>
+              <button class="stem-play" id="stem-play" aria-label="播放全部声部">
+                <span aria-hidden="true">▶</span>
               </button>
               <div class="stem-timeline">
                 <input
@@ -203,20 +211,20 @@
                   max="1000"
                   value="0"
                   step="1"
-                  aria-label="鎾斁杩涘害"
+                  aria-label="播放进度"
                 />
                 <div class="stem-time">
                   <span id="stem-current">0:00</span><span id="stem-duration">1:00</span>
                 </div>
               </div>
-              <button class="stem-reset" id="stem-reset">鍏ㄩ儴鎭㈠</button>
+              <button class="stem-reset" id="stem-reset">全部恢复</button>
             </div>
             <ul class="stem-list" id="stem-list">
               <li data-track="vocals" style="--track-color: #f2536e">
-                <span class="stem-dot" aria-hidden="true"></span><span class="stem-name">浜哄０</span>
+                <span class="stem-dot" aria-hidden="true"></span><span class="stem-name">人声</span>
                 <div class="stem-buttons">
-                  <button class="stem-solo" aria-pressed="false">閫夊惉</button>
-                  <button class="stem-mute" aria-pressed="false">鍏抽棴澹伴煶</button>
+                  <button class="stem-solo" aria-pressed="false">选听</button>
+                  <button class="stem-mute" aria-pressed="false">关闭声音</button>
                 </div>
                 <input
                   type="range"
@@ -224,14 +232,14 @@
                   min="0"
                   max="100"
                   value="100"
-                  aria-label="浜哄０闊抽噺"
+                  aria-label="人声音量"
                 />
               </li>
               <li data-track="drums" style="--track-color: #f0a13c">
-                <span class="stem-dot" aria-hidden="true"></span><span class="stem-name">榧?/span>
+                <span class="stem-dot" aria-hidden="true"></span><span class="stem-name">鼓</span>
                 <div class="stem-buttons">
-                  <button class="stem-solo" aria-pressed="false">閫夊惉</button>
-                  <button class="stem-mute" aria-pressed="false">鍏抽棴澹伴煶</button>
+                  <button class="stem-solo" aria-pressed="false">选听</button>
+                  <button class="stem-mute" aria-pressed="false">关闭声音</button>
                 </div>
                 <input
                   type="range"
@@ -239,14 +247,14 @@
                   min="0"
                   max="100"
                   value="100"
-                  aria-label="榧撻煶閲?
+                  aria-label="鼓音量"
                 />
               </li>
               <li data-track="bass" style="--track-color: #58c98b">
-                <span class="stem-dot" aria-hidden="true"></span><span class="stem-name">璐濇柉</span>
+                <span class="stem-dot" aria-hidden="true"></span><span class="stem-name">贝斯</span>
                 <div class="stem-buttons">
-                  <button class="stem-solo" aria-pressed="false">閫夊惉</button>
-                  <button class="stem-mute" aria-pressed="false">鍏抽棴澹伴煶</button>
+                  <button class="stem-solo" aria-pressed="false">选听</button>
+                  <button class="stem-mute" aria-pressed="false">关闭声音</button>
                 </div>
                 <input
                   type="range"
@@ -254,14 +262,14 @@
                   min="0"
                   max="100"
                   value="100"
-                  aria-label="璐濇柉闊抽噺"
+                  aria-label="贝斯音量"
                 />
               </li>
               <li data-track="guitar" style="--track-color: #6aa7f0">
-                <span class="stem-dot" aria-hidden="true"></span><span class="stem-name">鍚変粬</span>
+                <span class="stem-dot" aria-hidden="true"></span><span class="stem-name">吉他</span>
                 <div class="stem-buttons">
-                  <button class="stem-solo" aria-pressed="false">閫夊惉</button>
-                  <button class="stem-mute" aria-pressed="false">鍏抽棴澹伴煶</button>
+                  <button class="stem-solo" aria-pressed="false">选听</button>
+                  <button class="stem-mute" aria-pressed="false">关闭声音</button>
                 </div>
                 <input
                   type="range"
@@ -269,14 +277,14 @@
                   min="0"
                   max="100"
                   value="100"
-                  aria-label="鍚変粬闊抽噺"
+                  aria-label="吉他音量"
                 />
               </li>
               <li data-track="piano" style="--track-color: #b98cf0">
-                <span class="stem-dot" aria-hidden="true"></span><span class="stem-name">閽㈢惔</span>
+                <span class="stem-dot" aria-hidden="true"></span><span class="stem-name">钢琴</span>
                 <div class="stem-buttons">
-                  <button class="stem-solo" aria-pressed="false">閫夊惉</button>
-                  <button class="stem-mute" aria-pressed="false">鍏抽棴澹伴煶</button>
+                  <button class="stem-solo" aria-pressed="false">选听</button>
+                  <button class="stem-mute" aria-pressed="false">关闭声音</button>
                 </div>
                 <input
                   type="range"
@@ -284,14 +292,14 @@
                   min="0"
                   max="100"
                   value="100"
-                  aria-label="閽㈢惔闊抽噺"
+                  aria-label="钢琴音量"
                 />
               </li>
               <li data-track="other" style="--track-color: #9aa0aa">
-                <span class="stem-dot" aria-hidden="true"></span><span class="stem-name">鍏朵粬</span>
+                <span class="stem-dot" aria-hidden="true"></span><span class="stem-name">其他</span>
                 <div class="stem-buttons">
-                  <button class="stem-solo" aria-pressed="false">閫夊惉</button>
-                  <button class="stem-mute" aria-pressed="false">鍏抽棴澹伴煶</button>
+                  <button class="stem-solo" aria-pressed="false">选听</button>
+                  <button class="stem-mute" aria-pressed="false">关闭声音</button>
                 </div>
                 <input
                   type="range"
@@ -299,13 +307,15 @@
                   min="0"
                   max="100"
                   value="100"
-                  aria-label="鍏朵粬闊抽噺"
+                  aria-label="其他音量"
                 />
               </li>
             </ul>
             <p class="stem-note">
-              褰曢煶鐢遍」鐩綔鑰呮彁渚涳紝鏇茬洰涓?BLU-SWING銆奆abulous銆嬨€傚凡鍘绘帀寮€澶?5 绉掞紝璇曞惉鍙栧叾鍚?60
-              绉掞紝姣忎釜闊抽绾?1.2 MB銆?              鍘熷褰曢煶涓庡叚杞ㄩ噰鐢ㄧ浉鍚岄煶閲忕缉鏀惧拰棣栧熬娣″寲锛屾湭鍗曠嫭缇庡寲澹伴儴锛涘垎绂荤粨鏋滃彲鑳芥湁娈嬬暀锛屼笉鍚岀礌鏉愮殑鏁堟灉浼氭湁宸埆銆?            </p>
+              录音由项目作者提供，曲目为 BLU-SWING《Fabulous》。已去掉开头 5 秒，试听取其后 60
+              秒，每个音频约 1.2 MB。
+              原始录音与六轨采用相同音量缩放和首尾淡化，未单独美化声部；分离结果可能有残留，不同素材的效果会有差别。
+            </p>
           </div>
         </div>
       </section>
@@ -313,32 +323,33 @@
       <section class="feature wrap" id="practice" aria-labelledby="practice-title">
         <div class="feature-copy">
           <p class="eyebrow">PRACTICE</p>
-          <h2 id="practice-title">缁冪惔锛屾槸杩欎釜宸ュ叿鐨勮€佹湰琛屻€?/h2>
+          <h2 id="practice-title">练琴，是这个工具的老本行。</h2>
           <p>
-            浠庛€屼互杩欓姝屽垱寤恒€嶆柊寤鸿窡缁冿紝鍦ㄥ彸渚ф帶鍒跺彴鍏虫帀浣犺寮圭殑澹伴儴锛屽叾浠栭儴鍒嗚嚜鍔ㄦ垚涓轰即濂忋€傞毦鐐规钀借涓惊鐜紝閫熷害璋冨埌
-            0.5 鎱㈡參鍟冿紝鐔熶簡鍐嶅洖鍒板師閫熴€?          </p>
+            从「以这首歌创建」新建跟练，在右侧控制台关掉你要弹的声部，其他部分自动成为伴奏。难点段落设个循环，速度调到
+            0.5 慢慢啃，熟了再回到原速。
+          </p>
           <ul class="check-list">
-            <li>姣忎釜澹伴儴鐙珛闊抽噺銆佸０鍍忥紝鏀寔銆岄€夊惉銆嶅拰銆屽叧闂０闊炽€?/li>
-            <li>鍙橀€?0.5脳鈥?脳锛岀嫭绔嬬Щ璋冿紝寰幆娈佃惤涓庢爣璁扮偣</li>
-            <li>鏅鸿兘鑺傛媿鍣ㄨ窡闅忔娴嬭妭鎷嶏紝涔熷彲鎵嬪姩 BPM銆乀ap 鏍″噯</li>
-            <li>褰曢煶鍜屼即濂忔尝褰笂涓嬪榻愶紝鍥炲惉鏃朵竴鐪肩湅鍑烘姠鎷嶈繕鏄嫋鎷?/li>
-            <li>銆岃窡鎷嶆祴寤惰繜銆嶆牎鍑嗗綍闊冲榻愶紙鎴磋€虫満娴嬫墠鍑嗭級</li>
+            <li>每个声部独立音量、声像，支持「选听」和「关闭声音」</li>
+            <li>变速 0.5×–2×，独立移调，循环段落与标记点</li>
+            <li>智能节拍器跟随检测节拍，也可手动 BPM、Tap 校准</li>
+            <li>录音和伴奏波形上下对齐，回听时一眼看出抢拍还是拖拍</li>
+            <li>「跟拍测延迟」校准录音对齐（戴耳机测才准）</li>
           </ul>
         </div>
         <div class="feature-visual">
           <button
             class="screenshot-button"
             data-image="assets/Win_practice.png"
-            data-caption="璺熺粌妯″紡锛氬彸渚ф帶鍒跺彴閫愯建鎺у埗浼村锛屽簳鏍忓綍闊虫寜閽拰鎾斁鎸夐挳鍦ㄥ悓涓€鎺掋€?
-            aria-label="鏀惧ぇ璺熺粌妯″紡鎴浘"
+            data-caption="跟练模式：右侧控制台逐轨控制伴奏，底栏录音按钮和播放按钮在同一排。"
+            aria-label="放大跟练模式截图"
           >
             <img
               src="assets/Win_practice.png"
               width="1584"
               height="1058"
-              alt="璺熺粌妯″紡涓殑鍙屾尝褰㈠鐓т笌鍙充晶闊宠建鎺у埗鍙?
+              alt="跟练模式中的双波形对照与右侧音轨控制台"
               loading="lazy"
-            /><span class="zoom-hint">鏀惧ぇ鏌ョ湅 鈫?/span>
+            /><span class="zoom-hint">放大查看 ↗</span>
           </button>
         </div>
       </section>
@@ -346,30 +357,31 @@
       <section class="feature alt wrap" id="create" aria-labelledby="create-title">
         <div class="feature-copy">
           <p class="eyebrow">CREATE &amp; RECORD</p>
-          <h2 id="create-title">鍒涗綔鍜屽綍 demo锛屼篃鍦ㄩ噷闈€?/h2>
+          <h2 id="create-title">创作和录 demo，也在里面。</h2>
           <p>
-            鍒涗綔妯″紡鍙互浠庣┖鐧芥垨浠庢瓕鏇插紑濮嬶細瀵煎叆鍒嗚建銆佸姞鑷繁鐨勯煶棰戯紝杈规斁杈瑰綍鏂扮殑涓€杞紝澶氳建鍙犺捣鏉ユ參鎱㈡惌銆傜粌涔犳椂鐨勬瘡娆″綍闊抽兘鐣欏湪褰曢煶搴擄紝闅忔椂鍥炲惉瀵规瘮銆?          </p>
+            创作模式可以从空白或从歌曲开始：导入分轨、加自己的音频，边放边录新的一轨，多轨叠起来慢慢搭。练习时的每次录音都留在录音库，随时回听对比。
+          </p>
           <ul class="check-list">
-            <li>鍙姌鍙犻煶杞ㄥ垪琛紝鍒嗙粍瀵煎叆 .ijam / .aum 鍒嗚建椤圭洰</li>
-            <li>鎾斁涓殢鏃跺彔褰曪紝缁冧範鏈€澶氭寕涓ゆ潯褰曢煶锛屽垱浣滀笉闄?/li>
-            <li>娣烽煶棰勮銆佸疄鏃剁數骞筹紝瀵煎嚭 WAV / MP3 鎴栧畬鏁?.ijam 宸ョ▼</li>
-            <li>銆屽彧褰曚箰鍣ㄣ€嶃€屽０鍗″凡娣烽煶銆嶄袱绉嶈緭鍏ユā寮忥紝閫傞厤涓嶅悓澹板崱</li>
+            <li>可折叠音轨列表，分组导入 .ijam / .aum 分轨项目</li>
+            <li>播放中随时叠录，练习最多挂两条录音，创作不限</li>
+            <li>混音预设、实时电平，导出 WAV / MP3 或完整 .ijam 工程</li>
+            <li>「只录乐器」「声卡已混音」两种输入模式，适配不同声卡</li>
           </ul>
         </div>
         <div class="feature-visual">
           <button
             class="screenshot-button"
             data-image="assets/Win_create.png"
-            data-caption="鍒涗綔妯″紡锛氬垎杞ㄩ」鐩綔涓轰竴涓垎缁勫姞鍏ワ紝灞曞紑鍚庢帶鍒跺唴閮ㄥ０閮紝鍙户缁彔褰曟柊杞ㄣ€?
-            aria-label="鏀惧ぇ鍒涗綔妯″紡鎴浘"
+            data-caption="创作模式：分轨项目作为一个分组加入，展开后控制内部声部，可继续叠录新轨。"
+            aria-label="放大创作模式截图"
           >
             <img
               src="assets/Win_create.png"
               width="1584"
               height="1250"
-              alt="鍒涗綔妯″紡涓殑鍒嗚建椤圭洰缁勩€佹贩闊冲綍闊冲拰娣诲姞闊抽鍏ュ彛"
+              alt="创作模式中的分轨项目组、混音录音和添加音频入口"
               loading="lazy"
-            /><span class="zoom-hint">鏀惧ぇ鏌ョ湅 鈫?/span>
+            /><span class="zoom-hint">放大查看 ↗</span>
           </button>
         </div>
       </section>
@@ -379,47 +391,51 @@
           <div class="section-head">
             <div>
               <p class="eyebrow">YOUR MODELS, YOUR CALL</p>
-              <h2 id="models-title">鍒嗙妯″瀷锛屼綘鑷繁閫夈€?/h2>
+              <h2 id="models-title">分离模型，你自己选。</h2>
             </div>
             <p>
-              涓嶅悓妯″瀷鍚勬湁闀垮锛屾病鏈夊摢涓鎵€鏈夋瓕閮芥渶濂姐€?br />鎵€浠ヨ繖閲屼笉閿佹妯″瀷锛氳涓婅瘯璇曪紝鍒嗙缁撴灉鍚勮嚜淇濆瓨锛岄殢鏃跺垏鎹㈠姣斻€?            </p>
+              不同模型各有长处，没有哪个对所有歌都最好。<br />所以这里不锁死模型：装上试试，分离结果各自保存，随时切换对比。
+            </p>
           </div>
           <div class="models-grid">
             <button
               class="screenshot-button model-shot"
               data-image="assets/Win_model.png"
-              data-caption="璁剧疆涓庢ā鍨嬶細鏌ョ湅宸茶妯″瀷銆佽ˉ瑁呭叾浠栨ā鍨嬶紝鎴栨坊鍔犺嚜瀹氫箟妯″瀷銆?
-              aria-label="鏀惧ぇ璁剧疆涓庢ā鍨嬫埅鍥?
+              data-caption="设置与模型：查看已装模型、补装其他模型，或添加自定义模型。"
+              aria-label="放大设置与模型截图"
             >
               <img
                 src="assets/Win_model.png"
                 width="1584"
                 height="1058"
-                alt="璁剧疆涓庢ā鍨嬬獥鍙ｏ紝鏄剧ず鍙畨瑁呯殑鍒嗙妯″瀷鍒楄〃"
+                alt="设置与模型窗口，显示可安装的分离模型列表"
                 loading="lazy"
-              /><span class="zoom-hint">鏀惧ぇ鏌ョ湅 鈫?/span>
+              /><span class="zoom-hint">放大查看 ↗</span>
             </button>
             <div class="model-list">
               <article>
-                <h3>鍏鍒嗙妯″紡</h3>
+                <h3>六种分离模式</h3>
                 <p>
-                  鍩虹鍥涜建銆佸畬鏁村叚杞ㄣ€佷富濂忥紡鑺傚鍚変粬銆侀紦銆佽礉鏂€佷富鍞憋紡鍜屽０銆傞粯璁ゆ帹鑽愬叚杞?BS RoFormer
-                  SW銆?                </p>
+                  基础四轨、完整六轨、主奏／节奏吉他、鼓、贝斯、主唱／和声。默认推荐六轨 BS RoFormer
+                  SW。
+                </p>
               </article>
               <article>
-                <h3>澶氫釜妯″瀷鍏卞瓨</h3>
+                <h3>多个模型共存</h3>
                 <p>
                   HT
-                  Demucs銆佽交閲忓洓杞ㄣ€佷笓鐢ㄦā鍨嬫寜闇€涓嬭浇銆傚悓涓€棣栨瓕鐨勪笉鍚屾ā鍨嬬粨鏋滅嫭绔嬩繚瀛樸€佹敼鍚嶃€佸姣旇瘯鍚€?                </p>
+                  Demucs、轻量四轨、专用模型按需下载。同一首歌的不同模型结果独立保存、改名、对比试听。
+                </p>
               </article>
               <article>
-                <h3>鑷畾涔夋ā鍨?/h3>
+                <h3>自定义模型</h3>
                 <p>
-                  鏈夎嚜宸辩殑妯″瀷鏉冮噸锛熸寜
+                  有自己的模型权重？按
                   <a href="https://github.com/Kreeli/immerse-jam/blob/main/docs/CUSTOM_MODELS.md"
-                    >鑷畾涔夋ā鍨嬫枃妗?/a
+                    >自定义模型文档</a
                   >
-                  瀵煎叆灏辫兘鐢ㄣ€傚垎杞ㄦ槸鐩存帴鍙敤鐨?WAV 鏂囦欢锛岄殢鏃跺彇璧般€?                </p>
+                  导入就能用。分轨是直接可用的 WAV 文件，随时取走。
+                </p>
               </article>
             </div>
           </div>
@@ -431,49 +447,49 @@
           <div class="section-head">
             <div>
               <p class="eyebrow">GET STARTED</p>
-              <h2 id="guide-title">绗竴娆＄敤锛屼簲姝ャ€?/h2>
+              <h2 id="guide-title">第一次用，五步。</h2>
             </div>
-            <p>涓嶇敤鍏堝涓€濂楀鏉傜殑褰曢煶杞欢銆?br />鐓ц繖浜旀锛屽嚑鍒嗛挓灏辫兘寮€濮嬬粌绗竴棣栥€?/p>
+            <p>不用先学一套复杂的录音软件。<br />照这五步，几分钟就能开始练第一首。</p>
           </div>
           <div class="guide-layout">
             <div class="guide-sidebar">
-              <ol class="steps" aria-label="浜旀涓婃墜瀵艰">
+              <ol class="steps" aria-label="五步上手导览">
                 <li>
                   <button class="step active" aria-current="step" data-step="0">
                     <span class="step-num">01</span
-                    ><span><strong>瀵煎叆姝屾洸</strong><small>鎷栬繘鏉ワ紝鎴栫偣銆屽鍏ラ煶涔愩€?/small></span>
+                    ><span><strong>导入歌曲</strong><small>拖进来，或点「导入音乐」</small></span>
                   </button>
                 </li>
                 <li>
                   <button class="step" data-step="1">
                     <span class="step-num">02</span
-                    ><span><strong>寮€濮嬪垎鏋?/strong><small>鍦ㄦ湰鏈烘媶鍑虹嫭绔嬪０閮?/small></span>
+                    ><span><strong>开始分析</strong><small>在本机拆出独立声部</small></span>
                   </button>
                 </li>
                 <li>
                   <button class="step" data-step="2">
                     <span class="step-num">03</span
-                    ><span><strong>鍏虫帀浣犵殑澹伴儴</strong><small>瑕佺粌鍝建锛屽氨鍏冲摢杞?/small></span>
+                    ><span><strong>关掉你的声部</strong><small>要练哪轨，就关哪轨</small></span>
                   </button>
                 </li>
                 <li>
                   <button class="step" data-step="3">
                     <span class="step-num">04</span
-                    ><span><strong>寰幆鎱㈢粌</strong><small>璁惧惊鐜€佽皟閫熷害銆佸崱鑺傛媿</small></span>
+                    ><span><strong>循环慢练</strong><small>设循环、调速度、卡节拍</small></span>
                   </button>
                 </li>
                 <li>
                   <button class="step" data-step="4">
                     <span class="step-num">05</span
-                    ><span><strong>褰曢煶鍥炲惉</strong><small>褰曚笅鏉ワ紝鍜屽師鏇插鐫€鍚?/small></span>
+                    ><span><strong>录音回听</strong><small>录下来，和原曲对着听</small></span>
                   </button>
                 </li>
               </ol>
               <button class="tour-toggle" id="tour-toggle" aria-pressed="false">
-                <span class="tour-icon" aria-hidden="true">鈻?/span
-                ><span id="tour-label">鑷姩婕旂ず杩欎簲姝?/span>
+                <span class="tour-icon" aria-hidden="true">▶</span
+                ><span id="tour-label">自动演示这五步</span>
               </button>
-              <p class="tour-note">鎴浘瀵艰锛屽彲闅忔椂鐐瑰乏杈规楠ゅ垏鎹€?/p>
+              <p class="tour-note">截图导览，可随时点左边步骤切换。</p>
             </div>
             <div class="guide-view">
               <div class="guide-frame">
@@ -481,15 +497,15 @@
                   class="screenshot-button guide-image-button"
                   id="guide-image-button"
                   data-image="assets/Win_home.png"
-                  data-caption="闊充箰搴擄細鐐瑰伐鍏锋爮銆屽鍏ラ煶涔愩€嶏紝鎴栫洿鎺ユ妸鏂囦欢鎷栬繘绐楀彛銆?
-                  aria-label="鏀惧ぇ褰撳墠姝ラ鎴浘"
+                  data-caption="音乐库：点工具栏「导入音乐」，或直接把文件拖进窗口。"
+                  aria-label="放大当前步骤截图"
                 >
                   <img
                     id="guide-image"
                     src="assets/Win_home.png"
                     width="1584"
                     height="1058"
-                    alt="闊充箰搴撳伐鍏锋爮鐨勫鍏ラ煶涔愭寜閽?
+                    alt="音乐库工具栏的导入音乐按钮"
                     loading="lazy"
                   /><span
                     class="hotspot"
@@ -497,21 +513,22 @@
                     style="--x: 94%; --y: 12%"
                     aria-hidden="true"
                     >1</span
-                  ><span class="zoom-hint">鏀惧ぇ鏌ョ湅 鈫?/span>
+                  ><span class="zoom-hint">放大查看 ↗</span>
                 </button>
               </div>
               <div class="guide-detail" aria-live="polite" aria-atomic="true">
                 <div>
                   <span class="step-counter" id="step-counter">01 / 05</span>
-                  <h3 id="guide-heading">鎷栬繘鏉ワ紝灏变粠杩欓噷寮€濮嬨€?/h3>
+                  <h3 id="guide-heading">拖进来，就从这里开始。</h3>
                 </div>
                 <p id="guide-text">
-                  鍦ㄣ€岄煶涔愬簱銆嶅伐鍏锋爮鐐广€屽鍏ラ煶涔愩€嶏紝鎴栨妸鏈湴闊抽銆佽棰戠洿鎺ユ嫋杩涚獥鍙ｃ€傚凡鏈夌殑 .ijam /
-                  .aum 椤圭洰涔熻兘瀵煎叆銆傜涓€娆″缓璁€変竴棣栧惉鐔熺殑姝屻€?                </p>
+                  在「音乐库」工具栏点「导入音乐」，或把本地音频、视频直接拖进窗口。已有的 .ijam /
+                  .aum 项目也能导入。第一次建议选一首听熟的歌。
+                </p>
               </div>
               <div class="guide-tip">
-                <span aria-hidden="true">鈫?/span
-                ><span id="guide-tip">鍏堥€変竴棣栫啛鎮夌殑姝岋紝绗竴娆＄粌涔犳洿瀹规槗鎵惧埌鎰熻銆?/span>
+                <span aria-hidden="true">↳</span
+                ><span id="guide-tip">先选一首熟悉的歌，第一次练习更容易找到感觉。</span>
               </div>
             </div>
           </div>
@@ -523,104 +540,106 @@
           <div class="section-head">
             <div>
               <p class="eyebrow">ANDROID</p>
-              <h2 id="android-title">鎵嬫満涓婏紝鎺ョ潃缁冦€?/h2>
+              <h2 id="android-title">手机上，接着练。</h2>
             </div>
             <p>
-              Android 鐗堟槸渚挎惡鐨勭粌涔犱即渚ｏ細鎾斁銆佽窡缁冦€佸垱浣溿€佸綍闊炽€佸鍑恒€?br />鍒嗚建杩欑閲嶆椿浜ょ粰鐢佃剳锛屾墜鏈鸿礋璐ｆ妸姝岀粌鐔熴€?            </p>
+              Android 版是便携的练习伴侣：播放、跟练、创作、录音、导出。<br />分轨这种重活交给电脑，手机负责把歌练熟。
+            </p>
           </div>
           <div class="android-shots">
             <figure>
               <button
                 class="screenshot-button"
                 data-image="assets/android_home.png"
-                data-caption="Android 椤圭洰鍒楄〃锛氳窡缁冦€佸垱浣滅粺涓€绠＄悊锛屾敮鎸佹悳绱㈠拰鍒嗙被銆?
-                aria-label="鏀惧ぇ Android 椤圭洰鍒楄〃鎴浘"
+                data-caption="Android 项目列表：跟练、创作统一管理，支持搜索和分类。"
+                aria-label="放大 Android 项目列表截图"
               >
                 <img
                   src="assets/android_home.png"
                   width="2464"
                   height="1600"
-                  alt="Android 椤圭洰鍒楄〃锛氬叏閮ㄣ€佽窡缁冦€佸垱浣滀笁涓瓫閫夐〉绛惧拰姝屾洸鍗＄墖"
+                  alt="Android 项目列表：全部、跟练、创作三个筛选页签和歌曲卡片"
                   loading="lazy"
-                /><span class="zoom-hint">鏀惧ぇ 鈫?/span>
+                /><span class="zoom-hint">放大 ↗</span>
               </button>
-              <figcaption>椤圭洰鍒楄〃锛氳窡缁冨拰鍒涗綔鍒嗗紑绠★紝鎼滅储鐩磋揪銆?/figcaption>
+              <figcaption>项目列表：跟练和创作分开管，搜索直达。</figcaption>
             </figure>
             <figure>
               <button
                 class="screenshot-button"
                 data-image="assets/android_wave.png"
-                data-caption="Android 鎾斁椤碉細娉㈠舰銆佸惊鐜钀姐€佸彉閫熸挱鏀撅紝閿佸睆鎴栧垏鍚庡彴缁х画鏀俱€?
-                aria-label="鏀惧ぇ Android 鎾斁椤垫埅鍥?
+                data-caption="Android 播放页：波形、循环段落、变速播放，锁屏或切后台继续放。"
+                aria-label="放大 Android 播放页截图"
               >
                 <img
                   src="assets/android_wave.png"
                   width="2464"
                   height="1600"
-                  alt="Android 鎾斁椤碉細娉㈠舰绐楀彛銆佸惊鐜钀芥寜閽€佸彉閫熷拰褰曢煶鎸夐挳"
+                  alt="Android 播放页：波形窗口、循环段落按钮、变速和录音按钮"
                   loading="lazy"
-                /><span class="zoom-hint">鏀惧ぇ 鈫?/span>
+                /><span class="zoom-hint">放大 ↗</span>
               </button>
-              <figcaption>鎾斁椤碉細寰幆娈佃惤銆佸彉閫熴€佸綍闊抽兘鍦ㄦ墜杈广€?/figcaption>
+              <figcaption>播放页：循环段落、变速、录音都在手边。</figcaption>
             </figure>
             <figure>
               <button
                 class="screenshot-button"
                 data-image="assets/android_chord.png"
-                data-caption="Android 鍜屽鸡椤碉細璇嗗埆鍑虹殑鍜屽鸡鎸夊皬鑺傛帓甯冿紝璺熺潃鎾斁璧帮紝鍙墜鍔ㄤ慨姝ｃ€?
-                aria-label="鏀惧ぇ Android 鍜屽鸡椤垫埅鍥?
+                data-caption="Android 和弦页：识别出的和弦按小节排布，跟着播放走，可手动修正。"
+                aria-label="放大 Android 和弦页截图"
               >
                 <img
                   src="assets/android_chord.png"
                   width="2464"
                   height="1600"
-                  alt="Android 鍜屽鸡椤碉細鎸夊皬鑺傛帓鍒楃殑鍜屽鸡鍗＄墖锛岃窡闅忔挱鏀鹃珮浜?
+                  alt="Android 和弦页：按小节排列的和弦卡片，跟随播放高亮"
                   loading="lazy"
-                /><span class="zoom-hint">鏀惧ぇ 鈫?/span>
+                /><span class="zoom-hint">放大 ↗</span>
               </button>
-              <figcaption>鍜屽鸡椤碉細鎸夊皬鑺傝窡闅忔挱鏀撅紝鍙敼鍙牎鍑嗐€?/figcaption>
+              <figcaption>和弦页：按小节跟随播放，可改可校准。</figcaption>
             </figure>
             <figure>
               <button
                 class="screenshot-button"
                 data-image="assets/android_control.png"
-                data-caption="Android 鎺у埗鍙帮細鍏釜澹伴儴鐨勯煶閲忋€侀€夊惉銆佸叧闂０闊冲拰澹板儚锛屽拰妗岄潰鐗堝悓涓€濂楅€昏緫銆?
-                aria-label="鏀惧ぇ Android 鎺у埗鍙版埅鍥?
+                data-caption="Android 控制台：六个声部的音量、选听、关闭声音和声像，和桌面版同一套逻辑。"
+                aria-label="放大 Android 控制台截图"
               >
                 <img
                   src="assets/android_control.png"
                   width="2464"
                   height="1600"
-                  alt="Android 鎺у埗鍙版娊灞夛細鎬婚煶閲忓拰浜哄０銆侀紦銆佽礉鏂€侀挗鐞淬€佸悏浠栧悇杞ㄦ帶鍒?
+                  alt="Android 控制台抽屉：总音量和人声、鼓、贝斯、钢琴、吉他各轨控制"
                   loading="lazy"
-                /><span class="zoom-hint">鏀惧ぇ 鈫?/span>
+                /><span class="zoom-hint">放大 ↗</span>
               </button>
-              <figcaption>鎺у埗鍙帮細閫愯建闈欓煶銆侀€夊惉銆侀煶閲忋€佸０鍍忋€?/figcaption>
+              <figcaption>控制台：逐轨静音、选听、音量、声像。</figcaption>
             </figure>
           </div>
           <figure class="android-creation-shot">
             <button
               class="screenshot-button"
               data-image="assets/android_create.png"
-              data-caption="褰撳墠 Android 鍒涗綔鐣岄潰锛氬垎缁勪笌澹伴儴鐨勫乏鍙冲０鍍忓叡鍚屼綔鐢紝鍙充晶鏄剧ず瀹為檯鐢靛钩锛涘綍闊抽€氳繃閾呯瑪銆佸井璋冨拰鍨冨溇妗剁鐞嗐€?
-              aria-label="鏀惧ぇ Android 鍒涗綔妯″紡鎴浘"
+              data-caption="当前 Android 创作界面：分组与声部的左右声像共同作用，右侧显示实际电平；录音通过铅笔、微调和垃圾桶管理。"
+              aria-label="放大 Android 创作模式截图"
             >
               <img
                 src="assets/android_create.png"
                 width="2464"
                 height="2078"
-                alt="Android 鍒涗綔妯″紡锛氬鍏ュ垎杞ㄧ殑 L/R 鎬绘帶銆佸悇澹伴儴鍙充晶鐢靛钩鍜屽綍闊冲崱鐗?
+                alt="Android 创作模式：导入分轨的 L/R 总控、各声部右侧电平和录音卡片"
                 loading="lazy"
-              /><span class="zoom-hint">鏀惧ぇ 鈫?/span>
+              /><span class="zoom-hint">放大 ↗</span>
             </button>
             <figcaption>
-              鍒涗綔妯″紡锛氬垎缁勪笌澹伴儴鍏卞悓鎺у埗闊抽噺鍜?L/R锛屽綍闊虫帶浠朵笌 Windows 淇濇寔涓€鑷淬€?            </figcaption>
+              创作模式：分组与声部共同控制音量和 L/R，录音控件与 Windows 保持一致。
+            </figcaption>
           </figure>
           <div class="android-points">
             <ul class="check-list">
-              <li>鎾斁鍒囧悗鍙般€侀攣灞忛兘缁х画锛屾潵鐢垫墦鏂篃浼氫繚瀛樺凡褰曞唴瀹?/li>
-              <li>鍚屼竴 Wi-Fi锛忕儹鐐规壂鐮佷簰浼狅紝鎴栫洿鎺ュ彂瀹屾暣 .ijam 鏂囦欢</li>
-              <li>鎵嬫満绔笉鍋氭湰鏈哄垎杞ㄥ拰璇嗗埆锛屽垎鏋愬湪鐢佃剳涓婁竴娆″畬鎴?/li>
+              <li>播放切后台、锁屏都继续，来电打断也会保存已录内容</li>
+              <li>同一 Wi-Fi／热点扫码互传，或直接发完整 .ijam 文件</li>
+              <li>手机端不做本机分轨和识别，分析在电脑上一次完成</li>
             </ul>
             <div class="android-actions">
               <a
@@ -628,23 +647,24 @@
                 href="tryout/index.html?platform=android"
                 target="_blank"
                 rel="noopener"
-                >鍦ㄧ嚎璇曠敤 Android 鈫?/a
+                >在线试用 Android →</a
               >
               <a
                 class="button"
                 data-download-kind="android-arm64"
                 href="https://github.com/Kreeli/immerse-jam/releases/download/v0.1.12/Immerse-Jam-Android-0.1.0-preview.5-arm64.apk"
-                >涓嬭浇 Android 鐗堬紙arm64锛?/a
+                >下载 Android 版（arm64）</a
               >
               <a
                 class="text-link"
                 data-download-kind="android-x64"
                 href="https://github.com/Kreeli/immerse-jam/releases/download/v0.1.12/Immerse-Jam-Android-0.1.0-preview.5-x86_64.apk"
-                >妯℃嫙鍣ㄧ敤 x86_64 鍖?鈫?/a
+                >模拟器用 x86_64 包 →</a
               >
               <p class="tiny-note">
-                Android 鐩墠鏄?0.1.0
-                棰勮鐗堬紝瑕嗙洊鎾斁銆佽窡缁冦€佸垱浣滀笌瀵煎嚭锛屽姛鑳借繕鍦ㄩ檰缁ˉ榻愩€傚崌绾ф垨鍗歌浇鍓嶈寰楀厛瀵煎嚭閲嶈椤圭洰銆?              </p>
+                Android 目前是 0.1.0
+                预览版，覆盖播放、跟练、创作与导出，功能还在陆续补齐。升级或卸载前记得先导出重要项目。
+              </p>
             </div>
           </div>
         </div>
@@ -653,37 +673,39 @@
       <section class="transfer wrap" aria-labelledby="transfer-title">
         <div class="transfer-copy">
           <p class="eyebrow">DEVICE TRANSFER</p>
-          <h2 id="transfer-title">鐢佃剳鍒嗗ソ杞紝鎵嬫満鎺ョ潃缁冦€?/h2>
+          <h2 id="transfer-title">电脑分好轨，手机接着练。</h2>
           <p>
-            鍦?Windows 瀹屾垚鍒嗘瀽锛岄€氳繃鍚屼竴 Wi-Fi锛忕儹鐐规壂鐮佹妸瀹屾暣椤圭洰鍙戝埌鎵嬫満锛屾垨鑰呭鍑?.ijam
-            鏂囦欢鑷繁浼犮€傛墜鏈哄鍏ュ悗鐓ф牱鑳芥帶鍒跺０閮ㄣ€佸惊鐜參缁冦€佸綍鑷繁鐨勬紨濂忋€?          </p>
+            在 Windows 完成分析，通过同一 Wi-Fi／热点扫码把完整项目发到手机，或者导出 .ijam
+            文件自己传。手机导入后照样能控制声部、循环慢练、录自己的演奏。
+          </p>
           <p class="tiny-note">
-            浜掍紶鏄」鐩鍒讹紝涓嶆槸浜戝悓姝ワ紝涓嶄細鑷姩鍚堝苟澶氳澶囩殑缂栬緫銆傝繙绋嬬洿杩炲彈缃戠粶鐜褰卞搷锛岃繛涓嶄笂灏辩敤灞€鍩熺綉鎴栦紶鏂囦欢銆?          </p>
+            互传是项目复制，不是云同步，不会自动合并多设备的编辑。远程直连受网络环境影响，连不上就用局域网或传文件。
+          </p>
         </div>
         <div
           class="transfer-diagram"
           role="img"
-          aria-label="Windows 鐢佃剳瀹屾垚鍒嗘瀽锛岀粡鍚屼竴 Wi-Fi 浼犻€佸畬鏁撮」鐩紝Android 鎵嬫満鎴栧钩鏉挎帴鏀跺悗璺熺粌"
+          aria-label="Windows 电脑完成分析，经同一 Wi-Fi 传送完整项目，Android 手机或平板接收后跟练"
         >
           <div class="device desktop-device">
             <div class="device-screen">
               <div class="mini-window"><span></span><span></span><span></span></div>
               <div class="mini-tracks"><i></i><i></i><i></i><i></i></div>
-              <span class="device-label">WINDOWS 路 鍒嗚建鍒嗘瀽</span>
+              <span class="device-label">WINDOWS · 分轨分析</span>
             </div>
             <div class="device-stand"></div>
           </div>
           <div class="transfer-path">
-            <span class="transfer-packet"></span><span class="wifi-label">鍚屼竴 Wi-Fi</span
-            ><span class="transfer-direction" aria-hidden="true">鈫?/span
+            <span class="transfer-packet"></span><span class="wifi-label">同一 Wi-Fi</span
+            ><span class="transfer-direction" aria-hidden="true">→</span
             ><span class="file-label">.ijam</span>
           </div>
           <div class="device tablet-device">
             <div class="device-screen">
-              <span class="mini-note">鈾?/span>
+              <span class="mini-note">♫</span>
               <div class="mini-wave"></div>
-              <div class="mini-transport"><span>鈻?/span><i></i><span>鈫?/span></div>
-              <span class="device-label">ANDROID 路 璺熺粌</span>
+              <div class="mini-transport"><span>▶</span><i></i><span>↻</span></div>
+              <span class="device-label">ANDROID · 跟练</span>
             </div>
           </div>
         </div>
@@ -694,33 +716,37 @@
           <div class="section-head">
             <div>
               <p class="eyebrow">KNOW THE LIMITS</p>
-              <h2 id="limits-title">鑳藉仛鍒颁粈涔堬紝<br />涓嶈兘鍋氬埌浠€涔堛€?/h2>
+              <h2 id="limits-title">能做到什么，<br />不能做到什么。</h2>
             </div>
-            <p>杩欏伐鍏疯繕鍦ㄦ寔缁洿鏂般€傚ソ鐢ㄧ殑鍦版柟涓嶅鍚癸紝<br />鍋氫笉鍒扮殑鍦版柟鐩存帴鍐欏湪杩欓噷銆?/p>
+            <p>这工具还在持续更新。好用的地方不多吹，<br />做不到的地方直接写在这里。</p>
           </div>
           <div class="honesty-grid">
             <article>
-              <span class="honesty-number">01 / 褰曢煶涓庡欢杩?/span>
-              <h3>娴嬪欢杩熻鎴磋€虫満銆?br />澶栨斁鍔犲唴缃害鍏嬮涓嶉€傜敤銆?/h3>
+              <span class="honesty-number">01 / 录音与延迟</span>
+              <h3>测延迟要戴耳机。<br />外放加内置麦克风不适用。</h3>
               <p>
-                澶栨斁鐨勪即濂忎細琚害鍏嬮鍐嶆敹杩涘幓锛屽洖澹板拰涓查煶浼氳寤惰繜浼拌瀹屽叏澶辩湡銆傝窡鎷嶄及璁￠噷涔熷寘鍚汉鑷繁鐨勫弽搴旇宸紝涓嶆槸澹板崱鐨勭函纭欢寤惰繜銆?              </p>
+                外放的伴奏会被麦克风再收进去，回声和串音会让延迟估计完全失真。跟拍估计里也包含人自己的反应误差，不是声卡的纯硬件延迟。
+              </p>
               <p>
-                褰曢煶鍋忔櫄濉鏁般€佸亸鏃╁～璐熸暟锛屽厛璇曞惉鍐嶅簲鐢ㄣ€傚井璋冨彧鑳戒慨姝ｅ榻愶紝鍘讳笉鎺夊凡缁忓綍杩涘幓鐨勫洖澹般€?              </p>
+                录音偏晚填正数、偏早填负数，先试听再应用。微调只能修正对齐，去不掉已经录进去的回声。
+              </p>
             </article>
             <article>
-              <span class="honesty-number">02 / 鑷姩璇嗗埆</span>
-              <h3>璇嗗埆缁欑殑鏄捣鐐癸紝<br />鏈€鍚庤繕寰楅潬鑰虫湹銆?/h3>
+              <span class="honesty-number">02 / 自动识别</span>
+              <h3>识别给的是起点，<br />最后还得靠耳朵。</h3>
               <p>
-                澶嶆潅鍜屽鸡銆佸己娣峰搷銆佸急璧枫€佽嚜鐢遍€熷害銆佸彉鎷嶏紝閮藉彲鑳借鍜屽鸡鍜岃妭鎷嶈瘑鍒炕杞︼紝缁撴灉鍙兘闇€瑕佹墜鍔ㄦ敼銆傚垎杞ㄤ篃鍙兘娈嬬暀鍒殑涔愬櫒澹伴煶锛屾病鏈夋ā鍨嬭兘瀵规瘡棣栨瓕閮藉共鍑€銆?              </p>
-              <p>濂藉湪鍜屽鸡銆佸皬鑺傘€丅PM銆佸悓姝ョ偣閮借兘鎵嬪姩淇锛屼笉鍚屾ā鍨嬬殑缁撴灉鍙互鍒囨崲瀵规瘮銆?/p>
+                复杂和弦、强混响、弱起、自由速度、变拍，都可能让和弦和节拍识别翻车，结果可能需要手动改。分轨也可能残留别的乐器声音，没有模型能对每首歌都干净。
+              </p>
+              <p>好在和弦、小节、BPM、同步点都能手动修正，不同模型的结果可以切换对比。</p>
             </article>
             <article>
-              <span class="honesty-number">03 / 绉诲姩绔笌璁＄畻</span>
-              <h3>鍒嗘瀽鍦ㄧ數鑴戝仛锛?br />鎵嬫満璐熻矗缁冦€?/h3>
+              <span class="honesty-number">03 / 移动端与计算</span>
+              <h3>分析在电脑做，<br />手机负责练。</h3>
               <p>
-                鎵嬫満绔笉鍋氫篃涓嶆墦绠楀仛鏈満鍒嗚建銆佽妭鎷嶈瘑鍒繖绫绘帹鐞嗭紝椤圭洰鍚屾牱涓嶆彁渚涙湇鍔″櫒浜戣绠椼€俉indows
-                鍒嗘瀽涓€娆★紝鎵嬫満鎺ユ敹瀹屾暣椤圭洰锛屾垨鑰呭鍏ュ凡鏈変即濂忓拰鍒嗚建鏉ョ敤銆?              </p>
-              <p>Android 杩樺湪杩唬锛屾殏鏃朵笉浼氬拰妗岄潰绔姛鑳藉畬鍏ㄤ竴鑷淬€?/p>
+                手机端不做也不打算做本机分轨、节拍识别这类推理，项目同样不提供服务器云计算。Windows
+                分析一次，手机接收完整项目，或者导入已有伴奏和分轨来用。
+              </p>
+              <p>Android 还在迭代，暂时不会和桌面端功能完全一致。</p>
             </article>
           </div>
         </div>
@@ -730,26 +756,27 @@
         <div class="wrap faq-layout">
           <div>
             <p class="eyebrow">FAQ</p>
-            <h2>甯歌闂銆?/h2>
+            <h2>常见问题。</h2>
             <a class="text-link" href="https://github.com/Kreeli/immerse-jam/issues"
-              >杩樻湁鐤戦棶锛熷幓 GitHub 鎻愪釜 issue 鈫?/a
+              >还有疑问？去 GitHub 提个 issue ↗</a
             >
           </div>
           <div class="faq-list">
             <details>
-              <summary>鐪熺殑瀹屽叏鍏嶈垂锛熸湁浠€涔堥檺鍒讹紵<span aria-hidden="true">+</span></summary>
+              <summary>真的完全免费？有什么限制？<span aria-hidden="true">+</span></summary>
               <p>
-                鍏嶈垂浣跨敤锛屾病鏈変細鍛樸€佹病鏈夊垎绂绘鏁伴檺鍒讹紝涔熶笉闇€瑕佷拱浜戠畻鍔涖€傚師鍒涗唬鐮侀噰鐢?PolyForm
+                免费使用，没有会员、没有分离次数限制，也不需要买云算力。原创代码采用 PolyForm
                 Noncommercial 1.0.0
-                璁稿彲锛屽厑璁搁潪鍟嗕笟浣跨敤銆佷慨鏀瑰拰鍒嗕韩锛屽晢鐢ㄨ鑱旂郴浣滆€呫€傜涓夋柟缁勪欢鍜屾ā鍨嬮伒寰悇鑷殑璁稿彲銆傛兂鏀寔浣滆€呭彲浠ヨ嚜鎰挎墦璧忥紝涓嶅奖鍝嶄换浣曞姛鑳姐€?              </p>
+                许可，允许非商业使用、修改和分享，商用请联系作者。第三方组件和模型遵循各自的许可。想支持作者可以自愿打赏，不影响任何功能。
+              </p>
             </details>
             <details id="appreciation">
-              <summary>濡備綍鏀寔浣滆€咃紵<span aria-hidden="true">+</span></summary>
-              <p>鍙互鐢ㄥ井淇℃壂涓嬮潰鐨勮禐璧忕爜锛岃嚜鎰挎敮鎸?Immerse Jam銆?/p>
+              <summary>如何支持作者？<span aria-hidden="true">+</span></summary>
+              <p>可以用微信扫下面的赞赏码，自愿支持 Immerse Jam。</p>
               <a class="appreciation-code" href="assets/author-appreciation.png">
                 <img
                   src="assets/author-appreciation.png"
-                  alt="浣滆€呭井淇¤禐璧忕爜锛屾煡鐪嬪師鍥?
+                  alt="作者微信赞赏码，查看原图"
                   width="1037"
                   height="1037"
                   loading="lazy"
@@ -758,55 +785,63 @@
             </details>
             <details>
               <summary>
-                闇€瑕佷粈涔堢數鑴戯紵蹇呴』鏈?NVIDIA 鏄惧崱鍚楋紵<span aria-hidden="true">+</span>
+                需要什么电脑？必须有 NVIDIA 显卡吗？<span aria-hidden="true">+</span>
               </summary>
               <p>
-                Windows 10 / 11 x64锛屾敮鎸?CPU 鍜?NVIDIA 涓ょ杩愯鏂瑰紡锛屾病鏈?N
-                鍗′篃鑳界敤锛岄€熷害鍙栧喅浜庣‖浠跺拰妯″瀷銆傚畨瑁呭悜瀵间細鑷姩鍑嗗濂借繍琛岀幆澧冨拰妯″瀷锛屼笉鐢ㄨ嚜宸辫
-                Python 鎴?Node.js銆傞娆″噯澶囬渶瑕佽仈缃戝拰鍑?GB 纾佺洏绌洪棿锛屼箣鍚庡彲浠ュ畬鍏ㄧ绾夸娇鐢ㄣ€?              </p>
+                Windows 10 / 11 x64，支持 CPU 和 NVIDIA 两种运行方式，没有 N
+                卡也能用，速度取决于硬件和模型。安装向导会自动准备好运行环境和模型，不用自己装
+                Python 或 Node.js。首次准备需要联网和几 GB 磁盘空间，之后可以完全离线使用。
+              </p>
             </details>
             <details>
-              <summary>鎴戠殑姝屼細琚笂浼犲悧锛?span aria-hidden="true">+</span></summary>
+              <summary>我的歌会被上传吗？<span aria-hidden="true">+</span></summary>
               <p>
-                涓嶄細銆傚垎绂汇€佽妭鎷嶏紡鍜屽鸡璇嗗埆銆佷箰璋卞榻愬叏閮ㄥ湪浣犺嚜宸辩殑鐢佃剳涓婅窇锛屾洸搴撱€佸垎杞ㄣ€佸綍闊抽兘瀛樺湪鏈湴鏁版嵁鐩綍銆傚彧鏈変綘涓诲姩鐢ㄤ簰浼犲垎浜」鐩椂鎵嶆湁璁惧闂翠紶杈撱€備粎棣栨涓嬭浇杩愯搴撳拰妯″瀷闇€瑕佽仈缃戙€?              </p>
+                不会。分离、节拍／和弦识别、乐谱对齐全部在你自己的电脑上跑，曲库、分轨、录音都存在本地数据目录。只有你主动用互传分享项目时才有设备间传输。仅首次下载运行库和模型需要联网。
+              </p>
             </details>
             <details>
-              <summary>妯″瀷鎬庝箞閫夛紵鍙互鎹㈠悧锛?span aria-hidden="true">+</span></summary>
+              <summary>模型怎么选？可以换吗？<span aria-hidden="true">+</span></summary>
               <p>
-                鍙互闅忔椂鎹€傞粯璁ゆ帹鑽愬叚杞?BS RoFormer
-                SW锛屾晥鏋滃拰閫熷害姣旇緝鍧囪　锛涢厤缃綆灏辩敤杞婚噺鍥涜建锛屽悏浠栨洸鍙互璇曚富濂忥紡鑺傚鍚変粬妯″瀷銆傚悓涓€棣栨瓕鐨勬瘡涓ā鍨嬬粨鏋滈兘鐙珛淇濆瓨锛屽垏鎹㈠姣斿悗鍐嶆寫椤鸿€崇殑鐢ㄣ€傛湁鑷繁鐨勬ā鍨嬩篃鑳藉鍏ャ€?              </p>
+                可以随时换。默认推荐六轨 BS RoFormer
+                SW，效果和速度比较均衡；配置低就用轻量四轨，吉他曲可以试主奏／节奏吉他模型。同一首歌的每个模型结果都独立保存，切换对比后再挑顺耳的用。有自己的模型也能导入。
+              </p>
             </details>
             <details>
               <summary>
-                缁冨悏浠栵紡璐濇柉锛忓敱姝岋紝鎬庝箞璁剧疆姣旇緝椤猴紵<span aria-hidden="true">+</span>
+                练吉他／贝斯／唱歌，怎么设置比较顺？<span aria-hidden="true">+</span>
               </summary>
               <p>
-                鍒嗘瀽鍚庢柊寤鸿窡缁冿紝鍙充晶鎺у埗鍙板叧鎺変綘瑕佺粌鐨勫０閮紝鍏朵粬鐣欑潃褰撲即濂忋€傜偣涓や笅寰幆鎸夐挳璁惧ソ璧锋锛岄€熷害璋冩參寮€濮嬬粌锛涢渶瑕佹椂鍗曠嫭绉昏皟銆傚綍闊冲墠鍏堥€夊ソ杈撳叆璁惧銆佷即濂忚緭鍑哄拰澹伴亾锛屽綍涓€灏忔鍥炲惉纭娌￠棶棰樺啀姝ｅ紡寮€濮嬨€?              </p>
+                分析后新建跟练，右侧控制台关掉你要练的声部，其他留着当伴奏。点两下循环按钮设好起止，速度调慢开始练；需要时单独移调。录音前先选好输入设备、伴奏输出和声道，录一小段回听确认没问题再正式开始。
+              </p>
             </details>
             <details>
               <summary>
-                銆屽彧褰曚箰鍣ㄣ€嶅拰銆屽０鍗″凡娣烽煶銆嶆€庝箞閫夛紵<span aria-hidden="true">+</span>
+                「只录乐器」和「声卡已混音」怎么选？<span aria-hidden="true">+</span>
               </summary>
               <p>
-                杈撳叆閲屽彧鏈変箰鍣ㄥ氨閫夈€屽彧褰曚箰鍣ㄣ€嶏紝浼村涓嶄細娣疯繘褰曢煶銆傚鏋滃０鍗℃垨鏁堟灉鍣ㄥ凡缁忔妸浼村鍜屼箰鍣ㄦ贩鍦ㄤ竴璧烽€佽繘鏉ワ紝灏遍€夈€屽０鍗″凡娣烽煶銆嶏紝杩欐牱鍥炲惉鏃朵笉浼氬彔涓ら亶浼村銆?              </p>
+                输入里只有乐器就选「只录乐器」，伴奏不会混进录音。如果声卡或效果器已经把伴奏和乐器混在一起送进来，就选「声卡已混音」，这样回听时不会叠两遍伴奏。
+              </p>
             </details>
             <details>
-              <summary>寤惰繜鏍″噯鎬庝箞鍋氭墠闈犺氨锛?span aria-hidden="true">+</span></summary>
+              <summary>延迟校准怎么做才靠谱？<span aria-hidden="true">+</span></summary>
               <p>
-                鎴磋€虫満锛屽埆鐢ㄥ鏀俱€傚厛鍚洓鎷嶏紝鍐嶈窡鐫€鍏媿鏁蹭竴涓嬫垨鎵竴涓嬪鸡锛岃緭鍏ュ彧鏀朵綘鐨勮窡鎷嶅０銆傛祴鍑烘潵鐨勫€煎寘鍚汉鐨勫弽搴旇宸紝搴旂敤鍓嶅厛璇曞惉鏍℃鍓嶅悗銆傛崲鑰虫満銆佹崲澹板崱銆佹崲璺敱涔嬪悗閲嶆柊娴嬩竴閬嶃€?              </p>
+                戴耳机，别用外放。先听四拍，再跟着八拍敲一下或扫一下弦，输入只收你的跟拍声。测出来的值包含人的反应误差，应用前先试听校正前后。换耳机、换声卡、换路由之后重新测一遍。
+              </p>
             </details>
             <details>
-              <summary>Android 鐗堝拰 Windows 鐗堝樊澶氬皯锛?span aria-hidden="true">+</span></summary>
+              <summary>Android 版和 Windows 版差多少？<span aria-hidden="true">+</span></summary>
               <p>
                 Android
-                鐩墠鏄瑙堢増锛岃鐩栨挱鏀俱€佽窡缁冦€佸垱浣溿€佸綍闊冲拰瀵煎嚭锛屼笉鍋氭湰鏈哄垎杞ㄥ拰璇嗗埆銆傚湪鐢佃剳涓婂垎鏋愬畬锛岄€氳繃
-                Wi-Fi 浜掍紶鎴?.ijam 鏂囦欢鍙戝埌鎵嬫満鍗冲彲銆備袱绔伐绋嬫牸寮忕浉鍚岋紝缁冧範璁剧疆闅忛」鐩蛋銆?              </p>
+                目前是预览版，覆盖播放、跟练、创作、录音和导出，不做本机分轨和识别。在电脑上分析完，通过
+                Wi-Fi 互传或 .ijam 文件发到手机即可。两端工程格式相同，练习设置随项目走。
+              </p>
             </details>
             <details>
-              <summary>鑳芥浛浠ｄ笓涓?DAW 鍚楋紵<span aria-hidden="true">+</span></summary>
+              <summary>能替代专业 DAW 吗？<span aria-hidden="true">+</span></summary>
               <p>
-                瀹氫綅鏄垎杞ㄨ窡缁冨拰杞婚噺澶氳建鍒涗綔锛屼笉杩芥眰鏇夸唬瀹屾暣鐨勪笓涓氬綍闊宠蒋浠躲€傝摑鐗欍€乁SB
-                澹板崱銆佹晥鏋滃櫒杩欎簺缁勫悎鐨勫綍闊宠〃鐜板彇鍐充簬璁惧鍜岄┍鍔紝闀挎椂闂村綍鍒跺墠鍏堝仛涓€娆＄煭褰曢煶纭銆?              </p>
+                定位是分轨跟练和轻量多轨创作，不追求替代完整的专业录音软件。蓝牙、USB
+                声卡、效果器这些组合的录音表现取决于设备和驱动，长时间录制前先做一次短录音确认。
+              </p>
             </details>
           </div>
         </div>
@@ -814,9 +849,10 @@
 
       <section class="download wrap" id="download" aria-labelledby="download-title">
         <p class="eyebrow">DOWNLOAD</p>
-        <h2 id="download-title">涓嬭浇锛岀劧鍚庢墦寮€涓€棣栨兂缁冪殑姝屻€?/h2>
+        <h2 id="download-title">下载，然后打开一首想练的歌。</h2>
         <p class="download-lead">
-          鍏ㄩ儴鍔熻兘鍏嶈垂銆傜偣鍑讳笅杞界洿鎺ユ嬁瀹夎鍖咃紝涓嶇敤鐧诲綍 GitHub銆?br />鏈珯浼氳嚜鍔ㄦ寚鍚戞渶鏂扮増鏈€?        </p>
+          全部功能免费。点击下载直接拿安装包，不用登录 GitHub。<br />本站会自动指向最新版本。
+        </p>
         <div class="download-cards">
           <a
             class="download-card"
@@ -824,70 +860,71 @@
             href="https://github.com/Kreeli/immerse-jam/releases/download/v0.1.12/Immerse.Jam.Setup.0.1.12.exe"
           >
             <span class="download-platform">Windows 10 / 11 x64</span>
-            <strong>涓嬭浇 Windows 鐗?/strong>
+            <strong>下载 Windows 版</strong>
             <span class="download-meta"
-              >褰撳墠鐗堟湰 <span data-release-version="windows">v0.1.12</span> 路
-              <span data-release-date>瑙?Releases 椤甸潰</span></span
+              >当前版本 <span data-release-version="windows">v0.1.12</span> ·
+              <span data-release-date>见 Releases 页面</span></span
             >
-            <span class="download-go">鑾峰彇瀹夎鍖?鈫?/span>
+            <span class="download-go">获取安装包 ↓</span>
           </a>
           <a
             class="download-card"
             data-download-kind="android-arm64"
             href="https://github.com/Kreeli/immerse-jam/releases/download/v0.1.12/Immerse-Jam-Android-0.1.0-preview.5-arm64.apk"
           >
-            <span class="download-platform">Android 8.0+ 路 arm64</span>
-            <strong>涓嬭浇 Android 鐗?/strong>
+            <span class="download-platform">Android 8.0+ · arm64</span>
+            <strong>下载 Android 版</strong>
             <span class="download-meta"
-              >褰撳墠鐗堟湰 <span data-release-version="android">0.1.0-preview.5</span> 路 棰勮鐗?/span
+              >当前版本 <span data-release-version="android">0.1.0-preview.5</span> · 预览版</span
             >
-            <span class="download-go">鑾峰彇 APK 鈫?/span>
+            <span class="download-go">获取 APK ↓</span>
           </a>
           <a
             class="download-card secondary"
             data-download-kind="android-x64"
             href="https://github.com/Kreeli/immerse-jam/releases/download/v0.1.12/Immerse-Jam-Android-0.1.0-preview.5-x86_64.apk"
           >
-            <span class="download-platform">Android 路 x86_64</span>
-            <strong>妯℃嫙鍣ㄤ笓鐢ㄥ寘</strong>
-            <span class="download-meta">鐪熸満璇风敤涓婇潰鐨?arm64 鍖?/span>
-            <span class="download-go">鑾峰彇 APK 鈫?/span>
+            <span class="download-platform">Android · x86_64</span>
+            <strong>模拟器专用包</strong>
+            <span class="download-meta">真机请用上面的 arm64 包</span>
+            <span class="download-go">获取 APK ↓</span>
           </a>
         </div>
         <div class="download-extra">
-          <a href="https://github.com/Kreeli/immerse-jam/releases">鍘嗗彶鐗堟湰涓庢洿鏂版棩蹇?/a>
-          <a href="https://github.com/Kreeli/immerse-jam/releases">SHA-256 鏍￠獙鍊?/a>
-          <a href="https://github.com/Kreeli/immerse-jam">婧愮爜浠撳簱</a>
+          <a href="https://github.com/Kreeli/immerse-jam/releases">历史版本与更新日志</a>
+          <a href="https://github.com/Kreeli/immerse-jam/releases">SHA-256 校验值</a>
+          <a href="https://github.com/Kreeli/immerse-jam">源码仓库</a>
         </div>
         <div class="release-box" id="release-box">
-          <h3>鏈€鏂扮増鏈俊鎭?/h3>
+          <h3>最新版本信息</h3>
           <p class="release-line">
             <span data-release-name>Immerse Jam 0.1.12</span>
-            <span data-release-date-inline>鍙戝竷浜?2026-11-04</span>
+            <span data-release-date-inline>发布于 2026-11-04</span>
           </p>
           <p class="release-notes" data-release-notes>
-            Windows 0.1.12 涓?Android 0.1.0-preview.5 宸插彂甯冿紝瀹屾暣鏇存柊璇存槑瑙?GitHub Releases銆?          </p>
+            Windows 0.1.12 与 Android 0.1.0-preview.5 已发布，完整更新说明见 GitHub Releases。
+          </p>
         </div>
       </section>
 
       <section class="community wrap" aria-labelledby="community-title">
         <div>
           <p class="eyebrow">FEEDBACK</p>
-          <h2 id="community-title">鐢ㄧ潃涓嶉『鐨勫湴鏂癸紝璇翠竴澹般€?/h2>
-          <p>闂銆佸缓璁€佽澶囧吋瀹规儏鍐碉紝閮芥杩庢彁 issue 鎴栧彂閭欢銆?/p>
+          <h2 id="community-title">用着不顺的地方，说一声。</h2>
+          <p>问题、建议、设备兼容情况，都欢迎提 issue 或发邮件。</p>
         </div>
         <div class="community-invite">
           <ul>
-            <li><b>鎻愰棶棰?/b><span>GitHub Issues锛屽啓娓呮绯荤粺銆佽澶囧拰澶嶇幇姝ラ鏈€鏈夌敤銆?/span></li>
+            <li><b>提问题</b><span>GitHub Issues，写清楚系统、设备和复现步骤最有用。</span></li>
             <li>
-              <b>鍙戦偖浠?/b><span>meowmeowneko999@gmail.com锛屽簲鐢ㄥ唴銆岀敤鎴峰弽棣堛€嶄篃鐩磋揪杩欓噷銆?/span>
+              <b>发邮件</b><span>meowmeowneko999@gmail.com，应用内「用户反馈」也直达这里。</span>
             </li>
             <li>
-              <b>鍙備笌璐＄尞</b
-              ><span>浠ｇ爜銆佹枃妗ｃ€佹祴璇曢兘娆㈣繋锛岃础鐚墠璇风湅涓€涓嬩粨搴撶殑璐＄尞鎸囧崡涓庤鍙€?/span>
+              <b>参与贡献</b
+              ><span>代码、文档、测试都欢迎，贡献前请看一下仓库的贡献指南与许可。</span>
             </li>
           </ul>
-          <p class="tiny-note">鍙嶉鏃惰鍒檮甯︾浜哄綍闊炽€侀厤瀵圭爜鎴栨棤鏉冨垎浜殑瀹屾暣姝屾洸銆?/p>
+          <p class="tiny-note">反馈时请别附带私人录音、配对码或无权分享的完整歌曲。</p>
         </div>
       </section>
     </main>
@@ -897,18 +934,18 @@
           >Immerse <b>Jam</b></span
         ></a
       >
-      <p>鍏嶈垂鐨勬湰鍦板垎杞ㄣ€佺粌鐞翠笌褰曢煶宸ュ叿 <span>路 by Kreeli</span></p>
+      <p>免费的本地分轨、练琴与录音工具 <span>· by Kreeli</span></p>
       <div>
-        <a href="https://github.com/Kreeli/immerse-jam/blob/main/LICENSE">浣跨敤璁稿彲</a
-        ><a href="https://github.com/Kreeli/immerse-jam/issues">鍙嶉</a
-        ><a href="assets/author-appreciation.png">璧炶祻浣滆€?/a><a href="#main">鍥炲埌椤堕儴 鈫?/a>
+        <a href="https://github.com/Kreeli/immerse-jam/blob/main/LICENSE">使用许可</a
+        ><a href="https://github.com/Kreeli/immerse-jam/issues">反馈</a
+        ><a href="assets/author-appreciation.png">赞赏作者</a><a href="#main">回到顶部 ↑</a>
       </div>
     </footer>
     <dialog id="image-dialog" aria-labelledby="image-caption">
       <div class="dialog-toolbar">
-        <span>IMMERSE JAM 路 鐣岄潰棰勮</span
-        ><button id="close-dialog" aria-label="鍏抽棴鍥剧墖棰勮">
-          鍏抽棴 <span aria-hidden="true">脳</span>
+        <span>IMMERSE JAM · 界面预览</span
+        ><button id="close-dialog" aria-label="关闭图片预览">
+          关闭 <span aria-hidden="true">×</span>
         </button>
       </div>
       <div class="dialog-image-wrap"><img id="dialog-image" alt="" /></div>
@@ -916,7 +953,8 @@
     </dialog>
     <noscript
       ><p class="noscript-note">
-        寮€鍚?JavaScript 鍙互璇曞惉鍒嗚建銆佸垏鎹㈡埅鍥惧瑙堝拰鏀惧ぇ鍥剧墖锛涗笅杞姐€佷粙缁嶄笌甯歌闂涓嶅彈褰卞搷銆?      </p></noscript
+        开启 JavaScript 可以试听分轨、切换截图导览和放大图片；下载、介绍与常见问题不受影响。
+      </p></noscript
     >
   </body>
 </html>

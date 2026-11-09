@@ -1,56 +1,56 @@
-﻿(() => {
+(() => {
   'use strict';
   const $ = (id) => document.getElementById(id);
 
-  /* ---------- 浜旀鎴浘瀵艰 ---------- */
+  /* ---------- 五步截图导览 ---------- */
   const steps = [
     {
       image: 'assets/Win_home.png',
-      alt: '闊充箰搴撳伐鍏锋爮鐨勫鍏ラ煶涔愭寜閽?,
-      caption: '闊充箰搴擄細鐐瑰伐鍏锋爮銆屽鍏ラ煶涔愩€嶏紝鎴栫洿鎺ユ妸鏂囦欢鎷栬繘绐楀彛銆?,
-      title: '鎷栬繘鏉ワ紝灏变粠杩欓噷寮€濮嬨€?,
-      text: '鍦ㄣ€岄煶涔愬簱銆嶅伐鍏锋爮鐐广€屽鍏ラ煶涔愩€嶏紝鎴栨妸鏈湴闊抽銆佽棰戠洿鎺ユ嫋杩涚獥鍙ｃ€傚凡鏈夌殑 .ijam / .aum 椤圭洰涔熻兘瀵煎叆銆傜涓€娆″缓璁€変竴棣栧惉鐔熺殑姝屻€?,
-      tip: '鍏堥€変竴棣栫啛鎮夌殑姝岋紝绗竴娆＄粌涔犳洿瀹规槗鎵惧埌鎰熻銆?,
+      alt: '音乐库工具栏的导入音乐按钮',
+      caption: '音乐库：点工具栏「导入音乐」，或直接把文件拖进窗口。',
+      title: '拖进来，就从这里开始。',
+      text: '在「音乐库」工具栏点「导入音乐」，或把本地音频、视频直接拖进窗口。已有的 .ijam / .aum 项目也能导入。第一次建议选一首听熟的歌。',
+      tip: '先选一首熟悉的歌，第一次练习更容易找到感觉。',
       x: 47,
       y: 10,
     },
     {
       image: 'assets/Win_model.png',
-      alt: '璁剧疆涓庢ā鍨嬬獥鍙ｏ紝搴曢儴鏄剧ず鎺ㄨ崘鐨?BS RoFormer SW 鍏建妯″瀷',
-      caption: '璁剧疆涓庢ā鍨嬶細瑁呭ソ妯″瀷鍚庯紝鎵撳紑姝屾洸鐐瑰彸涓婅銆屽紑濮嬪垎鏋愩€嶃€?,
-      title: '璁╃數鑴戞妸杩欓姝屾媶寮€銆?,
-      text: '鍏堝畬鎴愬簲鐢ㄥ畨瑁咃紝鍐嶅埌渚ф爮銆岃缃笌妯″瀷銆嶆寜闇€涓嬭浇鎴栧鍏ャ€傛墦寮€姝屾洸鐐广€屽紑濮嬪垎鏋愩€嶏紝閫夋嫨鍒嗙妯″紡銆備笉鍚屾ā鍨嬬殑缁撴灉鍚勮嚜淇濆瓨锛屽彲闅忔椂鍒囨崲銆?,
-      tip: '妯″瀷涓嬭浇鍙兘杈冩參锛屼篃鍙互鎵撳紑鍘熷鍙戝竷婧愰摼鎺ヤ笅杞斤紝鍐嶅鍏ユ湰鍦版枃浠跺す銆?,
+      alt: '设置与模型窗口，底部显示推荐的 BS RoFormer SW 六轨模型',
+      caption: '设置与模型：装好模型后，打开歌曲点右上角「开始分析」。',
+      title: '让电脑把这首歌拆开。',
+      text: '先完成应用安装，再到侧栏「设置与模型」按需下载或导入。打开歌曲点「开始分析」，选择分离模式。不同模型的结果各自保存，可随时切换。',
+      tip: '模型下载可能较慢，也可以打开原始发布源链接下载，再导入本地文件夹。',
       x: 40,
       y: 59,
     },
     {
       image: 'assets/Win_practice.png',
-      alt: '璺熺粌妯″紡宸ヤ綔鍙帮紝鍙充晶涓虹嫭绔嬮煶杞ㄦ帶鍒跺彴',
-      caption: '璺熺粌妯″紡锛氬彸渚ф帶鍒跺彴閲屾壘鍒拌缁冪殑澹伴儴锛岀偣銆孧銆嶅叧闂０闊炽€?,
-      title: '瑕佺粌鍝建锛屽氨鍏冲摢杞ㄣ€?,
-      text: '浠庛€屼互杩欓姝屽垱寤恒€嶆垨渚ф爮鏂板缓璺熺粌銆傚彸渚ф帶鍒跺彴鍏虫帀浣犺婕斿鐨勫０閮紝鍓╀笅鐨勮嚜鍔ㄥ彉鎴愪即濂忋€傛兂鍚竻鍘熸紨濂忥紵鐢ㄣ€孲銆嶅崟鐙垨缁勫悎璇曞惉銆?,
-      tip: '鎺у埗鍙板彲浠ユ粴鍔紝闊抽噺銆佸０鍍忛兘鑳介€愯建璋冦€?,
+      alt: '跟练模式工作台，右侧为独立音轨控制台',
+      caption: '跟练模式：右侧控制台里找到要练的声部，点「M」关闭声音。',
+      title: '要练哪轨，就关哪轨。',
+      text: '从「以这首歌创建」或侧栏新建跟练。右侧控制台关掉你要演奏的声部，剩下的自动变成伴奏。想听清原演奏？用「S」单独或组合试听。',
+      tip: '控制台可以滚动，音量、声像都能逐轨调。',
       x: 97,
       y: 56,
     },
     {
       image: 'assets/Win_practice.png',
-      alt: '璺熺粌椤靛乏涓婅鐨勫惊鐜钀芥寜閽紝鍙充笅瑙掑彲璋冩暣鎾斁閫熷害',
-      caption: '寰幆缁冧範锛氱偣涓ゆ宸︿笂瑙掓寜閽寮€濮嬪拰缁撴潫锛屽簳鏍忓彸渚ц皟閫熷害銆?,
-      title: '闅剧殑閭ｅ嚑绉掞紝澶氱粰鑷繁涓€鐐规椂闂淬€?,
-      text: '鐐逛袱娆°€岃缃惊鐜钀姐€嶈濂借捣姝紝鎷栨尝褰㈠畾浣嶏紝閫熷害璋冨埌 0.5 鎱㈡參鍟冿紱闇€瑕佹椂鍗曠嫭绉昏皟銆傜啛浜嗗啀鍥炲埌鍘熼€熴€?,
-      tip: '绌烘牸鎾斁/鏆傚仠锛孡 璁惧惊鐜綅缃紝M 鍔犳爣璁扮偣銆?,
+      alt: '跟练页左上角的循环段落按钮，右下角可调整播放速度',
+      caption: '循环练习：点两次左上角按钮设开始和结束，底栏右侧调速度。',
+      title: '难的那几秒，多给自己一点时间。',
+      text: '点两次「设置循环段落」设好起止，拖波形定位，速度调到 0.5 慢慢啃；需要时单独移调。熟了再回到原速。',
+      tip: '空格播放/暂停，L 设循环位置，M 加标记点。',
       x: 42,
       y: 8,
     },
     {
       image: 'assets/Win_practice.png',
-      alt: '璺熺粌妯″紡搴曢儴鐨勭粌鐞村綍闊虫寜閽紝涓婁笅瀵归綈鏄剧ず浼村鍜屾紨濂忓綍闊?,
-      caption: '褰曢煶鍥炲惉锛氬簳鏍忋€岀粌鐞村綍闊炽€嶅紑褰曪紝褰曢煶鍜屼即濂忔尝褰笂涓嬪榻愩€?,
-      title: '褰曚笅鏉ワ紝鍚惉鑷繁鐨勮繘姝ャ€?,
-      text: '鍏堣濂借緭鍏ヨ澶囥€佷即濂忚緭鍑哄拰澹伴亾锛岀偣搴曟爮銆岀粌鐞村綍闊炽€嶃€傚綍瀹屼粠褰曢煶搴撳洖鍚紝瀵圭潃娉㈠舰鐪嬭嚜宸辨槸鎶㈡媿杩樻槸鎷栨媿銆?,
-      tip: '璇锋埓鑰虫満銆傝緭鍏ュ彧鏈変箰鍣ㄩ€夈€屽彧褰曚箰鍣ㄣ€嶏紝澹板崱宸叉贩鍏ヤ即濂忛€夈€屽０鍗″凡娣烽煶銆嶃€?,
+      alt: '跟练模式底部的练琴录音按钮，上下对齐显示伴奏和演奏录音',
+      caption: '录音回听：底栏「练琴录音」开录，录音和伴奏波形上下对齐。',
+      title: '录下来，听听自己的进步。',
+      text: '先设好输入设备、伴奏输出和声道，点底栏「练琴录音」。录完从录音库回听，对着波形看自己是抢拍还是拖拍。',
+      tip: '请戴耳机。输入只有乐器选「只录乐器」，声卡已混入伴奏选「声卡已混音」。',
       x: 20,
       y: 96,
     },
@@ -89,8 +89,8 @@
     clearInterval(timer);
     timer = null;
     tour.setAttribute('aria-pressed', String(playing));
-    tour.querySelector('.tour-icon').textContent = playing ? '鈪? : '鈻?;
-    $('tour-label').textContent = playing ? '鏆傚仠鑷姩婕旂ず' : '鑷姩婕旂ず杩欎簲姝?;
+    tour.querySelector('.tour-icon').textContent = playing ? 'Ⅱ' : '▶';
+    $('tour-label').textContent = playing ? '暂停自动演示' : '自动演示这五步';
     if (playing) timer = setInterval(() => showStep(current + 1), 6500);
   }
   buttons.forEach((button, index) => {
@@ -127,7 +127,7 @@
     ).observe(document.querySelector('.guide-layout'));
   }
 
-  /* ---------- 鎴浘寮圭獥 ---------- */
+  /* ---------- 截图弹窗 ---------- */
   const dialog = $('image-dialog');
   document.querySelectorAll('[data-image]').forEach((button) => {
     button.addEventListener('click', () => {
@@ -149,7 +149,7 @@
             ($('dialog-image').clientHeight * steps[current].y) / 100 - imageWrap.clientHeight / 2;
         })
         .catch(() => {});
-      if (window.innerWidth <= 560) $('image-caption').textContent += '锛堝彲宸﹀彸婊戝姩鏌ョ湅瀹屾暣鎴浘锛?;
+      if (window.innerWidth <= 560) $('image-caption').textContent += '（可左右滑动查看完整截图）';
     });
   });
   $('close-dialog').addEventListener('click', () => dialog.close());
@@ -166,7 +166,7 @@
   });
   dialog.addEventListener('close', () => document.body.classList.remove('dialog-open'));
 
-  /* ---------- 鍏建鍒嗚建璇曞惉 ---------- */
+  /* ---------- 六轨分轨试听 ---------- */
   const TRACKS = ['vocals', 'drums', 'bass', 'guitar', 'piano', 'other'];
   const ALL_AUDIO = ['original', ...TRACKS];
   const stemRows = [...document.querySelectorAll('#stem-list li')];
@@ -216,10 +216,10 @@
 
     function setPlaying(next) {
       state.playing = next;
-      playButton.querySelector('span').textContent = next ? '鈪? : '鈻?;
+      playButton.querySelector('span').textContent = next ? 'Ⅱ' : '▶';
       playButton.setAttribute(
         'aria-label',
-        `${next ? '鏆傚仠' : '鎾斁'}${state.mode === 'original' ? '鍘熷褰曢煶' : '鍏ㄩ儴澹伴儴'}`,
+        `${next ? '暂停' : '播放'}${state.mode === 'original' ? '原始录音' : '全部声部'}`,
       );
       if (next) {
         if (clock.ended) clock.currentTime = 0;
@@ -307,7 +307,8 @@
       refreshMuteState();
     });
 
-    // 杩涘害鏄剧ず涓庢紓绉讳慨姝?    setInterval(() => {
+    // 进度显示与漂移修正
+    setInterval(() => {
       if (!seeking && Number.isFinite(clock.duration) && clock.duration > 0) {
         seek.value = String((clock.currentTime / clock.duration) * 1000);
         currentLabel.textContent = formatTime(clock.currentTime);
@@ -325,7 +326,7 @@
     refreshMuteState();
   }
 
-  /* ---------- 鏈€鏂扮増鏈俊鎭紙GitHub Releases API锛屽け璐ユ椂淇濈暀闈欐€佸厹搴曪級 ---------- */
+  /* ---------- 最新版本信息（GitHub Releases API，失败时保留静态兜底） ---------- */
   const versionEls = {
     windows: document.querySelector('[data-release-version="windows"]'),
     android: document.querySelector('[data-release-version="android"]'),
@@ -368,7 +369,7 @@
         versionEls.windows.textContent = win.release.tag_name || 'v0.1.12';
       }
       if (win && releaseDateEl && win.release.published_at) {
-        releaseDateEl.textContent = `鍙戝竷浜?${formatDate(win.release.published_at)}`;
+        releaseDateEl.textContent = `发布于 ${formatDate(win.release.published_at)}`;
       }
       const android = findAsset(releases, /\.apk$/i);
       if (android && versionEls.android) {
@@ -380,14 +381,15 @@
       const latest = releases.find((release) => !release.draft) || {};
       if (releaseNameEl && latest.name) releaseNameEl.textContent = latest.name;
       if (releaseDateInlineEl && latest.published_at) {
-        releaseDateInlineEl.textContent = `鍙戝竷浜?${formatDate(latest.published_at)}`;
+        releaseDateInlineEl.textContent = `发布于 ${formatDate(latest.published_at)}`;
       }
       if (releaseNotesEl && typeof latest.body === 'string' && latest.body.trim()) {
         const text = latest.body.trim();
-        releaseNotesEl.textContent = text.slice(0, 600) + (text.length > 600 ? '鈥︹€? : '');
+        releaseNotesEl.textContent = text.slice(0, 600) + (text.length > 600 ? '……' : '');
       }
     } catch {
-      // 缃戠粶鎴栨帴鍙ｅけ璐ユ椂淇濈暀椤甸潰閲岀殑闈欐€佺増鏈俊鎭?    } finally {
+      // 网络或接口失败时保留页面里的静态版本信息
+    } finally {
       clearTimeout(timeout);
     }
   }
