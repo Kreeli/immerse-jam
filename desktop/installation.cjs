@@ -145,6 +145,7 @@ async function prepare(input, services = {}) {
   if (mode === 'cuda' && !services.runtime) {
     const result = await require('./gpu-health.cjs').probeGpu(python);
     if (!result.ready) {
+      if (result.detail) log({ message: 'GPU readiness check failed: ' + result.detail });
       if (input.mode === 'cuda')
         throw new Error('NVIDIA 驱动不兼容，请重新安装并选择 CPU 或自动模式');
       mode = 'cpu';
