@@ -34,6 +34,7 @@ type Props = Pick<
   | 'setPage'
   | 'setSelected'
   | 'setModal'
+  | 'openSettings'
   | 'folders'
   | 'setFolders'
   | 'notify'
@@ -49,6 +50,7 @@ export default function Sidebar({
   setPage,
   setSelected,
   setModal,
+  openSettings,
   folders,
   setFolders,
   notify,
@@ -223,7 +225,8 @@ export default function Sidebar({
           <button
             className="nr-nav-item"
             title={tr('设置与模型')}
-            onClick={() => setModal('settings')}
+            data-help={tr('更改界面、音频设备与存储设置。')}
+            onClick={() => openSettings()}
           >
             <Settings size={18} />
             <span>{tr('设置与模型')}</span>

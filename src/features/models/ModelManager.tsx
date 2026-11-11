@@ -49,7 +49,8 @@ export default function ModelManager({
                   : model.stems.map((stem) => names[stem] || stem).join(' · ')}
               </small>
               {!!model.sourceFiles?.length && (
-                <>
+                <details className="model-source-details">
+                  <summary>{tr('源文件与手动导入')}</summary>
                   <small className="model-import-hint">{tr('原始发布源下载')}</small>
                   <div className="model-source-links" aria-label={tr('原始发布源下载')}>
                     {model.sourceFiles.map((source) => (
@@ -75,12 +76,12 @@ export default function ModelManager({
                   <p className="model-import-hint">
                     {tr('手动下载时，请将以上全部文件放在同一文件夹，再点击“导入本地模型”。')}
                   </p>
-                </>
+                </details>
               )}
               {loading && (
                 <>
                   <progress
-                    aria-label={tr('{0}下载进度', [model.name])}
+                    aria-label={tr('{0}下载进度', [translateMessage(model.name)])}
                     max="1"
                     value={state.progress ?? undefined}
                   />

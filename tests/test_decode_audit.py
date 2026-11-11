@@ -43,6 +43,18 @@ class DecodeAuditTests(unittest.TestCase):
         self.assertEqual(self.target.read_bytes(), self.before)
         self.assertEqual(sorted(p.name for p in self.root.iterdir()), ['playback.wav', 'source.wav'])
 
+    def test_invalid_decoded_duration_preserves_previous_playback(self):
+        def invalid(args, **_kwargs):
+            Path(args[-1]).write_bytes(b'empty decode fixture')
+
+        with patch.dict(os.environ, {'IMMERSE_FFMPEG': 'fixture-decoder'}), patch('analysis.subprocess.run', side_effect=invalid):
+            for duration in (0, -1, float('nan'), float('inf')):
+                with self.subTest(duration=duration), patch('analysis.sf.info', return_value=SimpleNamespace(duration=duration)):
+                    with self.assertRaisesRegex(ValueError, '没有可读取的采样'):
+                        decode(self.source, self.target)
+                    self.assertEqual(self.target.read_bytes(), self.before)
+                    self.assertEqual(sorted(p.name for p in self.root.iterdir()), ['playback.wav', 'source.wav'])
+
     def test_successful_decode_atomically_replaces_the_previous_file(self):
         decoder = shutil.which('ffmpeg')
         if not decoder:

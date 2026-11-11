@@ -239,8 +239,10 @@ let browser;
     return;
   }
   await page.getByRole('button', { name: '第一次使用？', exact: true }).click();
-  assert.equal(await page.locator('.help-first-steps li').count(), 3);
-  await page.getByRole('button', { name: '关闭窗口', exact: true }).click();
+  const guide = page.getByRole('dialog', { name: '使用引导', exact: true });
+  await guide.getByRole('heading', { name: '从一首歌开始', exact: true }).waitFor();
+  assert.equal(await guide.locator('.help-first-steps li').count(), 3);
+  await guide.getByRole('button', { name: '跳过引导', exact: true }).click();
   assert.equal(await page.getByRole('button', { name: '管理模型', exact: true }).count(), 0);
   assert.equal(await page.getByText('音乐留在你的设备上', { exact: true }).count(), 0);
   const nav = page.locator('.sidebar');

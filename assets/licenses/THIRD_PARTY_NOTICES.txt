@@ -172,6 +172,12 @@ git+https://github.com/radix-ui/primitives.git
 @radix-ui/react-use-is-hydrated 0.1.3 — MIT
 git+https://github.com/radix-ui/primitives.git
 
+NAudio 2.2.1 — MIT (native Windows audio output)
+https://github.com/naudio/NAudio/tree/v2.2.1
+
+Microsoft .NET 10 portable runtime — license and third-party notices bundled in native-audio/licenses
+https://github.com/dotnet/runtime
+
 Bricolage Grotesque — SIL OFL 1.1
 https://github.com/google/fonts/tree/main/ofl/bricolagegrotesque
 

@@ -52,6 +52,11 @@ for (const family of ['BricolageGrotesque', 'JetBrainsMono']) {
     path.join(dir, family + '-OFL.txt'),
   );
 }
+fs.copyFileSync('desktop/native-audio/NAudio-LICENSE.txt', path.join(dir, 'NAudio-LICENSE.txt'));
+rows.push(
+  'NAudio 2.2.1 — MIT (native Windows audio output)\nhttps://github.com/naudio/NAudio/tree/v2.2.1',
+  'Microsoft .NET 10 portable runtime — license and third-party notices bundled in native-audio/licenses\nhttps://github.com/dotnet/runtime',
+);
 rows.push(
   'Bricolage Grotesque — SIL OFL 1.1\nhttps://github.com/google/fonts/tree/main/ofl/bricolagegrotesque',
   'JetBrains Mono — SIL OFL 1.1\nhttps://github.com/JetBrains/JetBrainsMono',

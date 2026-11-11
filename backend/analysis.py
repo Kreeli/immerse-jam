@@ -14,6 +14,7 @@ def decode(source, destination, sr=44100):
     try:
         subprocess.run([ffmpeg,'-nostdin','-v','error','-y','-i',str(source),'-vn','-t','14401','-ac','2','-ar',str(sr),'-c:a','pcm_f32le','-rf64','auto',str(temp)],check=True,creationflags=0x08000000 if os.name=='nt' else 0)
         info=sf.info(temp)
+        if not math.isfinite(info.duration) or info.duration<=0:raise ValueError('音频中没有可读取的采样')
         if info.duration>14400:raise ValueError('音频最长四小时，请先分段处理')
         os.replace(temp,destination);return info
     finally:temp.unlink(missing_ok=True)

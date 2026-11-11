@@ -42,8 +42,14 @@ function atomicJson(file, value) {
   try {
     fs.writeFileSync(temp, JSON.stringify(value, null, 2));
     replaceFile(temp, file);
-  } finally {
-    fs.rmSync(temp, { force: true });
+  } catch (error) {
+    // A successful rename consumes the temp file. Clean up only on failure.
+    try {
+      fs.unlinkSync(temp);
+    } catch {
+      /* Preserve the original write or rename error. */
+    }
+    throw error;
   }
 }
 // Windows scanners and the native installer's INI reader can briefly hold the
