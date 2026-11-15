@@ -28,7 +28,7 @@
 
 | 文件                                                    | SHA-256                                                             |
 | ------------------------------------------------------- | ------------------------------------------------------------------- |
-| `release/win-unpacked/resources/app.asar`               | `ba3315f8d615c936271f40efbea448d21e1013b83037e01559cf2c2cf9ac2883`  |
+| `release/win-unpacked/resources/app.asar`               | `9add2562639e913de1f14586d0758d70b575f3ca5b6357ed815953fd8dfcaf75`  |
 | `release/Immerse-Jam-Android-playback-stable-arm64.apk` | `f24d8373ec3923633837ec8f1027d9c911b4212c8b292e40508b3a708f6d0d7e`  |
 | `release/website-ready/Immerse-Jam-site-6447fe7.zip`    | `5734753a71173709700e91b6656ec1c8e5706f41d17976dae07fae40e9ec0ab74` |
 
