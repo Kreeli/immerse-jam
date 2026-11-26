@@ -267,7 +267,7 @@ public class NativeBridge {
       case "peer-select":
         return peers.select(d.getString("id"), d.optBoolean("accept"));
       case "peer-close":
-        peers.close();
+        peers.disconnect();
         return true;
       case "project-recover":
         return store.recover(d.getString("id"));
@@ -414,7 +414,19 @@ public class NativeBridge {
           String itemId = d.getString(attachment ? "attachmentId" : "groupId");
           if (!attachment && !p.optString("kind").equals("creation")) throw new IOException("分轨分组数据无效");
           if (!attachment && itemId.equals("source") && p.has("sessionSource")) {
-            p.remove("sessionSource"); p.remove("sourceMix");
+            ProjectStore.detachSource(p);
+            String placeholder = "media/" + UUID.randomUUID() + ".wav";
+            File empty = store.asset(p.getString("id"), placeholder);
+            empty.getParentFile().mkdirs();
+            Files.write(empty.toPath(), AudioFiles.waveHeader(0, 44100, 16, 1), java.nio.file.StandardOpenOption.CREATE_NEW);
+            p.put("original", placeholder);
+            try {
+              store.save(p);
+            } catch (Exception error) {
+              empty.delete();
+              throw error;
+            }
+            return store.get(p.getString("id"));
           } else {
             JSONArray items = p.getJSONArray(key), remaining = new JSONArray();
             boolean found = false;

@@ -1,7 +1,9 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { contained } = require('./store.cjs');
+const { contained, atomicJson } = require('./store.cjs');
+const { validateProject } = require('../shared/project-validation.cjs');
+const { Folders } = require('./folders.cjs');
 const { fromAudioJam } = require('./archive.cjs');
 function open(folder) {
   const { DatabaseSync } = require('node:sqlite');
@@ -25,6 +27,9 @@ function inventory(folder) {
   }
   return { assets, map };
 }
+function trackFile(map, track) {
+  return (track.name === 'main' && map.get(track.videoId)) || map.get(track.audioId);
+}
 function scanDatabase(folder) {
   const db = open(folder);
   try {
@@ -39,12 +44,12 @@ function scanDatabase(folder) {
           )
           .filter(Boolean);
         const main = tracks.find((t) => t.name === 'main'),
-          missing = tracks.filter((t) => !map.has(t.videoId || t.audioId));
+          missing = tracks.filter((t) => !trackFile(map, t));
         return {
           id: m.id,
           name: m.name,
           duration: m.duration / 1000,
-          available: !!main && map.has(main.videoId || main.audioId),
+          available: !!main && !!trackFile(map, main),
           tracks: tracks.filter((t) => t.name !== 'main' && map.has(t.audioId)).length,
           missing: missing.map((t) => t.name),
         };
@@ -54,15 +59,29 @@ function scanDatabase(folder) {
     db.close();
   }
 }
+function finishFolderImport(store, folders, project) {
+  if (
+    !project.playlist ||
+    project.migration?.source !== 'Audio Jam' ||
+    project.migration.folderImportCommitted
+  )
+    return project;
+  folders.addMigrated(project);
+  // Older builds wrote folderImported before the catalog commit.
+  delete project.migration.folderImported;
+  project.migration.folderImportCommitted = true;
+  return store.save(project);
+}
 function importDatabase(store, folder, selected) {
   const db = open(folder),
+    folders = new Folders(store),
     results = [];
   try {
     const { assets, map } = inventory(folder);
     for (const id of selected) {
-      const duplicate = store.list().find((p) => p.originId === id);
+      const duplicate = store.list().find((p) => !p.kind && p.originId === id);
       if (duplicate) {
-        results.push({ ...duplicate, duplicate: true });
+        results.push({ ...finishFolderImport(store, folders, duplicate), duplicate: true });
         continue;
       }
       const m = db.prepare('SELECT * FROM music WHERE id=? AND isDeleted=0').get(id);
@@ -71,8 +90,7 @@ function importDatabase(store, folder, selected) {
         .map((key) => db.prepare('SELECT * FROM track WHERE id=? AND isDeleted=0').get(key))
         .filter(Boolean);
       const main = sourceTracks.find((t) => t.name === 'main');
-      if (!main || !map.has(main.videoId || main.audioId))
-        throw new Error(m.name + ' 的原曲尚未下载到本机');
+      if (!main || !trackFile(map, main)) throw new Error(m.name + ' 的原曲尚未下载到本机');
       const sourceAttachments = db
         .prepare('SELECT id,title,name,remark FROM attachment WHERE musicId=? AND isDeleted=0')
         .all(id);
@@ -82,10 +100,10 @@ function importDatabase(store, folder, selected) {
         )
         .filter(Boolean);
       const tracks = sourceTracks
-        .filter((t) => map.has(t.name === 'main' ? t.videoId || t.audioId : t.audioId))
+        .filter((t) => trackFile(map, t))
         .map((t) => ({
           ...t,
-          audio_file: map.get(t.name === 'main' ? t.videoId || t.audioId : t.audioId),
+          audio_file: trackFile(map, t),
           speed: t.speed,
           pitch_key: t.pitchKey,
         }));
@@ -128,15 +146,20 @@ function importDatabase(store, folder, selected) {
         }));
         p.migration = {
           source: 'Audio Jam',
-          missingTracks: sourceTracks.filter((t) => !map.has(t.audioId)).map((t) => t.name),
+          missingTracks: sourceTracks.filter((t) => !trackFile(map, t)).map((t) => t.name),
           at: new Date().toISOString(),
         };
         const folderInfo = db.prepare('SELECT title FROM folder WHERE id=?').get(m.parentId);
-        if (folderInfo) p.playlist = folderInfo.title;
+        if (folderInfo) {
+          p.playlist = folderInfo.title;
+        }
+        validateProject(p);
+        atomicJson(path.join(staging, 'project.json'), p);
         destination = store.dir(p.id);
         fs.renameSync(staging, destination);
-        results.push(store.save(p));
+        const saved = store.save(p);
         committed = true;
+        results.push(finishFolderImport(store, folders, saved));
       } finally {
         if (!committed) {
           fs.rmSync(staging, { recursive: true, force: true });

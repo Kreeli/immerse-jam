@@ -86,6 +86,9 @@ class PeerFiles {
       !/^[a-f0-9]{64}$/.test(item.sha256)
     )
       throw new Error('文件清单无效');
+    const pendingBytes = [...this.pending.values()].reduce((sum, file) => sum + file.size, 0);
+    if (this.pending.size >= 100 || pendingBytes + item.size > 8 * 1024 ** 3)
+      throw new Error('请先处理待接收的文件');
     const id = crypto.randomUUID(),
       dir = path.join(this.store.base, 'incoming-files');
     fs.mkdirSync(dir, { recursive: true });
@@ -132,7 +135,7 @@ class PeerFiles {
     this.onIncoming({ type: 'incoming', id, name: item.name, size: item.size, remote: true });
     return true;
   }
-  close() {
+  disconnect() {
     this.generation++;
     for (const item of this.incoming.values()) {
       try {
@@ -152,11 +155,16 @@ class PeerFiles {
       } catch {}
     }
     this.outgoing.clear();
+  }
+  close() {
+    this.disconnect();
     for (const item of this.pending.values()) {
+      if (item.selecting) continue;
       try {
         fs.rmSync(item.file, { force: true });
       } catch {}
     }
+    this.onIncoming({ type: 'incoming-cleared', remote: true });
     this.pending.clear();
   }
 }

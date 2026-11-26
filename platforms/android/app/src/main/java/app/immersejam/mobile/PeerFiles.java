@@ -95,6 +95,10 @@ final class PeerFiles implements AutoCloseable {
         || size < 1
         || size > 8L * 1024 * 1024 * 1024
         || !d.optString("sha256").matches("[a-f0-9]{64}")) throw new IOException("文件清单无效");
+    long queuedBytes = size;
+    for (Incoming item : pending.values()) queuedBytes += item.size;
+    if (pending.size() >= 100 || queuedBytes > 8L * 1024 * 1024 * 1024)
+      throw new IOException("请先处理待接收的文件");
     if (store.root.getUsableSpace() < size * 2 + 100L * 1048576) throw new IOException("剩余存储空间不足");
     String id = UUID.randomUUID().toString();
     Incoming item = new Incoming();
@@ -152,13 +156,18 @@ final class PeerFiles implements AutoCloseable {
   Object select(String id, boolean accept) throws Exception {
     Incoming item = pending.remove(id);
     if (item == null) throw new IOException("待接收文件不存在");
+    if (!accept) {
+      item.file.delete();
+      return null;
+    }
     try {
-      if (!accept) return null;
       JSONObject p = store.importArchive(item.file, UUID.randomUUID().toString());
+      item.file.delete();
       emit.accept(new JSONObject().put("type", "library-changed"));
       return new JSONArray().put(p);
-    } finally {
-      item.file.delete();
+    } catch (Exception error) {
+      if (item.file.isFile()) pending.put(id, item);
+      throw error;
     }
   }
 
@@ -173,7 +182,7 @@ final class PeerFiles implements AutoCloseable {
     outgoing.clear();
   }
 
-  public void close() {
+  void disconnect() {
     closeOutgoing();
     for (Incoming item : incoming.values()) {
       try {
@@ -183,7 +192,18 @@ final class PeerFiles implements AutoCloseable {
       item.file.delete();
     }
     incoming.clear();
+  }
+
+  public void close() {
+    disconnect();
     for (Incoming item : pending.values()) item.file.delete();
+    if (!pending.isEmpty()) {
+      try {
+        emit.accept(new JSONObject().put("type", "incoming-cleared").put("remote", true));
+      } catch (JSONException error) {
+        throw new IllegalStateException(error);
+      }
+    }
     pending.clear();
   }
 

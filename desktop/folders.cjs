@@ -44,6 +44,22 @@ class Folders {
     atomicJson(this.file, data);
     return data;
   }
+  addMigrated(project) {
+    const name = project.playlist.trim();
+    if (!name || ['未分类项目', '未分类', 'Uncategorized'].includes(name)) return;
+    const data = this.read();
+    if (data.folders.some((item) => item.projectIds.includes(project.id))) return;
+    let folder = data.folders.find(
+      (item) => item.name.toLocaleLowerCase() === name.toLocaleLowerCase(),
+    );
+    if (!folder) {
+      if (data.folders.length >= 200) throw new Error('分类数量已达上限');
+      folder = { id: crypto.randomUUID(), name, projectIds: [] };
+      data.folders.push(folder);
+    }
+    folder.projectIds.push(project.id);
+    atomicJson(this.file, data);
+  }
   list() {
     const ids = new Set(this.store.list().map((project) => project.id));
     return this.read().folders.map((folder) => ({

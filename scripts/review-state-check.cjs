@@ -153,6 +153,28 @@ createRoot(document.getElementById('root')).render(React.createElement(Harness))
   await page.evaluate(() =>
     window.__call('result-select', { id: window.__remote.id, resultId: 'same-project' }),
   );
+  await page.evaluate(() => {
+    window.__emit({ type: 'progress', scope: 'update', phase: 'complete', progress: 1 });
+    window.__emit({ type: 'incoming', id: 'first' });
+    window.__emit({ type: 'incoming', id: 'second', remote: true });
+  });
+  await page.waitForFunction(() => window.__workspace.incoming?.id === 'first');
+  assert.equal(await page.evaluate(() => window.__workspace.job), null);
+  await page.evaluate(() => window.__workspace.dismissIncoming('first'));
+  await page.waitForFunction(() => window.__workspace.incoming?.id === 'second');
+  await page.evaluate(() => window.__emit({ type: 'incoming-cleared', remote: true }));
+  await page.waitForFunction(() => !window.__workspace.incoming);
+  await page.evaluate(() => window.__workspace.setDeletingProject(window.__workspace.project));
+  await page.waitForFunction(() => !!window.__workspace.deletingProject);
+  await page.evaluate(() => window.__workspace.deleteProject());
+  await page.waitForFunction(() => !window.__workspace.project);
+  assert.equal(await page.evaluate(() => window.__workspace.player.current.project), null);
+  await page.evaluate(async () => {
+    const player = window.__workspace.player.current;
+    player.init = async () => {};
+    player.load = async () => { throw Error('Reloaded deleted project'); };
+    await player.configureAudio({ backend: 'web-audio', deviceId: 'default', sampleRate: 96000 });
+  });
   assert.deepEqual(errors, []);
   console.log(
     'React save regressions passed: notes/edit interleaving, retained failed notes, no click retry flood, scoped ordering, close cancellation and retry.',

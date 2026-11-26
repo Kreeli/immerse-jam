@@ -269,6 +269,8 @@ test('desktop playback estimates actual file duration before decoding', async ()
     { check, decodeBudget } = require('../desktop/playback-budget.cjs');
   const result = await check(store, p.id, [p.original], 'unused-for-wav');
   assert.equal(result.bytes, 48000 * 2 * 4);
+  const highRate = await check(store, p.id, [p.original], 'unused-for-wav', 96000);
+  assert.equal(highRate.bytes, result.bytes * 2);
   const repeated = await check(store, p.id, [p.original, p.original], 'unused-for-wav');
   assert.equal(repeated.bytes, result.bytes * 2);
   assert.equal(decodeBudget(1000, 10000), 2500);

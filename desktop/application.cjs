@@ -653,8 +653,8 @@ app
       return jobs.cancel(jobId);
     });
     handle('project-recover', ({ id }) => store.recover(id));
-    handle('playback-budget', ({ id, files }) =>
-      require('./playback-budget.cjs').check(store, id, files, ffmpeg),
+    handle('playback-budget', ({ id, files, sampleRate }) =>
+      require('./playback-budget.cjs').check(store, id, files, ffmpeg, sampleRate),
     );
     handle('export', async ({ id, full }) => {
       const p = store.get(id);
@@ -735,43 +735,32 @@ app
     handle('peer-begin', (data) => peerFiles.begin(data));
     handle('peer-append', (data) => peerFiles.append(data));
     handle('peer-finish', (data) => peerFiles.finish(data));
-    handle('peer-close', () => peerFiles.close());
-    handle('peer-select', async (data) => {
-      const item = peerFiles.pending.get(data.id);
-      if (!item) throw new Error('待接收文件不存在');
-      peerFiles.pending.delete(data.id);
+    handle('peer-close', () => peerFiles.disconnect());
+    async function selectIncoming(receiver, { id, accept }) {
+      const item = receiver.pending.get(id);
+      if (!item || item.selecting) throw new Error('待接收文件不存在');
+      item.selecting = true;
+      let completed = false;
       try {
-        const result = data.accept ? await importFiles([item.file]) : null;
-        if (data.accept && !result.length) throw new Error('导入未完成，请重试');
-        fs.rmSync(item.file, { force: true });
-        return result;
-      } catch (error) {
-        peerFiles.pending.set(data.id, item);
-        throw error;
-      }
-    });
-    handle('pair-select', async (data) => {
-      const item = transfer.pending?.get(data.id);
-      if (!item) throw new Error('待接收文件不存在');
-      transfer.pending.delete(data.id);
-      if (!data.accept) {
-        fs.rmSync(item.file, { force: true });
-        return null;
-      }
-      try {
-        const result = await importFiles([item.file]);
-        if (!result.length) throw new Error('导入未完成，请重试');
-        if (result.length === 1 && !/\.(ijam|aum)$/i.test(item.name))
+        const result = accept ? await importFiles([item.file]) : null;
+        if (accept && !result.length) throw new Error('导入未完成，请重试');
+        if (receiver === transfer && result?.length === 1 && !/\.(ijam|aum)$/i.test(item.name))
           result[0] = store.update(result[0].id, {
             title: path.basename(item.name, path.extname(item.name)),
           });
-        fs.rmSync(item.file, { force: true });
+        completed = true;
         return result;
-      } catch (error) {
-        transfer.pending.set(data.id, item);
-        throw error;
+      } finally {
+        item.selecting = false;
+        // Keep failed imports available for retry while this connection owns them.
+        if (completed || !receiver.pending.has(id)) {
+          fs.rmSync(item.file, { force: true });
+          receiver.pending.delete(id);
+        }
       }
-    });
+    }
+    handle('peer-select', (data) => selectIncoming(peerFiles, data));
+    handle('pair-select', (data) => selectIncoming(transfer, data));
     handle('reveal', ({ id }) => shell.showItemInFolder(path.join(store.dir(id), 'project.json')));
     handle('window', ({ action }) => {
       if (action === 'close') {

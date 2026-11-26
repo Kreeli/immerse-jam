@@ -14,6 +14,116 @@ import org.junit.runner.RunWith;
 @RunWith(AndroidJUnit4.class)
 public class StorageTest {
   @Test
+  public void sourcedAndDetachedCreationExports() throws Exception {
+    Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+    ProjectStore store = new ProjectStore(context);
+    JSONObject p = store.create(new JSONObject().put("kind", "creation").put("title", "Export check"));
+    String id = p.getString("id");
+    File full = null, detached = null;
+    String importedId = UUID.randomUUID().toString();
+    try {
+      String stem = "media/bass.wav";
+      AudioFiles.writeSilence(store.asset(id, stem));
+      p.put("sessionSource", new JSONObject().put("projectId", id).put("title", "Source"));
+      p.put("tracks", new JSONArray().put(ProjectStore.track("bass", "Bass", stem)));
+      store.save(p);
+      full = store.pack(id);
+      try (java.util.zip.ZipFile zip = new java.util.zip.ZipFile(full)) {
+        assertNotNull(zip.getEntry(stem));
+        JSONObject manifest = new JSONObject(new String(ProjectStore.bytes(zip.getInputStream(zip.getEntry("project.json"))), java.nio.charset.StandardCharsets.UTF_8));
+        assertEquals(2, manifest.getInt("schemaVersion"));
+      }
+      // A creation detached by an older app still contains the source track in its manifest.
+      p.remove("sessionSource");
+      store.save(p);
+      detached = store.pack(id);
+      ProjectStore.remove(store.dir(id));
+      JSONObject saved = store.importArchive(detached, importedId);
+      assertEquals(0, saved.getJSONArray("tracks").length());
+      assertFalse(store.asset(importedId, stem).exists());
+      assertEquals(44, store.asset(importedId, saved.getString("original")).length());
+    } finally {
+      ProjectStore.remove(store.dir(id));
+      ProjectStore.remove(store.dir(importedId));
+      if (full != null) full.delete();
+      if (detached != null) detached.delete();
+    }
+  }
+
+  @Test
+  public void disconnectRetainsVerifiedFilesAndDetachedMediaIsPruned() throws Exception {
+    Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+    ProjectStore store = new ProjectStore(context);
+    JSONObject p = store.create(new JSONObject().put("kind", "creation").put("title", "Receive cleanup"));
+    String id = p.getString("id");
+    PeerFiles peers = new PeerFiles(store, event -> {});
+    File archive = null;
+    try {
+      File original = store.asset(id, p.getString("original"));
+      File shared = store.asset(id, "media/shared.wav");
+      AudioFiles.writeSilence(shared);
+      p.put("sessionSource", new JSONObject().put("projectId", id).put("title", "Source"));
+      p.put("tracks", new JSONArray().put(ProjectStore.track("bass", "Bass", "media/shared.wav")));
+      p.put("attachments", new JSONArray().put(new JSONObject().put("id", "keep").put("name", "shared.wav").put("file", "media/shared.wav")));
+      store.save(p);
+      ProjectStore.detachSource(p);
+      AudioFiles.writeSilence(store.asset(id, "media/detached.wav"));
+      p.put("original", "media/detached.wav");
+      store.save(p);
+      store.get(id);
+      assertFalse(original.exists());
+      assertTrue(shared.isFile());
+      archive = store.pack(id);
+      byte[] bytes = java.nio.file.Files.readAllBytes(archive.toPath());
+      JSONObject meta = new JSONObject().put("size", bytes.length).put("name", "A.ijam")
+          .put("sha256", ProjectStore.sha(archive));
+      String a = peers.begin(meta);
+      peers.append(new JSONObject().put("id", a).put("offset", 0)
+          .put("chunk", android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)));
+      peers.finish(a);
+      String b = peers.begin(meta);
+      File unfinished = peers.incoming.get(b).file;
+      peers.disconnect();
+      assertFalse(unfinished.exists());
+      assertTrue(peers.pending.get(a).file.isFile());
+      assertEquals(id, ((JSONArray) peers.select(a, true)).getJSONObject(0).getString("id"));
+    } finally {
+      peers.close();
+      ProjectStore.remove(store.dir(id));
+      if (archive != null) archive.delete();
+    }
+  }
+
+  @Test
+  public void previouslyEditedLegacyImportAndSelfExportDeduplicate() throws Exception {
+    Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+    ProjectStore store = new ProjectStore(context);
+    JSONObject p = store.create(new JSONObject().put("kind", "creation").put("title", "Legacy"));
+    String source = p.getString("id"), id = UUID.randomUUID().toString();
+    File archive = null, own = null;
+    try {
+      archive = store.pack(source);
+      ProjectStore.remove(store.dir(source));
+      JSONObject imported = store.importArchive(archive, id);
+      imported.remove("importFingerprint");
+      ProjectStore.write(new File(store.dir(id), "project.json"), imported);
+      store.update(id, new JSONObject().put("starred", true));
+      assertTrue(store.get(id).has("importFingerprint"));
+      JSONObject edited = store.get(id);
+      edited.remove("importFingerprint");
+      ProjectStore.write(new File(store.dir(id), "project.json"), edited);
+      assertEquals(id, store.importArchive(archive, UUID.randomUUID().toString()).getString("id"));
+      own = store.pack(id);
+      assertEquals(id, store.importArchive(own, UUID.randomUUID().toString()).getString("id"));
+    } finally {
+      ProjectStore.remove(store.dir(source));
+      ProjectStore.remove(store.dir(id));
+      if (archive != null) archive.delete();
+      if (own != null) own.delete();
+    }
+  }
+
+  @Test
   public void projectDetailsArchiveRoundtrip() throws Exception {
     Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
     ProjectStore store = new ProjectStore(context);
@@ -240,7 +350,7 @@ public class StorageTest {
     assertEquals(
         ProjectStore.sha(wave),
         ProjectStore.sha(store.asset(imported.getString("id"), imported.getString("original"))));
-    store.trash(imported.getString("id"));
+    if (!id.equals(imported.getString("id"))) store.trash(imported.getString("id"));
     JSONObject practice =
         store.create(
             new JSONObject()

@@ -22,7 +22,7 @@ function pan(value) {
     ? `pan=stereo|c0=c0+${Math.cos(((p + 1) * Math.PI) / 2).toFixed(8)}*c1|c1=${Math.sin(((p + 1) * Math.PI) / 2).toFixed(8)}*c1`
     : `pan=stereo|c0=${Math.cos((p * Math.PI) / 2).toFixed(8)}*c0|c1=c1+${Math.sin((p * Math.PI) / 2).toFixed(8)}*c0`;
 }
-function exportMix(store, id, ffmpeg, dest, region) {
+async function exportMix(store, id, ffmpeg, dest, region) {
   const p = store.get(id);
   if (
     !Number.isFinite(p.practice?.tempo) ||
@@ -53,8 +53,24 @@ function exportMix(store, id, ffmpeg, dest, region) {
     tracks = tracks.map((track) => ({ ...track, mute: track.mute || !takeIds.has(track.id) }));
   }
   const solo = tracks.some((t) => t.solo && !t.mute);
-  tracks = tracks.filter((t) => !t.mute && (!solo || t.solo));
-  if (!tracks.length) throw new Error('当前所有音轨都已关闭声音');
+  const audible = tracks.filter((t) => !t.mute && (!solo || t.solo));
+  if (!audible.length) throw new Error('当前所有音轨都已关闭声音');
+  let end = Math.max(p.duration || 0, region?.b || 0);
+  for (const track of tracks) {
+    if (!track.mute && (!solo || track.solo)) continue;
+    let seconds = track.duration;
+    if (!Number.isFinite(seconds)) {
+      try {
+        seconds = (
+          await require('./playback-budget.cjs').mediaInfo(store.asset(id, track.file), ffmpeg)
+        ).seconds;
+      } catch {
+        continue; // Use the stored project timeline when an inaudible source is unavailable.
+      }
+    }
+    end = Math.max(end, (track.start || 0) + seconds);
+  }
+  tracks = audible;
   const args = ['-nostdin', '-v', 'error', '-y'];
   for (const t of tracks) args.push('-i', store.asset(id, t.file));
   const filters = tracks.map(
@@ -62,18 +78,29 @@ function exportMix(store, id, ffmpeg, dest, region) {
       `[${i}:a]aresample=44100,aformat=channel_layouts=stereo,${t.start < 0 ? 'atrim=start=' + -t.start + ',asetpts=PTS-STARTPTS,' : t.start > 0 ? 'adelay=' + Math.round(t.start * 1000) + ':all=1,' : ''}${pan(t.pan)},volume=${Math.max(0, Math.min(1.5, t.gain))}[a${i}]`,
   );
   const pitch = 2 ** (p.practice.pitch / 12);
+  if (
+    region &&
+    (!Number.isFinite(region.a) ||
+      !Number.isFinite(region.b) ||
+      region.a < 0 ||
+      region.b <= region.a ||
+      region.b > require('../shared/project-validation.cjs').MAX_SECONDS)
+  )
+    throw new Error('循环区间无效');
+  const timeline = end > 0 ? ',apad=whole_dur=' + end : '';
+  const trim = region
+    ? ',atrim=start=' + region.a + ':end=' + region.b + ',asetpts=PTS-STARTPTS'
+    : '';
+  const selectedLength = region ? (region.b - region.a) / p.practice.tempo : 0;
+  let outputTrim = '';
+  if (selectedLength)
+    outputTrim = ',apad=whole_dur=' + selectedLength + ',atrim=duration=' + selectedLength;
+  else if (end) outputTrim = ',apad=whole_dur=' + end / p.practice.tempo;
   filters.push(
     tracks.map((_, i) => `[a${i}]`).join('') +
-      `amix=inputs=${tracks.length}:normalize=0,asetrate=${44100 * pitch},aresample=44100,${atempo(p.practice.tempo / pitch)},volume=${p.practice.master},aeval=exprs='clip(val(0),-0.98,0.98)|clip(val(1),-0.98,0.98)'[out]`,
+      `amix=inputs=${tracks.length}:normalize=0${timeline}${trim},asetrate=${44100 * pitch},aresample=44100,${atempo(p.practice.tempo / pitch)}${outputTrim},volume=${p.practice.master},aeval=exprs='clip(val(0),-0.98,0.98)|clip(val(1),-0.98,0.98)'[out]`,
   );
   args.push('-filter_complex', filters.join(';'), '-map', '[out]');
-  if (region && region.b > region.a)
-    args.push(
-      '-ss',
-      String(region.a / p.practice.tempo),
-      '-t',
-      String((region.b - region.a) / p.practice.tempo),
-    );
   if (path.extname(dest).toLowerCase() === '.mp3') args.push('-c:a', 'libmp3lame', '-b:a', '320k');
   else args.push('-c:a', 'pcm_s24le', '-rf64', 'auto');
   args.push(dest);
@@ -94,7 +121,7 @@ function exportStems(store, id, folder) {
   let index = 0;
   for (const t of [
     ...(p.kind === 'creation' && !p.sessionSource ? [] : [{ name: 'original', file: p.original }]),
-    ...p.tracks,
+    ...(p.kind === 'creation' && !p.sessionSource ? [] : p.tracks),
     ...(p.sourceGroups || []).flatMap((group) => group.tracks),
     ...(p.takes || []).filter((t) =>
       p.kind === 'creation' ? !t.libraryOnly : (p.selectedTakeIds || []).includes(t.id),

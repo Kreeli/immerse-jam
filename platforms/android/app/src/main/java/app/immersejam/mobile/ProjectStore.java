@@ -93,6 +93,11 @@ public class ProjectStore {
     p = normalize(p);
     if (!p.has("kind")) p.put("kind", "practice");
     ProjectValidation.validate(p);
+    try {
+      finishSourceRemoval(p);
+    } catch (Exception error) {
+      android.util.Log.w("ImmerseStore", "Source cleanup will be retried", error);
+    }
     File pending = new File(root, "pending-results");
     File[] records = pending.listFiles();
     if (records != null)
@@ -141,7 +146,16 @@ public class ProjectStore {
     File previous = new File(dir(project.getString("id")), "project.json");
     if (previous.isFile())
       try {
-        ProjectValidation.validate(normalize(read(previous)));
+        JSONObject last = normalize(read(previous));
+        ProjectValidation.validate(last);
+        if (project.getString("id").equals(last.optString("id"))) {
+          finishSourceRemoval(last);
+          if (project.has("importRevision") && !project.has("importFingerprint") &&
+              project.optString("importRevision").equals(last.optString("importRevision"))) {
+            String fingerprint = last.has("importFingerprint") ? last.getString("importFingerprint") : legacyFingerprint(last);
+            if (fingerprint != null) project.put("importFingerprint", fingerprint);
+          }
+        }
         Files.copy(
             previous.toPath(),
             new File(previous.getParentFile(), "project.previous.json").toPath(),
@@ -320,8 +334,12 @@ public class ProjectStore {
         digest.update(b, 0, n);
       }
     }
+    return hex(digest.digest());
+  }
+
+  private static String hex(byte[] bytes) {
     StringBuilder result = new StringBuilder();
-    for (byte b : digest.digest())
+    for (byte b : bytes)
       result.append(String.format(java.util.Locale.ROOT, "%02x", b & 255));
     return result.toString();
   }
@@ -422,6 +440,40 @@ public class ProjectStore {
     }
   }
 
+  private String legacyFingerprint(JSONObject item) throws Exception {
+    if (!item.has("importRevision") || item.has("importFingerprint")) return null;
+    File previous = asset(item.getString("id"), "project.previous.json");
+    File sums = asset(item.getString("id"), "checksums.json");
+    if (!previous.isFile() || !sums.isFile() || previous.length() > 16L * 1048576 ||
+        sums.length() > 16L * 1048576) return null;
+    JSONObject original = read(previous);
+    if (item.getString("id").equals(original.optString("id")) ||
+        !item.optString("importRevision").equals(original.optString("updatedAt")) ||
+        !item.optString("originId").equals(original.optString("originId", original.optString("id"))) ||
+        !item.optString("kind","practice").equals(original.optString("kind","practice"))) return null;
+    return sha(previous) + sha(sums);
+  }
+
+  private boolean matchesLegacyArchive(JSONObject item, JSONObject source, JSONObject hashes, String fingerprint) throws Exception {
+    if (item.has("importFingerprint") || !item.has("importRevision") ||
+        !item.optString("importRevision").equals(source.optString("updatedAt"))) return false;
+    String exact = legacyFingerprint(item);
+    if (exact != null) return exact.equals(fingerprint);
+    File sums = asset(item.getString("id"), "checksums.json");
+    if (!sums.isFile() || sums.length() > 16L * 1048576) return false;
+    JSONObject oldHashes = read(sums);
+    if (hashes.length() != oldHashes.length()) return false;
+    for (Iterator<String> keys = hashes.keys(); keys.hasNext();) {
+      String key = keys.next();
+      if (!hashes.getString(key).equals(oldHashes.optString(key))) return false;
+    }
+    for (String key : List.of("analysis", "alignment", "activeChordChartId", "scoreMidi",
+        "attachments", "bookmarks", "takes", "selectedTakeIds", "chordCharts")) {
+      if (!Objects.equals(item.optString(key, "null"), source.optString(key, "null"))) return false;
+    }
+    return true;
+  }
+
   public JSONObject importArchive(File archive, String id) throws Exception {
     File folder = dir(id);
     folder.mkdirs();
@@ -467,6 +519,7 @@ public class ProjectStore {
     try {
       JSONObject p = read(new File(folder, "project.json")),
           hashes = read(new File(folder, "checksums.json"));
+      String fingerprint = sha(new File(folder, "project.json")) + sha(new File(folder, "checksums.json"));
       Iterator<String> keys = hashes.keys();
       while (keys.hasNext()) {
         String file = keys.next();
@@ -486,7 +539,11 @@ public class ProjectStore {
           try {
             JSONObject item = get(directory.getName());
             if (item.optString("originId", item.optString("id")).equals(origin)
-                && item.optString("importRevision", item.optString("updatedAt")).equals(p.optString("updatedAt"))) {
+                && item.optString("kind").equals(p.optString("kind"))
+                && (fingerprint.equals(item.optString("importFingerprint"))
+                    || matchesLegacyArchive(item, p, hashes, fingerprint)
+                    || (item.optString("id").equals(p.optString("id"))
+                        && item.optString("updatedAt").equals(p.optString("updatedAt"))))) {
               remove(folder);
               return item;
             }
@@ -494,6 +551,7 @@ public class ProjectStore {
             /* Broken items remain visible in list(). */
           }
         }
+      p.put("importFingerprint", fingerprint);
       p.put("importRevision", p.optString("updatedAt"));
       p.put("originId", origin).put("id", id).remove("recordingSettings");
       ProjectValidation.validate(p);
@@ -516,14 +574,66 @@ public class ProjectStore {
     }
   }
 
+  void finishSourceRemoval(JSONObject current) throws Exception {
+    if (!"creation".equals(current.optString("kind")) || !current.isNull("sessionSource")) return;
+    String id = current.getString("id");
+    File backup = new File(dir(id), "project.previous.json");
+    if (!backup.isFile()) return;
+    JSONObject before = read(backup);
+    if (!id.equals(before.optString("id")) || !"creation".equals(before.optString("kind"))
+        || before.isNull("sessionSource") || before.optString("original").equals(current.optString("original"))) return;
+    Set<File> retained = new HashSet<>();
+    for (String relative : media(current)) retained.add(asset(id, relative));
+    JSONObject source = new JSONObject();
+    for (String key : List.of("original", "playback", "originalMix", "tracks", "results"))
+      if (before.has(key)) source.put(key, before.get(key));
+    for (String relative : media(source)) {
+      if (!relative.toLowerCase(Locale.ROOT).matches(".*\\.(wav|mp3|m4a|flac|ogg|aac|mp4|mov|webm|opus|aiff?)")) continue;
+      File file = asset(id, relative);
+      if (file.isFile() && !retained.contains(file)) Files.deleteIfExists(file.toPath());
+    }
+    write(backup, current);
+  }
+
+  static void detachSource(JSONObject p) throws Exception {
+    for (String key : List.of("sessionSource", "sourceMix", "playback", "originalMix", "original"))
+      p.remove(key);
+    JSONArray presets = p.optJSONArray("presets");
+    if (presets != null) for (int i = 0; i < presets.length(); i++) {
+      JSONObject preset = presets.getJSONObject(i);
+      preset.remove("originalMix");
+      preset.remove("sourceMix");
+      preset.put("tracks", new JSONArray());
+    }
+    p.put("tracks", new JSONArray()).put("results", new JSONArray()).put("activeResultId", JSONObject.NULL);
+  }
+
   public File pack(String id) throws Exception {
     JSONObject p = get(id);
     File exports = new File(context.getExternalFilesDir(null), "exports");
     exports.mkdirs();
     File file = new File(exports, UUID.randomUUID() + ".ijam");
     JSONObject hashes = new JSONObject();
+    boolean creation = p.optString("kind").equals("creation");
+    boolean detached = creation && p.isNull("sessionSource");
+    if (detached) detachSource(p);
+    if (creation && (!p.isNull("sessionSource") || p.getJSONArray("sourceGroups").length() > 0))
+      p.put("schemaVersion", 2);
     try (ZipOutputStream out = new ZipOutputStream(new FileOutputStream(file))) {
-      for (String relative : media(p)) {
+      Set<String> retained = media(p);
+      if (detached) {
+        Set<String> names = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        names.addAll(retained);
+        String placeholder = "media/empty.wav";
+        for (int i = 1; names.contains(placeholder); i++) placeholder = "media/empty-" + i + ".wav";
+        p.put("original", placeholder);
+        byte[] silence = AudioFiles.waveHeader(0, 44100, 16, 1);
+        hashes.put(placeholder, hex(MessageDigest.getInstance("SHA-256").digest(silence)));
+        out.putNextEntry(new ZipEntry(placeholder));
+        out.write(silence);
+        out.closeEntry();
+      }
+      for (String relative : retained) {
         File media = asset(id, relative);
         hashes.put(relative, sha(media));
         out.putNextEntry(new ZipEntry(relative));
@@ -532,6 +642,7 @@ public class ProjectStore {
       }
       out.putNextEntry(new ZipEntry("project.json"));
       p.remove("importRevision");
+      p.remove("importFingerprint");
       p.remove("recordingSettings");
       p.remove("trackOrder");
       if (!p.optString("kind").equals("creation") && p.getJSONArray("sourceGroups").length() == 0)
@@ -574,7 +685,9 @@ public class ProjectStore {
               .put("projectId", sourceId)
               .put("title", source.getString("title"))
               .put("resultId", requested));
+      p.remove("originId");
       p.remove("importRevision");
+      p.remove("importFingerprint");
       p.remove("recordingSettings");
       for (String file : media(p)) {
         File dest = asset(id, file);

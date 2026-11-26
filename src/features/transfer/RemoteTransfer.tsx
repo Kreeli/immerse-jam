@@ -1,4 +1,5 @@
 import { jamCall } from '../../platform/project-call';
+import { readOffer, takeAcceptedFile, type OfferedFile } from './receive-offer';
 import { encode, decode } from './connection-code';
 import { useEffect, useRef, useState } from 'react';
 import { message, t as tr } from '../../i18n';
@@ -12,6 +13,7 @@ export default function RemoteTransfer({
   onError: (m: string) => void;
 }) {
   const peerAcks = useRef(false);
+  const accepted = useRef(new Map<string, OfferedFile>());
   const acknowledgement = useRef<{
     offset: number;
     resolve: () => void;
@@ -30,7 +32,7 @@ export default function RemoteTransfer({
     [status, setStatus] = useState(tr('尚未连接')),
     [connected, setConnected] = useState(false),
     [busy, setBusy] = useState(false),
-    [offers, setOffers] = useState<any[]>([]);
+    [offers, setOffers] = useState<(OfferedFile & { accept?: boolean })[]>([]);
   const guard = async (fn: () => Promise<void>) => {
     try {
       await fn();
@@ -43,6 +45,8 @@ export default function RemoteTransfer({
     if (connectTimer.current) clearTimeout(connectTimer.current);
     acknowledgement.current?.reject(new Error(tr('连接已断开，请重新发送')));
     acknowledgement.current = null;
+    channel.current = null;
+    accepted.current.clear();
     receiving.current = null;
     setOffers([]);
     setConnected(false);
@@ -60,12 +64,16 @@ export default function RemoteTransfer({
       setStatus(tr('已加密直连，可以互相发送选中的歌曲'));
     };
     c.onclose = () => {
+      if (channel.current !== c) return;
       setConnected(false);
       setStatus(tr('连接已关闭'));
       disconnect();
     };
-    c.onerror = disconnect;
+    c.onerror = () => {
+      if (channel.current === c) disconnect();
+    };
     c.onmessage = (e) => {
+      if (channel.current !== c) return;
       // Acknowledgements must bypass the disk queue: send() can be waiting
       // inside that queue while handling the peer's accept-files message.
       if (typeof e.data === 'string') {
@@ -93,12 +101,15 @@ export default function RemoteTransfer({
       }
       queue.current = queue.current
         .then(async () => {
+          if (channel.current !== c) return;
           if (typeof e.data === 'string') {
             const message = JSON.parse(e.data);
-            if (message.type === 'offer-files') setOffers(message.files);
+            if (message.type === 'offer-files') setOffers(readOffer(message.files));
             if (message.type === 'file-start') {
               if (receiving.current) throw new Error(tr('已有文件正在接收'));
-              const id = await jamCall<string>('peer-begin', message.file);
+              const file = takeAcceptedFile(accepted.current, message.file);
+              const id = await jamCall<string>('peer-begin', file);
+              if (channel.current !== c) return;
               receiving.current = { id, offset: 0 };
             }
             if (message.type === 'file-end') {
@@ -123,6 +134,7 @@ export default function RemoteTransfer({
         })
         .catch((error) => {
           c.close();
+          if (channel.current !== c) return;
           disconnect();
           onError(error.message);
         });
@@ -134,8 +146,12 @@ export default function RemoteTransfer({
     setConnected(false);
     const p = new RTCPeerConnection({ iceServers: [] });
     peer.current = p;
-    p.ondatachannel = (e) => bind(e.channel);
+    p.ondatachannel = (e) => {
+      if (peer.current !== p || channel.current) e.channel.close();
+      else bind(e.channel);
+    };
     p.onconnectionstatechange = () => {
+      if (peer.current !== p) return;
       if (['failed', 'closed', 'disconnected'].includes(p.connectionState)) {
         disconnect();
       }
@@ -293,7 +309,6 @@ export default function RemoteTransfer({
             setConnected(false);
             setLocal('');
             setRemote('');
-            void jamCall('peer-close');
           }}
         >
           {tr('断开')}
@@ -344,7 +359,7 @@ export default function RemoteTransfer({
             <label key={f.id} style={{ display: 'block' }}>
               <input
                 type="checkbox"
-                defaultChecked
+                checked={f.accept !== false}
                 onChange={(e) =>
                   setOffers((items) =>
                     items.map((item) =>
@@ -359,12 +374,14 @@ export default function RemoteTransfer({
           <button
             disabled={!offers.some((f) => f.accept !== false)}
             onClick={() => {
+              const selected = offers.filter((file) => file.accept !== false);
+              const approvals = new Map(accepted.current);
+              for (const file of selected) approvals.set(file.id, file);
+              if (approvals.size > 100) return onError(tr('一次最多传输 100 首歌曲'));
               channel.current!.send(
-                JSON.stringify({
-                  type: 'accept-files',
-                  ids: offers.filter((f) => f.accept !== false).map((f) => f.id),
-                }),
+                JSON.stringify({ type: 'accept-files', ids: selected.map((file) => file.id) }),
               );
+              accepted.current = approvals;
               setOffers([]);
               setStatus(tr('准备接收…'));
             }}

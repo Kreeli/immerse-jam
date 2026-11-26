@@ -109,8 +109,25 @@ class Store {
     const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
     if (raw.id !== id) throw new Error('工程编号与目录不一致，请恢复备份或重新导入工程。');
     const repaired = repairLegacyAnalysis(raw);
-    const normalized = normalizePlayback(raw) || repaired;
+    let normalized = normalizePlayback(raw) || repaired;
     validateProject(raw);
+    // Earlier derived sessions sometimes copied the original but omitted its playback copy.
+    if (
+      raw.sessionSource &&
+      raw.originalMix &&
+      raw.originalMix.file !== raw.original &&
+      !fs.existsSync(this.asset(id, raw.originalMix.file)) &&
+      fs.existsSync(this.asset(id, raw.original))
+    ) {
+      if (raw.playback && !fs.existsSync(this.asset(id, raw.playback))) delete raw.playback;
+      raw.originalMix.file = raw.playback || raw.original;
+      normalized = true;
+    }
+    try {
+      require('./content-removal.cjs').finishSourceRemoval(this, raw);
+    } catch {
+      // A locked media file can be retried on the next read or save.
+    }
     const legacyBackup = path.join(this.dir(id), 'project.before-legacy-analysis.json');
     if (repaired && !fs.existsSync(legacyBackup)) fs.copyFileSync(file, legacyBackup);
     if (Array.isArray(raw.results)) {
@@ -140,7 +157,21 @@ class Store {
     const file = path.join(this.dir(p.id), 'project.json');
     if (fs.existsSync(file)) {
       try {
-        validateProject(JSON.parse(fs.readFileSync(file, 'utf8')));
+        const previous = JSON.parse(fs.readFileSync(file, 'utf8'));
+        validateProject(previous);
+        if (previous.id === p.id) {
+          require('./content-removal.cjs').finishSourceRemoval(this, previous);
+          if (
+            p.importRevision &&
+            !p.importFingerprint &&
+            previous.importRevision === p.importRevision
+          ) {
+            const fingerprint =
+              previous.importFingerprint ||
+              require('./import-identity.cjs').legacyFingerprint(this, previous);
+            if (fingerprint) p.importFingerprint = fingerprint;
+          }
+        }
         fs.copyFileSync(file, path.join(this.dir(p.id), 'project.previous.json'));
       } catch {
         /* Preserve the last usable backup. */

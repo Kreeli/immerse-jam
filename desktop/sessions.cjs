@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { wavHeader } = require('./takes.cjs');
+const { referencedFiles } = require('../shared/project-validation.cjs');
 const { resultInfo } = require('./results.cjs');
 const { atomicJson } = require('./store.cjs');
 function createSession(store, options) {
@@ -43,14 +44,10 @@ function createSession(store, options) {
         sessionSource: { projectId: source.id, title: source.title, resultId: result?.id || null },
         practiceMode: kind === 'practice' ? mode : undefined,
       };
-      const files = new Set([
-        source.original,
-        ...(source.playback ? [source.playback] : []),
-        ...project.tracks.map((track) => track.file),
-        ...(source.attachments || []).map((item) => item.file),
-        ...(source.scoreMidi ? [source.scoreMidi] : []),
-      ]);
-      for (const file of files) {
+      delete project.originId;
+      delete project.importRevision;
+      delete project.importFingerprint;
+      for (const file of referencedFiles(project)) {
         const dest = store.asset(id, file);
         fs.mkdirSync(path.dirname(dest), { recursive: true });
         fs.copyFileSync(store.asset(source.id, file), dest, fs.constants.COPYFILE_FICLONE);

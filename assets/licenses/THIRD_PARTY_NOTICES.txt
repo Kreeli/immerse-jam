@@ -25,7 +25,7 @@ https://github.com/101arrowz/fflate
 qrcode 1.5.4 — MIT
 git://github.com/soldair/node-qrcode.git
 
-archiver 7.0.1 — MIT
+archiver 8.0.0 — MIT
 https://github.com/archiverjs/node-archiver.git
 
 adm-zip 0.6.1 — MIT

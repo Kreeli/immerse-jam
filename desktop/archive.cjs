@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { pipeline } = require('node:stream/promises');
+const { archiveFingerprint, matchesLegacyImport } = require('./import-identity.cjs');
 const { contained, replaceFile } = require('./store.cjs');
 const {
   validateProject,
@@ -17,22 +18,19 @@ async function sha(file, signal) {
   }
   return hash.digest('hex');
 }
+async function audioJamFingerprint(root, files, signal) {
+  const hash = crypto.createHash('sha256');
+  for (const file of ['manifest.json', ...files]) {
+    hash.update(JSON.stringify([file, await sha(contained(root, file), signal)]));
+  }
+  return hash.digest('hex');
+}
+
 async function pack(store, id, dest, full = false) {
   const project = store.get(id);
   const snapshot = path.join(path.dirname(dest), '.ijam-snapshot-' + crypto.randomUUID());
   fs.mkdirSync(snapshot, { recursive: true });
   try {
-    const files = new Set([
-      project.original,
-      ...project.tracks.map((t) => t.file),
-      ...(project.results || []).flatMap((result) => result.tracks.map((track) => track.file)),
-      ...(project.sourceGroups || []).flatMap((group) => group.tracks.map((track) => track.file)),
-      ...(full || project.kind === 'creation'
-        ? (project.takes || []).flatMap((t) => [t.file, ...(t.rawFile ? [t.rawFile] : [])])
-        : []),
-      ...(full ? project.attachments.map((a) => a.file) : []),
-      ...(full && project.scoreMidi ? [project.scoreMidi] : []),
-    ]);
     const manifest = {
       ...project,
       schemaVersion:
@@ -52,14 +50,24 @@ async function pack(store, id, dest, full = false) {
           }),
     };
     delete manifest.importRevision;
+    delete manifest.importFingerprint;
     delete manifest.recordingSettings;
     delete manifest.trackOrder;
     delete manifest.playback;
     delete manifest.scoreMidi;
     if (full && project.scoreMidi) manifest.scoreMidi = project.scoreMidi;
-    for (const file of referencedFiles(manifest)) files.add(file);
     const virtual = {};
-    for (const result of project.results || [])
+    if (manifest.kind === 'creation' && !manifest.sessionSource) {
+      // Older versions detached the group in the UI but retained its media references.
+      require('./content-removal.cjs').detachSource(manifest, '');
+      const retained = new Set(referencedFiles(manifest).map((file) => file.toLowerCase()));
+      let name = 'media/empty.wav';
+      for (let i = 1; retained.has(name); i++) name = 'media/empty-' + i + '.wav';
+      manifest.original = name;
+      virtual[name] = require('./takes.cjs').wavHeader(0, 48000);
+    }
+    const files = referencedFiles(manifest).filter((file) => !Object.hasOwn(virtual, file));
+    for (const result of manifest.results || [])
       virtual[result.directory + '/result.json'] = JSON.stringify({
         ...result,
         tracks: result.tracks.map((track) => ({
@@ -77,7 +85,8 @@ async function pack(store, id, dest, full = false) {
     for (const [file, content] of Object.entries(virtual))
       hashes[file] = crypto.createHash('sha256').update(content).digest('hex');
     const temp = dest + '.' + crypto.randomUUID() + '.part';
-    const archive = require('archiver')('zip', { zlib: { level: 3 } }),
+    const { ZipArchive } = await import('archiver');
+    const archive = new ZipArchive({ zlib: { level: 3 } }),
       output = fs.createWriteStream(temp, { flags: 'wx' });
     const done = new Promise((resolve, reject) => {
       output.on('close', resolve);
@@ -247,16 +256,19 @@ async function importArchive(store, file, options = {}) {
   let destination;
   try {
     await extract(file, staging, options);
-    let project, hashes;
+    let project, hashes, fingerprint, beatFile;
     if (fs.existsSync(path.join(staging, 'project.json'))) {
-      project = JSON.parse(fs.readFileSync(path.join(staging, 'project.json')));
+      const manifest = fs.readFileSync(path.join(staging, 'project.json'));
+      project = JSON.parse(manifest);
       if (
         ![1, 2].includes(project.schemaVersion) ||
         !project.original ||
         !Array.isArray(project.tracks)
       )
         throw new Error('不支持的歌曲项目格式');
-      hashes = JSON.parse(fs.readFileSync(path.join(staging, 'checksums.json')));
+      const checksums = fs.readFileSync(path.join(staging, 'checksums.json'));
+      hashes = JSON.parse(checksums);
+      fingerprint = archiveFingerprint(manifest, checksums);
       for (const [name, expected] of Object.entries(hashes)) {
         options.signal?.throwIfAborted();
         if (
@@ -268,6 +280,10 @@ async function importArchive(store, file, options = {}) {
     } else if (fs.existsSync(path.join(staging, 'manifest.json'))) {
       const m = JSON.parse(fs.readFileSync(path.join(staging, 'manifest.json'), 'utf8'));
       project = fromAudioJam(m, staging);
+      if (m.beatInfoId) {
+        const relative = 'assets/' + path.basename(m.beatInfoId + '.json');
+        if (fs.existsSync(contained(staging, relative))) beatFile = relative;
+      }
     } else throw new Error('未发现可识别的歌曲清单');
     repairLegacyAnalysis(project);
     validateProject(project);
@@ -295,16 +311,50 @@ async function importArchive(store, file, options = {}) {
       if (!fs.statSync(contained(staging, name)).isFile()) throw new Error('项目缺少媒体文件');
     }
     const origin = project.originId || project.id;
+    let legacyId;
+    if (!hashes) {
+      const media = [
+        ...new Set([...referencedFiles(project), ...(beatFile ? [beatFile] : [])]),
+      ].sort();
+      fingerprint = await audioJamFingerprint(staging, media, options.signal);
+      for (const previous of store.list()) {
+        if (
+          previous.kind ||
+          previous.originId !== origin ||
+          previous.importFingerprint ||
+          !previous.importRevision ||
+          !fs.existsSync(store.asset(previous.id, 'manifest.json'))
+        )
+          continue;
+        try {
+          if (
+            (await audioJamFingerprint(store.dir(previous.id), media, options.signal)) ===
+            fingerprint
+          ) {
+            legacyId = previous.id;
+            break;
+          }
+        } catch {
+          options.signal?.throwIfAborted();
+          // Missing legacy media leaves this copy ineligible for deduplication.
+        }
+      }
+    }
     options.signal?.throwIfAborted();
     const duplicate = store
       .list()
       .find(
         (p) =>
           (p.originId || p.id) === origin &&
-          (p.importRevision || p.updatedAt) === project.updatedAt,
+          p.kind === project.kind &&
+          (p.id === legacyId ||
+            p.importFingerprint === fingerprint ||
+            (hashes && matchesLegacyImport(store, p, project, hashes, fingerprint)) ||
+            (p.id === project.id && p.updatedAt === project.updatedAt)),
       );
     if (duplicate) return { ...duplicate, duplicate: true };
-    project.importRevision = project.updatedAt;
+    project.importFingerprint = fingerprint;
+    project.importRevision = hashes ? project.updatedAt : fingerprint;
     project.id = crypto.randomUUID();
     project.originId = origin;
     project.updatedAt = new Date().toISOString();
