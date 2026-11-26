@@ -14,7 +14,7 @@ class Transfer {
     this.server = null;
     this.generation = 0;
     this.pending = new Map();
-    this.requests = new Set();
+    this.requests = new Map();
     this.host = host;
     this.sessions = new Map();
   }
@@ -142,17 +142,23 @@ class Transfer {
       fs.mkdirSync(dir, { recursive: true });
       const id = crypto.randomUUID(),
         dest = path.join(dir, id + path.extname(name));
+      if (this.pending.size + this.requests.size >= 100) throw new Error('请先处理待接收的文件');
       let received = 0;
       req.on('data', (chunk) => {
         received += chunk.length;
-        if (received > limit) req.destroy(new Error('文件过大'));
+        this.requests.set(req, received);
+        const total = [
+          ...this.requests.values(),
+          ...Array.from(this.pending.values(), (item) => item.size),
+        ].reduce((sum, bytes) => sum + bytes, 0);
+        if (total > limit) req.destroy(new Error('请先处理待接收的文件'));
       });
-      this.requests.add(req);
+      this.requests.set(req, 0);
       let accepted = false;
       try {
         await pipeline(req, fs.createWriteStream(dest, { flags: 'wx' }));
         if (generation !== this.generation) throw new Error('连接已关闭');
-        this.pending.set(id, { id, file: dest, name });
+        this.pending.set(id, { id, file: dest, name, size: received });
         accepted = true;
         this.onIncoming({ type: 'incoming', id, name, size: received });
         return res.end('OK');
@@ -166,12 +172,14 @@ class Transfer {
   }
   stop() {
     this.generation++;
-    for (const req of this.requests) req.destroy();
+    for (const req of this.requests.keys()) req.destroy();
     for (const item of this.pending.values()) {
+      if (item.selecting) continue;
       try {
         fs.rmSync(item.file, { force: true });
       } catch {}
     }
+    this.onIncoming({ type: 'incoming-cleared' });
     this.pending.clear();
     this.server?.closeAllConnections();
     this.server?.close();

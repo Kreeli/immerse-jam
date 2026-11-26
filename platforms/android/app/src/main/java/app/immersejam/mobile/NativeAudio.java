@@ -374,8 +374,9 @@ final class NativeAudio implements AutoCloseable {
     Set<String> files = new LinkedHashSet<>();
     boolean creation = p.optString("kind").equals("creation");
     if (!creation || p.has("sessionSource")) files.add(p.getString("original"));
-    for (int i = 0; i < p.getJSONArray("tracks").length(); i++)
-      files.add(p.getJSONArray("tracks").getJSONObject(i).getString("file"));
+    if (!creation || p.has("sessionSource"))
+      for (int i = 0; i < p.getJSONArray("tracks").length(); i++)
+        files.add(p.getJSONArray("tracks").getJSONObject(i).getString("file"));
     JSONArray groups = p.getJSONArray("sourceGroups");
     for (int i = 0; i < groups.length(); i++) {
       JSONArray tracks = groups.getJSONObject(i).getJSONArray("tracks");

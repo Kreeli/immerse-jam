@@ -66,7 +66,7 @@ function wavHeader(frames, rate, channels = 2) {
   out.writeUInt32LE(bytes, 40);
   return out;
 }
-function wavDuration(file) {
+function wavInfo(file) {
   const fd = fs.openSync(file, 'r');
   try {
     const head = Buffer.alloc(12);
@@ -78,6 +78,7 @@ function wavDuration(file) {
       throw new Error('无效的录音 WAV');
     let offset = 12,
       rate = 0,
+      channels = 0,
       align = 0;
     let data64 = null;
     const size = fs.fstatSync(fd).size;
@@ -87,10 +88,17 @@ function wavDuration(file) {
       const length = chunk.readUInt32LE(4),
         name = chunk.toString('ascii', 0, 4);
       if (name === 'fmt ') {
-        const fmt = Buffer.alloc(16);
-        fs.readSync(fd, fmt, 0, 16, offset + 8);
+        const fmt = Buffer.alloc(Math.min(40, length));
+        if (fmt.length < 16 || fs.readSync(fd, fmt, 0, fmt.length, offset + 8) !== fmt.length)
+          throw new Error('无效的录音 WAV');
+        let format = fmt.readUInt16LE(0);
+        if (format === 0xfffe && fmt.length === 40) format = fmt.readUInt32LE(24);
+        if (format !== 1 && format !== 3) throw new Error('非 PCM WAV');
+        channels = fmt.readUInt16LE(2);
         rate = fmt.readUInt32LE(4);
         align = fmt.readUInt16LE(12);
+        if (!channels || !rate || align !== channels * Math.ceil(fmt.readUInt16LE(14) / 8))
+          throw new Error('无效的录音 WAV');
       }
       if (name === 'ds64' && length >= 24) {
         const data = Buffer.alloc(24);
@@ -98,18 +106,19 @@ function wavDuration(file) {
         data64 = Number(data.readBigUInt64LE(8));
         if (!Number.isSafeInteger(data64)) throw new Error('RF64 文件过大');
       }
-      if (name === 'data' && rate && align)
-        return (
-          Math.min(length === 0xffffffff && data64 != null ? data64 : length, size - offset - 8) /
-          align /
-          rate
-        );
+      if (name === 'data' && rate && align && channels) {
+        const declared = length === 0xffffffff && data64 != null ? data64 : length;
+        return { seconds: Math.min(declared, size - offset - 8) / align / rate, channels };
+      }
       offset += 8 + length + (length % 2);
     }
     throw new Error('录音 WAV 缺少音频数据');
   } finally {
     fs.closeSync(fd);
   }
+}
+function wavDuration(file) {
+  return wavInfo(file).seconds;
 }
 function convert(ffmpeg, source, dest, tempo = 1, pitch = 0) {
   const factor = 2 ** (-pitch / 12);
@@ -493,6 +502,7 @@ module.exports = {
   validateSelection,
   wavHeader,
   wavDuration,
+  wavInfo,
   convert,
   PRACTICE_SLOTS,
 };

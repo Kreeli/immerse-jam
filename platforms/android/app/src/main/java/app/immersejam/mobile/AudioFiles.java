@@ -31,6 +31,11 @@ public final class AudioFiles {
 
   public static void header(RandomAccessFile out, long frames, int rate, int bits, int format)
       throws IOException {
+    out.seek(0);
+    out.write(waveHeader(frames, rate, bits, format));
+  }
+
+  static byte[] waveHeader(long frames, int rate, int bits, int format) {
     ByteBuffer b = ByteBuffer.allocate(44).order(ByteOrder.LITTLE_ENDIAN);
     int bytes = bits / 8 * 2;
     b.put("RIFF".getBytes())
@@ -45,8 +50,7 @@ public final class AudioFiles {
         .putShort((short) bits)
         .put("data".getBytes())
         .putInt((int) (frames * bytes));
-    out.seek(0);
-    out.write(b.array());
+    return b.array();
   }
 
   public static void writeSilence(File file) throws IOException {

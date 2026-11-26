@@ -65,25 +65,25 @@ export class Player {
     const previous = this.audioSettings,
       project = this.project,
       position = this.position();
+    const reopen = async () => {
+      const current = this.project;
+      if (!current) return this.init();
+      await this.load(current);
+      if (current.id === project?.id && this.project?.id === current.id) this.seek(position);
+    };
     try {
       if (this.initPromise) await this.initPromise;
       await this.outputQueue;
       await this.dispose();
       this.audioSettings = next;
       try {
-        if (project) {
-          await this.load(project);
-          this.seek(position);
-        } else await this.init();
+        await reopen();
         setEnginePreferences(next);
       } catch (error) {
         await this.dispose();
         this.audioSettings = previous;
         try {
-          if (project) {
-            await this.load(project);
-            this.seek(position);
-          } else await this.init();
+          await reopen();
         } catch (restoreError) {
           throw Object.assign(new Error((restoreError as Error).message), {
             restorationFailed: true,
@@ -485,6 +485,7 @@ export class Player {
           await window.jam.call('playback-budget', {
             id: project.id,
             files: tracks.map((t) => t.file),
+            sampleRate: context.sampleRate,
           });
         for (const track of added) {
           let buffer = context.createBuffer(2, 1, 48000);
@@ -598,7 +599,9 @@ export class Player {
       await window.jam.call('playback-budget', {
         id: project.id,
         files: sourceTracks(project).map((track) => track.file),
+        sampleRate: this.context?.sampleRate ?? this.audioSettings.sampleRate,
       });
+    if (generation !== this.generation) return;
     const tracks = sourceTracks(project);
     const opening = window.ImmerseNative
       ? StreamingAudio.open(project, tracks)
@@ -1688,6 +1691,14 @@ export class Player {
     } finally {
       this.mixInFlight.delete(key);
     }
+  }
+  unloadProject() {
+    const closed = this.dispose();
+    this.project = null;
+    this.duration = 0;
+    this.offset = 0;
+    this.loop = null;
+    return closed;
   }
   dispose() {
     window.removeEventListener('immerse-audio', this.nativeEvent);

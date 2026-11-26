@@ -58,7 +58,7 @@ export function useWorkspace() {
     [pair, setPair] = useState<any>(null),
     [migration, setMigration] = useState<any[]>([]),
     [migrationFolder, setMigrationFolder] = useState(''),
-    [incoming, setIncoming] = useState<JamEvent | null>(null),
+    [incomingQueue, setIncomingQueue] = useState<JamEvent[]>([]),
     [loopA, setLoopA] = useState<number | null>(null),
     [loopB, setLoopB] = useState<number | null>(null),
     [loop, setLoop] = useState(false),
@@ -224,6 +224,9 @@ export function useWorkspace() {
     if (current.current?.id === target.id) player.current.pause();
     await jamCall('project-delete', { id: target.id });
     if (current.current?.id === target.id) {
+      current.current = null;
+      void player.current.unloadProject();
+      setLoading(false);
       setProject(null);
       setShowPlayer(false);
       setPage(target.kind ? 'practice' : 'library');
@@ -401,7 +404,7 @@ export function useWorkspace() {
         return;
       }
       // Native output errors belong to the player; they must not clear a processing job.
-      if (e.scope === 'native-audio') return;
+      if (e.scope === 'native-audio' || e.scope === 'update') return;
       if (e.scope === 'audio-tools') {
         if (e.type === 'ready') setJob(null);
         else setJob({ ...e, operation: 'tools' });
@@ -457,8 +460,12 @@ export function useWorkspace() {
         return;
       }
 
+      if (e.type === 'incoming-cleared') {
+        setIncomingQueue((items) => items.filter((item) => !!item.remote !== !!e.remote));
+        return;
+      }
       if (e.type === 'incoming') {
-        setIncoming(e);
+        setIncomingQueue((items) => [...items, e]);
 
         return;
       }
@@ -1050,8 +1057,9 @@ export function useWorkspace() {
     setMigration,
     migrationFolder,
     setMigrationFolder,
-    incoming,
-    setIncoming,
+    incoming: incomingQueue[0],
+    dismissIncoming: (id: string | undefined) =>
+      setIncomingQueue((items) => items.filter((item) => item.id !== id)),
     loopA,
     setLoopA,
     loopB,

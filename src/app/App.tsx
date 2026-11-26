@@ -157,7 +157,7 @@ export default function App() {
     migrationFolder,
     setMigrationFolder,
     incoming,
-    setIncoming,
+    dismissIncoming,
     loopA,
     setLoopA,
     loopB,
@@ -208,6 +208,19 @@ export default function App() {
     setDeletingProject,
     deleteProject,
   } = controller;
+  const [selectingIncoming, setSelectingIncoming] = useState(false);
+  const selectIncoming = (accept: boolean) => {
+    if (!incoming || selectingIncoming) return;
+    setSelectingIncoming(true);
+    void act(async () => {
+      await jamCall(incoming.remote ? 'peer-select' : 'pair-select', { id: incoming.id, accept });
+      dismissIncoming(incoming.id);
+      if (accept) {
+        await refresh();
+        notify(tr('已接收并导入'));
+      }
+    }).finally(() => setSelectingIncoming(false));
+  };
   const lastModal = useRef(modal);
   if (modal) lastModal.current = modal;
   const shownModal = modal || lastModal.current;
@@ -1377,29 +1390,15 @@ export default function App() {
             </p>
             <div className="modal-actions">
               <button
-                onClick={() => {
-                  void jamCall(incoming.remote ? 'peer-select' : 'pair-select', {
-                    id: incoming.id,
-                    accept: false,
-                  });
-                  setIncoming(null);
-                }}
+                disabled={selectingIncoming}
+                onClick={() => selectIncoming(false)}
               >
                 {tr('暂不导入')}
               </button>
               <button
                 className="primary"
-                onClick={() =>
-                  void act(async () => {
-                    await jamCall(incoming.remote ? 'peer-select' : 'pair-select', {
-                      id: incoming.id,
-                      accept: true,
-                    });
-                    setIncoming(null);
-                    await refresh();
-                    notify(tr('已接收并导入'));
-                  })
-                }
+                disabled={selectingIncoming}
+                onClick={() => selectIncoming(true)}
               >
                 {tr('接收并导入')}
               </button>
